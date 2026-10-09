@@ -1,0 +1,45 @@
+{
+  "results": [
+    {
+      "actual_identity": [
+        "P01"
+      ],
+      "actual_rows": [
+        [
+          "P100",
+          "V1",
+          "Eevee Maintenance",
+          15000,
+          "USD"
+        ]
+      ],
+      "id": "identity_is_unique",
+      "status": "passed"
+    },
+    {
+      "actual_identity": [
+        "P01"
+      ],
+      "actual_rows": [
+        [
+          "P100",
+          "V1",
+          "Eevee Maintenance",
+          15000,
+          "USD"
+        ]
+      ],
+      "id": "exact_rows_and_values",
+      "status": "passed"
+    },
+    {
+      "actual_identity": [
+        "P02"
+      ],
+      "actual_rows": [],
+      "id": "known_empty_is_ok",
+      "status": "passed"
+    }
+  ],
+  "run": "pallet-reviewed-v1"
+}

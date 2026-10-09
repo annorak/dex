@@ -1,0 +1,17 @@
+company: cerulean
+answers:
+- topic: status_meaning
+  target: accounting.invoices.status
+  answer: C means current, so the invoice is posted and counts. V means void, so ignore it.
+- topic: balance_rule
+  target: accounting.invoices
+  answer: There's no balance field. What's owed is the total minus the payments recorded against the invoice. An invoice is unpaid if it isn't void and something is still owed.
+- topic: trusted_source
+  target: open_invoices_aug
+  answer: Use the accounting system for anything about balances. The Open Invoices sheet is a monthly export for the board, so it goes stale.
+- topic: id_scope
+  target: directory.vendors.vendor_id
+  answer: Vendor numbers are assigned per community. V7 at one community is a different vendor from V7 at another.
+- topic: current_process
+  target: unpaid_invoices_by_community
+  answer: Board members ask before their meetings. The AP clerk emails them the latest Open Invoices sheet.

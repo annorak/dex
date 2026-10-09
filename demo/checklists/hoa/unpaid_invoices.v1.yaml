@@ -1,0 +1,23 @@
+industry: hoa
+lookup: unpaid_invoices_by_community
+version: 1
+question: Which invoices are still unpaid for a community, and which vendors are they for?
+inputs:
+  community_name: the exact name of one community
+outputs:
+- invoice_id
+- vendor_id
+- vendor_name
+- outstanding_cents
+- currency
+ask_employee:
+- What does each invoice status code mean? Codes differ between companies.
+- Is a balance stored on each invoice, or is it worked out from payments?
+- If two sources disagree about what's owed, which one do you trust?
+watch_for:
+- Community names can look alike. Match the exact name, then confirm the ID.
+- Check whether amounts are stored in cents or dollars.
+checks:
+- identity_is_unique
+- exact_rows_and_values
+- known_empty_is_ok

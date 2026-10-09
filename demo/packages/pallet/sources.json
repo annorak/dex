@@ -1,0 +1,50 @@
+{
+  "as_of": "2026-09-30",
+  "company": "pallet",
+  "snapshot": "pallet-v1",
+  "sources": [
+    {
+      "file": "evidence/accounting.db",
+      "id": "accounting",
+      "original_file": "accounting.db",
+      "tables": {
+        "communities": {
+          "primary_key": [
+            "community_id"
+          ],
+          "records": [
+            "pallet/P01",
+            "pallet/P02"
+          ]
+        },
+        "invoices": {
+          "primary_key": [
+            "invoice_id"
+          ],
+          "records": [
+            "pallet/P01/P100",
+            "pallet/P01/P101"
+          ]
+        },
+        "vendors": {
+          "primary_key": [
+            "vendor_id"
+          ],
+          "records": [
+            "pallet/P01/V1"
+          ]
+        }
+      }
+    },
+    {
+      "file": "evidence/ap_process.md",
+      "id": "docs",
+      "items": [
+        1,
+        2,
+        3
+      ],
+      "original_file": "docs/ap_process.md"
+    }
+  ]
+}

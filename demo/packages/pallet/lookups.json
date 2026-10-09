@@ -1,0 +1,27 @@
+{
+  "lookups": [
+    {
+      "answer_query": "queries/answer.sql",
+      "id": "unpaid_invoices_by_community",
+      "identity_query": "queries/identity.sql",
+      "inputs": {
+        "community_name": "the exact name of one community"
+      },
+      "outputs": [
+        "invoice_id",
+        "vendor_id",
+        "vendor_name",
+        "outstanding_cents",
+        "currency"
+      ],
+      "question": "Which invoices are still unpaid for a community, and which vendors are they for?",
+      "rules": [
+        "Exact community name must resolve once.",
+        "O is open; C is closed.",
+        "Positive stored balance_cents on an open invoice is unpaid.",
+        "Vendor IDs are unique across the company.",
+        "Amounts are whole US cents; currency is USD."
+      ]
+    }
+  ]
+}

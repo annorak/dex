@@ -1,0 +1,257 @@
+{
+  "as_of": "2026-09-30",
+  "checks": [
+    {
+      "check": "identity_viridian",
+      "identity": [
+        "cerulean/H17"
+      ],
+      "input": {
+        "community_name": "Viridian Court"
+      },
+      "rows": [
+        {
+          "currency": "USD",
+          "invoice_id": "cerulean/H17/I100",
+          "outstanding_cents": 75000,
+          "source_refs": [
+            {
+              "record_id": "cerulean/H17/I100",
+              "source": "accounting",
+              "table": "invoices"
+            },
+            {
+              "record_id": "cerulean/H17/PAY3",
+              "source": "accounting",
+              "table": "payments"
+            },
+            {
+              "record_id": "cerulean/H17/PAY4",
+              "source": "accounting",
+              "table": "payments"
+            }
+          ],
+          "vendor_id": "cerulean/H17/V7",
+          "vendor_name": "Pikachu Lighting"
+        }
+      ],
+      "status": "ok"
+    },
+    {
+      "check": "rows_viridian",
+      "identity": [
+        "cerulean/H17"
+      ],
+      "input": {
+        "community_name": "Viridian Court"
+      },
+      "rows": [
+        {
+          "currency": "USD",
+          "invoice_id": "cerulean/H17/I100",
+          "outstanding_cents": 75000,
+          "source_refs": [
+            {
+              "record_id": "cerulean/H17/I100",
+              "source": "accounting",
+              "table": "invoices"
+            },
+            {
+              "record_id": "cerulean/H17/PAY3",
+              "source": "accounting",
+              "table": "payments"
+            },
+            {
+              "record_id": "cerulean/H17/PAY4",
+              "source": "accounting",
+              "table": "payments"
+            }
+          ],
+          "vendor_id": "cerulean/H17/V7",
+          "vendor_name": "Pikachu Lighting"
+        }
+      ],
+      "status": "ok"
+    },
+    {
+      "check": "values_viridian",
+      "identity": [
+        "cerulean/H17"
+      ],
+      "input": {
+        "community_name": "Viridian Court"
+      },
+      "rows": [
+        {
+          "currency": "USD",
+          "invoice_id": "cerulean/H17/I100",
+          "outstanding_cents": 75000,
+          "source_refs": [
+            {
+              "record_id": "cerulean/H17/I100",
+              "source": "accounting",
+              "table": "invoices"
+            },
+            {
+              "record_id": "cerulean/H17/PAY3",
+              "source": "accounting",
+              "table": "payments"
+            },
+            {
+              "record_id": "cerulean/H17/PAY4",
+              "source": "accounting",
+              "table": "payments"
+            }
+          ],
+          "vendor_id": "cerulean/H17/V7",
+          "vendor_name": "Pikachu Lighting"
+        }
+      ],
+      "status": "ok"
+    },
+    {
+      "check": "lookalike_viridian_ii",
+      "identity": [
+        "cerulean/H71"
+      ],
+      "input": {
+        "community_name": "Viridian Court II"
+      },
+      "rows": [
+        {
+          "currency": "USD",
+          "invoice_id": "cerulean/H71/I200",
+          "outstanding_cents": 99900,
+          "source_refs": [
+            {
+              "record_id": "cerulean/H71/I200",
+              "source": "accounting",
+              "table": "invoices"
+            }
+          ],
+          "vendor_id": "cerulean/H71/V7",
+          "vendor_name": "Squirtle Pool Care"
+        }
+      ],
+      "status": "ok"
+    },
+    {
+      "check": "empty_pewter",
+      "identity": [
+        "cerulean/H18"
+      ],
+      "input": {
+        "community_name": "Pewter Court"
+      },
+      "rows": [],
+      "status": "ok"
+    },
+    {
+      "check": "unknown_name",
+      "identity": [],
+      "input": {
+        "community_name": "Viridian Ct"
+      },
+      "rows": [],
+      "status": "unresolved_identity"
+    },
+    {
+      "check": "source_refs",
+      "identity": [
+        "cerulean/H17"
+      ],
+      "input": {
+        "community_name": "Viridian Court"
+      },
+      "rows": [
+        {
+          "currency": "USD",
+          "invoice_id": "cerulean/H17/I100",
+          "outstanding_cents": 75000,
+          "source_refs": [
+            {
+              "record_id": "cerulean/H17/I100",
+              "source": "accounting",
+              "table": "invoices"
+            },
+            {
+              "record_id": "cerulean/H17/PAY3",
+              "source": "accounting",
+              "table": "payments"
+            },
+            {
+              "record_id": "cerulean/H17/PAY4",
+              "source": "accounting",
+              "table": "payments"
+            }
+          ],
+          "vendor_id": "cerulean/H17/V7",
+          "vendor_name": "Pikachu Lighting"
+        }
+      ],
+      "status": "ok"
+    }
+  ],
+  "company": "cerulean",
+  "follow_up": {
+    "input": {
+      "community_name": "Viridian Court",
+      "from_date": "2026-01-01",
+      "through_date": "2026-09-30"
+    },
+    "question": "How much has each Viridian Court vendor been paid in 2026, counting payments dated January 1 through September 30?",
+    "rows": [
+      {
+        "currency": "USD",
+        "paid_cents": 40000,
+        "vendor_id": "cerulean/H17/V3",
+        "vendor_name": "Bulbasaur Landscaping"
+      },
+      {
+        "currency": "USD",
+        "paid_cents": 70000,
+        "vendor_id": "cerulean/H17/V7",
+        "vendor_name": "Pikachu Lighting"
+      }
+    ],
+    "status": "ok"
+  },
+  "lookup": "unpaid_invoices_by_community",
+  "main": {
+    "check": "rows_viridian",
+    "identity": [
+      "cerulean/H17"
+    ],
+    "input": {
+      "community_name": "Viridian Court"
+    },
+    "rows": [
+      {
+        "currency": "USD",
+        "invoice_id": "cerulean/H17/I100",
+        "outstanding_cents": 75000,
+        "source_refs": [
+          {
+            "record_id": "cerulean/H17/I100",
+            "source": "accounting",
+            "table": "invoices"
+          },
+          {
+            "record_id": "cerulean/H17/PAY3",
+            "source": "accounting",
+            "table": "payments"
+          },
+          {
+            "record_id": "cerulean/H17/PAY4",
+            "source": "accounting",
+            "table": "payments"
+          }
+        ],
+        "vendor_id": "cerulean/H17/V7",
+        "vendor_name": "Pikachu Lighting"
+      }
+    ],
+    "status": "ok"
+  },
+  "snapshot": "cerulean-v1"
+}

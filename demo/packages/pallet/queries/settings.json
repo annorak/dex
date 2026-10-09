@@ -1,0 +1,5 @@
+{
+  "database": "evidence/accounting.db",
+  "read_only": true,
+  "timeout_seconds": 2
+}

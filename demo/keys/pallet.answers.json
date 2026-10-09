@@ -1,0 +1,52 @@
+{
+  "as_of": "2026-09-30",
+  "company": "pallet",
+  "empty": {
+    "check": "empty_lavender",
+    "identity": [
+      "pallet/P02"
+    ],
+    "input": {
+      "community_name": "Lavender Grove"
+    },
+    "rows": [],
+    "status": "ok"
+  },
+  "lookup": "unpaid_invoices_by_community",
+  "main": {
+    "check": "rows_pallet",
+    "identity": [
+      "pallet/P01"
+    ],
+    "input": {
+      "community_name": "Pallet Grove"
+    },
+    "rows": [
+      {
+        "currency": "USD",
+        "invoice_id": "pallet/P01/P100",
+        "outstanding_cents": 15000,
+        "source_refs": [
+          {
+            "record_id": "pallet/P01/P100",
+            "source": "accounting",
+            "table": "invoices"
+          }
+        ],
+        "vendor_id": "pallet/P01/V1",
+        "vendor_name": "Eevee Maintenance"
+      }
+    ],
+    "status": "ok"
+  },
+  "snapshot": "pallet-v1",
+  "unknown": {
+    "check": "unknown_name",
+    "identity": [],
+    "input": {
+      "community_name": "Pallet Gr"
+    },
+    "rows": [],
+    "status": "unresolved_identity"
+  }
+}

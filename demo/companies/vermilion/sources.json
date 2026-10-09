@@ -1,0 +1,33 @@
+{
+  "as_of": "2026-10-08",
+  "company": "vermilion",
+  "snapshot": "vermilion-v1",
+  "sources": [
+    {
+      "file": "bookings.db",
+      "id": "bookings",
+      "tables": [
+        "reservations"
+      ]
+    },
+    {
+      "file": "clients.xlsx",
+      "id": "clients",
+      "tabs": [
+        "Accounts",
+        "Travelers"
+      ]
+    },
+    {
+      "file": "Trips (old).xlsx",
+      "id": "trips_old",
+      "tabs": [
+        "Trips"
+      ]
+    },
+    {
+      "file": "docs/booking_process.md",
+      "id": "docs"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "as_of": "2026-09-30",
+  "company": "cerulean",
+  "snapshot": "cerulean-v1",
+  "sources": [
+    {
+      "file": "accounting.db",
+      "id": "accounting",
+      "tables": [
+        "invoices",
+        "invoice_lines",
+        "payments"
+      ]
+    },
+    {
+      "file": "directory.xlsx",
+      "id": "directory",
+      "tabs": [
+        "Communities",
+        "Vendors"
+      ]
+    },
+    {
+      "file": "Open Invoices - Aug 31 2026.xlsx",
+      "id": "open_invoices_aug",
+      "tabs": [
+        "Open Invoices"
+      ]
+    },
+    {
+      "file": "docs/ap_process.md",
+      "id": "docs"
+    }
+  ]
+}

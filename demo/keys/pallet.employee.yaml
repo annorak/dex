@@ -1,0 +1,14 @@
+company: pallet
+answers:
+- topic: status_meaning
+  target: accounting.invoices.status
+  answer: O means open. C means closed and paid in full.
+- topic: balance_rule
+  target: accounting.invoices.balance_cents
+  answer: Use the stored balance_cents. A positive balance on an open invoice is unpaid.
+- topic: id_scope
+  target: accounting.vendors.vendor_id
+  answer: Vendor IDs are unique across Pallet HOA.
+- topic: trusted_source
+  target: accounting
+  answer: Use the accounting database for balances.

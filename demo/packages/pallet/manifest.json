@@ -1,0 +1,40 @@
+{
+  "as_of": "2026-09-30",
+  "checklist_used": {
+    "industry": "hoa",
+    "lookup": "unpaid_invoices_by_community",
+    "version": 1
+  },
+  "checks_version": 1,
+  "company": "pallet",
+  "dex_version": "0.1.0",
+  "files": {
+    "checks/definitions.json": "5ad17d976d3f05323fe7a1ea441b318929d6fb02083cc12371cea0849141d56a",
+    "checks/results.json": "6fe5d6d488094cac75dd49b41b14ce0e23b62265191e457c7f47b0691c0c2c45",
+    "decisions.json": "7622c75d0fac5c838f8659e727210581cc69358c53c875ce98976a43e52d6d11",
+    "evidence/accounting.db": "cce416e2e29dc10582e8c9494168bf001efa44253758fd53de7a90a23d7c7243",
+    "evidence/ap_process.md": "baecf3428e169660127253fb388fb4a26d1bdf4f32df13059e1d5433bb292273",
+    "lookups.json": "a0a02f05936ff5aedb9f951a1b75da777d178ddaf5f356a22ed5a67acd7ac2c8",
+    "overview.md": "ce041e201cdc0d18ae3fe56b8fdac26cf4bb45788fe0f71657b1bf73b79c5db0",
+    "queries/answer.sql": "68a17194b5cecdafd8ca1719f39293e517f9928f7088888e5de2844845b326a3",
+    "queries/identity.sql": "a283f9c0bd3b5ca389d46126762e90d7574f9bd033b7bc3359a8feaf36a1e196",
+    "queries/settings.json": "05996c712119f4474ba617a6f0e8d36a501919cbd72dde4d81e7573f49e1f6e6",
+    "sources.json": "4074de3d69f68bd13897cfb6da71f77db44b91e41fa9fdf8dbb30c8e9bab0e0a"
+  },
+  "limits": [
+    "Fixed invented snapshot",
+    "No live permissions or freshness validation",
+    "No historical balances"
+  ],
+  "lookup": "unpaid_invoices_by_community",
+  "package_format": 1,
+  "prepared_example": true,
+  "query_version": 1,
+  "question": "Which invoices are still unpaid for a community, and which vendors are they for?",
+  "reviews": [
+    "pallet-employee-1",
+    "pallet-engineer-1"
+  ],
+  "simulated": true,
+  "snapshot": "pallet-v1"
+}

@@ -1,0 +1,29 @@
+{
+  "decisions": [
+    {
+      "at": "2026-09-30T00:00:00Z",
+      "id": "pallet-employee-1",
+      "outcome": "approved",
+      "reviewed": [
+        "status codes",
+        "stored balance",
+        "vendor scope",
+        "trusted source"
+      ],
+      "role": "employee",
+      "simulated": true
+    },
+    {
+      "at": "2026-09-30T00:00:00Z",
+      "id": "pallet-engineer-1",
+      "outcome": "approved",
+      "reviewed": [
+        "queries/identity.sql",
+        "queries/answer.sql",
+        "checks/results.json"
+      ],
+      "role": "engineer",
+      "simulated": true
+    }
+  ]
+}

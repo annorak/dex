@@ -1,0 +1,44 @@
+{
+  "checks": [
+    {
+      "community_name": "Pallet Grove",
+      "expected_identity": [
+        "P01"
+      ],
+      "expected_rows": [
+        [
+          "P100",
+          "V1",
+          "Eevee Maintenance",
+          15000,
+          "USD"
+        ]
+      ],
+      "id": "identity_is_unique"
+    },
+    {
+      "community_name": "Pallet Grove",
+      "expected_identity": [
+        "P01"
+      ],
+      "expected_rows": [
+        [
+          "P100",
+          "V1",
+          "Eevee Maintenance",
+          15000,
+          "USD"
+        ]
+      ],
+      "id": "exact_rows_and_values"
+    },
+    {
+      "community_name": "Lavender Grove",
+      "expected_identity": [
+        "P02"
+      ],
+      "expected_rows": [],
+      "id": "known_empty_is_ok"
+    }
+  ]
+}

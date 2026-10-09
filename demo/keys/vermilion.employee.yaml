@@ -1,0 +1,14 @@
+company: vermilion
+answers:
+- topic: status_meaning
+  target: bookings.reservations.status
+  answer: 'C means confirmed (booked). P means pending: on hold, not booked yet. X means cancelled.'
+- topic: trusted_source
+  target: trips_old
+  answer: Use the bookings system. The Trips sheet stopped being updated in September.
+- topic: date_rule
+  target: bookings.reservations.depart_date
+  answer: It's the day the trip starts. We don't track times here.
+- topic: current_process
+  target: upcoming_reservations
+  answer: Account managers check the bookings system before a client call.

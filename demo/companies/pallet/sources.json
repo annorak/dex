@@ -1,0 +1,20 @@
+{
+  "as_of": "2026-09-30",
+  "company": "pallet",
+  "snapshot": "pallet-v1",
+  "sources": [
+    {
+      "file": "accounting.db",
+      "id": "accounting",
+      "tables": [
+        "communities",
+        "vendors",
+        "invoices"
+      ]
+    },
+    {
+      "file": "docs/ap_process.md",
+      "id": "docs"
+    }
+  ]
+}

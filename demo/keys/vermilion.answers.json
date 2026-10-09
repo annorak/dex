@@ -1,0 +1,223 @@
+{
+  "as_of": "2026-10-08",
+  "checks": [
+    {
+      "check": "identity_ash_silph",
+      "identity": [
+        "vermilion/A01/T07"
+      ],
+      "input": {
+        "account_name": "Silph Account",
+        "after_date": "2026-10-08",
+        "traveler_name": "Ash Ketchum"
+      },
+      "rows": [
+        {
+          "account_id": "vermilion/A01",
+          "account_name": "Silph Account",
+          "depart_date": "2026-10-20",
+          "reservation_id": "vermilion/A01/R100",
+          "source_refs": [
+            {
+              "record_id": "vermilion/A01/R100",
+              "source": "bookings",
+              "table": "reservations"
+            }
+          ],
+          "traveler_id": "vermilion/A01/T07",
+          "traveler_name": "Ash Ketchum"
+        }
+      ],
+      "status": "ok"
+    },
+    {
+      "check": "rows_ash_silph",
+      "identity": [
+        "vermilion/A01/T07"
+      ],
+      "input": {
+        "account_name": "Silph Account",
+        "after_date": "2026-10-08",
+        "traveler_name": "Ash Ketchum"
+      },
+      "rows": [
+        {
+          "account_id": "vermilion/A01",
+          "account_name": "Silph Account",
+          "depart_date": "2026-10-20",
+          "reservation_id": "vermilion/A01/R100",
+          "source_refs": [
+            {
+              "record_id": "vermilion/A01/R100",
+              "source": "bookings",
+              "table": "reservations"
+            }
+          ],
+          "traveler_id": "vermilion/A01/T07",
+          "traveler_name": "Ash Ketchum"
+        }
+      ],
+      "status": "ok"
+    },
+    {
+      "check": "values_ash_silph",
+      "identity": [
+        "vermilion/A01/T07"
+      ],
+      "input": {
+        "account_name": "Silph Account",
+        "after_date": "2026-10-08",
+        "traveler_name": "Ash Ketchum"
+      },
+      "rows": [
+        {
+          "account_id": "vermilion/A01",
+          "account_name": "Silph Account",
+          "depart_date": "2026-10-20",
+          "reservation_id": "vermilion/A01/R100",
+          "source_refs": [
+            {
+              "record_id": "vermilion/A01/R100",
+              "source": "bookings",
+              "table": "reservations"
+            }
+          ],
+          "traveler_id": "vermilion/A01/T07",
+          "traveler_name": "Ash Ketchum"
+        }
+      ],
+      "status": "ok"
+    },
+    {
+      "check": "same_name_devon",
+      "identity": [
+        "vermilion/A02/T07"
+      ],
+      "input": {
+        "account_name": "Devon Account",
+        "after_date": "2026-10-08",
+        "traveler_name": "Ash Ketchum"
+      },
+      "rows": [
+        {
+          "account_id": "vermilion/A02",
+          "account_name": "Devon Account",
+          "depart_date": "2026-10-20",
+          "reservation_id": "vermilion/A02/R200",
+          "source_refs": [
+            {
+              "record_id": "vermilion/A02/R200",
+              "source": "bookings",
+              "table": "reservations"
+            }
+          ],
+          "traveler_id": "vermilion/A02/T07",
+          "traveler_name": "Ash Ketchum"
+        }
+      ],
+      "status": "ok"
+    },
+    {
+      "check": "empty_brock",
+      "identity": [
+        "vermilion/A01/T09"
+      ],
+      "input": {
+        "account_name": "Silph Account",
+        "after_date": "2026-10-08",
+        "traveler_name": "Brock"
+      },
+      "rows": [],
+      "status": "ok"
+    },
+    {
+      "check": "unknown_traveler",
+      "identity": [],
+      "input": {
+        "account_name": "Silph Account",
+        "after_date": "2026-10-08",
+        "traveler_name": "Ash K."
+      },
+      "rows": [],
+      "status": "unresolved_identity"
+    },
+    {
+      "check": "source_refs",
+      "identity": [
+        "vermilion/A01/T07"
+      ],
+      "input": {
+        "account_name": "Silph Account",
+        "after_date": "2026-10-08",
+        "traveler_name": "Ash Ketchum"
+      },
+      "rows": [
+        {
+          "account_id": "vermilion/A01",
+          "account_name": "Silph Account",
+          "depart_date": "2026-10-20",
+          "reservation_id": "vermilion/A01/R100",
+          "source_refs": [
+            {
+              "record_id": "vermilion/A01/R100",
+              "source": "bookings",
+              "table": "reservations"
+            }
+          ],
+          "traveler_id": "vermilion/A01/T07",
+          "traveler_name": "Ash Ketchum"
+        }
+      ],
+      "status": "ok"
+    }
+  ],
+  "company": "vermilion",
+  "follow_up": {
+    "input": {
+      "account_name": "Silph Account",
+      "from_date": "2026-10-01",
+      "through_date": "2026-10-31"
+    },
+    "question": "Which Silph Account travelers have a cancelled reservation that was scheduled to depart in October 2026?",
+    "rows": [
+      {
+        "account_id": "vermilion/A01",
+        "account_name": "Silph Account",
+        "traveler_id": "vermilion/A01/T07",
+        "traveler_name": "Ash Ketchum"
+      }
+    ],
+    "status": "ok"
+  },
+  "lookup": "upcoming_reservations",
+  "main": {
+    "check": "rows_ash_silph",
+    "identity": [
+      "vermilion/A01/T07"
+    ],
+    "input": {
+      "account_name": "Silph Account",
+      "after_date": "2026-10-08",
+      "traveler_name": "Ash Ketchum"
+    },
+    "rows": [
+      {
+        "account_id": "vermilion/A01",
+        "account_name": "Silph Account",
+        "depart_date": "2026-10-20",
+        "reservation_id": "vermilion/A01/R100",
+        "source_refs": [
+          {
+            "record_id": "vermilion/A01/R100",
+            "source": "bookings",
+            "table": "reservations"
+          }
+        ],
+        "traveler_id": "vermilion/A01/T07",
+        "traveler_name": "Ash Ketchum"
+      }
+    ],
+    "status": "ok"
+  },
+  "snapshot": "vermilion-v1"
+}
