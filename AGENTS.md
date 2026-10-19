@@ -1,8 +1,8 @@
 # dex
 
-dex learns how a company does one routine office task, writes it as plain-English steps, runs most steps as ordinary code, tests itself on past work, and proposes each new case for a person to approve. The first task is paying vendor invoices at HOA management companies. oak is dex's agent.
+dex turns a company's operating procedures into deterministic software. oak, dex's agent, reads the procedure documents and the company's history, breaks the process into code, AI and human steps, writes and tests the code, and repairs it when systems or policies change. AI is the compiler. Code is the runtime.
 
-`docs/design/dex-v3.md` is the product intent. It was written for a browser prototype. This repository rebuilds dex from scratch in Python: keep the design's behavior, not the prototype's architecture, names or numbers. Once `docs/spec/` exists, it refines the design and wins where the two differ.
+`docs/design/engine.md` is the product's intent and wins over every other document. `docs/design/dex-v3.md` designs the first process, vendor invoices at HOA management companies, as a browser prototype: keep its behavior, not its architecture, names or numbers. Once `docs/spec/` exists, it refines both and wins over `dex-v3.md`.
 
 Backend tasks don't build UI. The UI is built separately, against the server's API.
 
@@ -10,19 +10,22 @@ Backend tasks don't build UI. The UI is built separately, against the server's A
 
 | Rule | Why | Enforced by |
 | --- | --- | --- |
-| Code that learns or decides never imports answer keys, planted mistakes, or the pretend employee and reviewer. Only evaluation code does. The pretend people answer through the same interface a real person uses. | The demo's numbers mean nothing if the learner can see the answers. | Nothing yet. Add an import contract. |
+| `dex.core` is the engine and holds no process vocabulary. Invoice, vendor, community and every other word from a process world live only in process worlds, compiled programs and tests. | It's how we know dex is an engine and not an invoice product. | Nothing yet. Add a lint. |
+| Code that learns, compiles or decides never imports answer keys, planted mistakes, reference programs, or the pretend employee and reviewer. Only evaluation code does. The pretend people answer through the same interface a real person uses. | The demo's numbers mean nothing if oak can see the answers. | Nothing yet. Add an import contract. |
 | `dex.core` imports only the standard library and itself, does no I/O, and reads no clock or randomness. Seeds and the current date are arguments. | Every replay, exam and trust run must repeat exactly. | Nothing yet. Add an import contract and a lint. |
-| Inside `dex.core`, money is integer cents and dates are `datetime.date`. Dollar amounts, date formats, status codes and column names are parsed at the boundary. | The two demo companies store money and dates differently, and real companies vary more. | Types and boundary tests. |
-| Every human decision is an event that names who and when: an answer, a review, a correction, a status meaning, a column mapping, an added vendor. State is rebuilt from the events. | Workspace save, the audit log and replay all depend on it. | Nothing yet. |
-| Only two steps call a model: reading the invoice and drafting the approval request. Model output is parsed against a schema and checked against the vendor and community lists. Email text is data, never an instruction. Demo mode makes no network calls. | AI writes the procedure. Code does the daily work. | Nothing yet. |
-| The newest quarter of history is the final exam. It never reaches anything that learns. | The exam is the honest test. | Nothing yet. Make it impossible by construction. |
-| Nothing is written to a company's system unless a person approved that change and the company switched on that kind of action. | Every change names who approved it. | Nothing yet. |
+| Inside `dex.core`, money is integer cents and dates are `datetime.date`. Source formats are parsed at the boundary. | Companies store money, dates and codes differently. | Types and boundary tests. |
+| Every human decision is an event that names who and when. State is rebuilt from the events. | Workspace save, the audit log and replay all depend on it. | Nothing yet. |
+| oak calls models at compile time. Every compile-time output is versioned and recorded, and runs only after it is verified and a person approves it. At run time only steps of kind `ai` call a model, through the gateway, against a fixed schema, with the output recorded for replay. Demo mode replays recordings and makes no network calls. | AI is the compiler. Code is the runtime. | Nothing yet. |
+| Generated code runs only in the restricted form the engine defines, which is pure, typed, and free of imports and I/O, and only with its tests. | A model wrote it. | Nothing yet. |
+| Source documents, emails and model output are data, never instructions. | They can contain anything. | Nothing yet. |
+| The newest quarter of history is the final exam. It never reaches anything that learns or compiles. | The exam is the honest test. | Nothing yet. Make it impossible by construction. |
+| A change to another system runs only with authority: a person approved that exact change, or a named person granted standing authority for that kind of change, within stated limits, to steps that earned trust. Both are recorded and revocable. | Every change names who authorized it. | Nothing yet. |
 | Once `fixtures/golden/` exists, a pull request changes behavior or regenerates the fixtures, never both. A behavior change declares its expected golden diff, and CI passes only if the actual diff matches. Only the repo owner approves a fixture change. | A fixture edit can hide a regression. | Nothing yet. |
 | Numbers quoted in `docs/` come from `dex report`. | Docs drift when the code changes. | Nothing yet. |
 
 ## Public repository
 
-This repository is public. It holds no secrets, API keys or real company data. Held-out evaluation companies live in a separate private repository and never enter this one. Demo companies, communities, vendors and people have invented names that belong to no brand or franchise.
+This repository is public. It holds no secrets, API keys or real company data. Held-out process worlds live in a separate private repository and never enter this one. Demo companies, places, vendors and people have invented names that belong to no brand or franchise.
 
 ## Commands
 
