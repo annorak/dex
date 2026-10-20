@@ -1,0 +1,61 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c
+        with:
+          version: "0.11.31"
+          python-version: "3.13"
+      - name: Install tools and run checks
+        shell: bash
+        run: |
+          record() {
+            local transcript="$1"
+            shift
+            {
+              printf 'Command:'
+              printf ' %q' "$@"
+              printf '\nRevision: %s\n\n' "$GITHUB_SHA"
+              local result=0
+              "$@" || result=$?
+              printf '\nExit status: %s\n' "$result"
+              exit "$result"
+            } 2>&1 | tee "$RUNNER_TEMP/dex-checks/$transcript.txt"
+          }
+
+          mkdir -p "$RUNNER_TEMP/dex-checks"
+          record 01-uv uv --version
+          record 02-sync uv sync --locked --no-install-package detect-secrets
+          printf '%s==1.5.0 --hash=sha256:e24e7b9b5a35048c313e983f76c4bd09dad89f045ff059e354f9943bf45aa060\n' \
+            'detect-secrets' \
+            > "$RUNNER_TEMP/dex-scanner-requirement.txt"
+          record 03-scanner-install uv pip install --python .venv/bin/python \
+            --no-deps --require-hashes --only-binary=:all: \
+            --reinstall-package detect-secrets \
+            --requirement "$RUNNER_TEMP/dex-scanner-requirement.txt"
+          record 04-python .venv/bin/python --version
+          record 05-scanner-version .venv/bin/python -c \
+            'from importlib.metadata import version; print(version("detect-secrets"))'
+          record 06-cli-help uv run --locked dex --help
+          record 07-check make check
+      - name: Upload command transcripts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: check-transcripts
+          path: ${{ runner.temp }}/dex-checks/*.txt
+          if-no-files-found: warn
