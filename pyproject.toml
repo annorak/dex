@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dex"
+version = "0.1.0"
+description = "Deterministic execution of operating procedures"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+dex = "dex.cli:main"
+
+[dependency-groups]
+dev = [
+    "detect-secrets==1.5.0",
+    "grimp==3.17",
+    "hypothesis==6.170.5",
+    "import-linter==2.15",
+    "pyright[nodejs]==1.1.414",
+    "pytest==9.1.1",
+    "ruff==0.17.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dex"]
+
+[tool.pyright]
+include = ["src", "scripts", "tests"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-config --strict-markers"
+
+[tool.importlinter]
+root_package = "dex"
+include_external_packages = true
+contract_types = [
+    "dex-boundaries: scripts.import_contracts.DexIsolationContract",
+]
+
+[[tool.importlinter.contracts]]
+name = "Core purity and evaluator isolation"
+type = "dex-boundaries"
