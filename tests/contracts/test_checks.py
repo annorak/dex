@@ -645,5 +645,5 @@ def test_cli_unavailable_commands_fail(tmp_path: Path) -> None:
         [Path(sys.executable).with_name("dex"), "run"],
         cwd=tmp_path,
         expected_returncode=2,
-        diagnostic="unrecognized arguments: run",
+        diagnostic="invalid choice: 'run'",
     )

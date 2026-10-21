@@ -1,0 +1,560 @@
+{
+  "format": "dex-eval-scenario-1",
+  "scenario_id": "program-rule-conflict",
+  "programs": [
+    {
+      "name": "overlapping-rules",
+      "draft": {
+        "program_id": "overlapping-rules",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-step"
+        },
+        "functions": [
+          {
+            "function_id": "function-step",
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [
+          {
+            "rule_id": "one",
+            "target": "decision",
+            "scope": [
+              {
+                "dimension": "region",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "text",
+                  "value": "north"
+                }
+              }
+            ],
+            "effective_from": "2026-01-01",
+            "effective_until": null,
+            "consequence": {
+              "schema": {
+                "kind": "text"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "text",
+                  "value": "allow"
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ]
+          },
+          {
+            "rule_id": "two",
+            "target": "decision",
+            "scope": [
+              {
+                "dimension": "region",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "text",
+                  "value": "north"
+                }
+              }
+            ],
+            "effective_from": "2026-01-01",
+            "effective_until": null,
+            "consequence": {
+              "schema": {
+                "kind": "text"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "text",
+                  "value": "deny"
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ]
+          }
+        ],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "adjacent-rules",
+      "draft": {
+        "program_id": "adjacent-rules",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-step"
+        },
+        "functions": [
+          {
+            "function_id": "function-step",
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [
+          {
+            "rule_id": "one",
+            "target": "decision",
+            "scope": [
+              {
+                "dimension": "region",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "text",
+                  "value": "north"
+                }
+              }
+            ],
+            "effective_from": "2026-01-01",
+            "effective_until": "2026-07-01",
+            "consequence": {
+              "schema": {
+                "kind": "text"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "text",
+                  "value": "allow"
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ]
+          },
+          {
+            "rule_id": "two",
+            "target": "decision",
+            "scope": [
+              {
+                "dimension": "region",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "text",
+                  "value": "north"
+                }
+              }
+            ],
+            "effective_from": "2026-07-01",
+            "effective_until": null,
+            "consequence": {
+              "schema": {
+                "kind": "text"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "text",
+                  "value": "deny"
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ]
+          }
+        ],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "same-consequence",
+      "draft": {
+        "program_id": "same-consequence",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-step"
+        },
+        "functions": [
+          {
+            "function_id": "function-step",
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [
+          {
+            "rule_id": "one",
+            "target": "decision",
+            "scope": [
+              {
+                "dimension": "region",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "text",
+                  "value": "north"
+                }
+              }
+            ],
+            "effective_from": "2026-01-01",
+            "effective_until": null,
+            "consequence": {
+              "schema": {
+                "kind": "text"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "text",
+                  "value": "allow"
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ]
+          },
+          {
+            "rule_id": "two",
+            "target": "decision",
+            "scope": [
+              {
+                "dimension": "region",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "text",
+                  "value": "north"
+                }
+              }
+            ],
+            "effective_from": "2026-01-01",
+            "effective_until": null,
+            "consequence": {
+              "schema": {
+                "kind": "text"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "text",
+                  "value": "allow"
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ]
+          }
+        ],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "verify",
+      "program": "overlapping-rules"
+    },
+    {
+      "kind": "verify",
+      "program": "adjacent-rules"
+    },
+    {
+      "kind": "verify",
+      "program": "same-consequence"
+    }
+  ],
+  "expected": [
+    {
+      "status": "structural_failure",
+      "diagnostic_codes": [
+        "rule_conflict"
+      ],
+      "missing_checks": []
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    }
+  ]
+}
