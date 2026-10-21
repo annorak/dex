@@ -1,0 +1,192 @@
+{
+  "format": "dex-eval-scenario-1",
+  "scenario_id": "program-unsupported-activation",
+  "programs": [
+    {
+      "name": "valid-activation",
+      "draft": {
+        "program_id": "valid-activation",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-step"
+        },
+        "functions": [
+          {
+            "function_id": "function-step",
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "mismatched-quote",
+      "draft": {
+        "program_id": "mismatched-quote",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "B"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-step"
+        },
+        "functions": [
+          {
+            "function_id": "function-step",
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "activate",
+      "program": "valid-activation"
+    },
+    {
+      "kind": "activate",
+      "program": "mismatched-quote"
+    }
+  ],
+  "expected": [
+    {
+      "status": "unsupported_activation",
+      "diagnostic_codes": [
+        "unsupported_activation"
+      ],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "unsupported_activation",
+      "diagnostic_codes": [
+        "citation_quote",
+        "unsupported_activation"
+      ],
+      "missing_checks": []
+    }
+  ]
+}

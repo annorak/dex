@@ -36,9 +36,10 @@ Run commands from the repository root with Python 3.13 or newer and uv 0.11.31.
 | `uv sync --locked --python 3.13` | Install the project and pinned development tools into `.venv`. |
 | `make check` | Run all repository checks locally or in CI. |
 | `uv run --locked dex --help` | Show the available CLI help. |
+| `uv run --locked dex eval --scenario FILE --out RUN` | Verify an evaluator scenario and save actual results separately from expected evidence. RUN must be a fresh directory. |
 
 `make check` runs Ruff, strict Pyright, import contracts, core lints, secret scanning, contract tests, and CLI help. The contract tests verify clean inputs, planted violations, and restored inputs using the real checker commands.
 
-While `src/dex/core` is absent, the core lint reports `CORE_SKIP`. Contract tests still exercise its rules on temporary source files.
+Core lint checks `src/dex/core`. Contract tests also exercise its rules on temporary source files.
 
-Only CLI help is implemented. The planned `dex bundle`, `dex demo`, `dex eval`, `dex report`, and `dex workspace` commands are unavailable.
+CLI help and evaluator scenarios are implemented. Scenario evaluation checks structure, records missing execution checks, and cannot activate a program. Semantic refusals and expectation mismatches exit nonzero. The planned `dex bundle`, `dex demo`, `dex report`, and `dex workspace` commands are unavailable.

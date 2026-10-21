@@ -1,0 +1,1515 @@
+{
+  "format": "dex-eval-scenario-1",
+  "scenario_id": "program-values",
+  "programs": [
+    {
+      "name": "boolean",
+      "draft": {
+        "program_id": "boolean",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "boolean",
+            "behavior_id": "behavior-boolean",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "boolean"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "boolean",
+                    "value": false
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-boolean"
+        },
+        "functions": [
+          {
+            "function_id": "function-boolean",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "boolean"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "integer",
+      "draft": {
+        "program_id": "integer",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "integer",
+            "behavior_id": "behavior-integer",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "integer",
+                    "value": -2
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-integer"
+        },
+        "functions": [
+          {
+            "function_id": "function-integer",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "text",
+      "draft": {
+        "program_id": "text",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "text",
+            "behavior_id": "behavior-text",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "text",
+                    "value": "accepted"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-text"
+        },
+        "functions": [
+          {
+            "function_id": "function-text",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "date",
+      "draft": {
+        "program_id": "date",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "date",
+            "behavior_id": "behavior-date",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "date"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "date",
+                    "value": "2026-10-20"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-date"
+        },
+        "functions": [
+          {
+            "function_id": "function-date",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "date"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "money",
+      "draft": {
+        "program_id": "money",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "money",
+            "behavior_id": "behavior-money",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "money_cents"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "money_cents",
+                    "cents": 12345
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-money"
+        },
+        "functions": [
+          {
+            "function_id": "function-money",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "money_cents"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "absent",
+      "draft": {
+        "program_id": "absent",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "absent",
+            "behavior_id": "behavior-absent",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "optional",
+                  "item": {
+                    "kind": "text"
+                  }
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "absent"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-absent"
+        },
+        "functions": [
+          {
+            "function_id": "function-absent",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "optional",
+                  "item": {
+                    "kind": "text"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "present",
+      "draft": {
+        "program_id": "present",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "present",
+            "behavior_id": "behavior-present",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "optional",
+                  "item": {
+                    "kind": "text"
+                  }
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "present",
+                    "value": {
+                      "kind": "text",
+                      "value": "accepted"
+                    }
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-present"
+        },
+        "functions": [
+          {
+            "function_id": "function-present",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "optional",
+                  "item": {
+                    "kind": "text"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "tagged",
+      "draft": {
+        "program_id": "tagged",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "tagged",
+            "behavior_id": "behavior-tagged",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "tagged",
+                  "variants": [
+                    {
+                      "name": "ok",
+                      "schema": {
+                        "kind": "text"
+                      }
+                    }
+                  ]
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "tagged",
+                    "tag": "ok",
+                    "value": {
+                      "kind": "text",
+                      "value": "accepted"
+                    }
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-tagged"
+        },
+        "functions": [
+          {
+            "function_id": "function-tagged",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "tagged",
+                  "variants": [
+                    {
+                      "name": "ok",
+                      "schema": {
+                        "kind": "text"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "record",
+      "draft": {
+        "program_id": "record",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Row",
+            "fields": [
+              {
+                "name": "id",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "record",
+            "behavior_id": "behavior-record",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "record",
+                  "name": "Row",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "schema": {
+                        "kind": "text"
+                      }
+                    }
+                  ]
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "record",
+                    "record": "Row",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "value": {
+                          "kind": "text",
+                          "value": "row-1"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-record"
+        },
+        "functions": [
+          {
+            "function_id": "function-record",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "record",
+                  "name": "Row",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "schema": {
+                        "kind": "text"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "keyed",
+      "draft": {
+        "program_id": "keyed",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Row",
+            "fields": [
+              {
+                "name": "id",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "keyed",
+            "behavior_id": "behavior-keyed",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "keyed",
+                  "item": {
+                    "kind": "record",
+                    "name": "Row",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "schema": {
+                          "kind": "text"
+                        }
+                      }
+                    ]
+                  },
+                  "key_field": "id"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "keyed",
+                    "entries": [
+                      {
+                        "key": "row-1",
+                        "value": {
+                          "kind": "record",
+                          "record": "Row",
+                          "fields": [
+                            {
+                              "name": "id",
+                              "value": {
+                                "kind": "text",
+                                "value": "row-1"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-keyed"
+        },
+        "functions": [
+          {
+            "function_id": "function-keyed",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "keyed",
+                  "item": {
+                    "kind": "record",
+                    "name": "Row",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "schema": {
+                          "kind": "text"
+                        }
+                      }
+                    ]
+                  },
+                  "key_field": "id"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "resolved",
+      "draft": {
+        "program_id": "resolved",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Row",
+            "fields": [
+              {
+                "name": "id",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "resolved",
+            "behavior_id": "behavior-resolved",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "reference",
+                  "record": "Row",
+                  "key_field": "id"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "resolved_ref",
+                    "record": "Row",
+                    "key_field": "id",
+                    "key": "row-1"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-resolved"
+        },
+        "functions": [
+          {
+            "function_id": "function-resolved",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "reference",
+                  "record": "Row",
+                  "key_field": "id"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "unresolved",
+      "draft": {
+        "program_id": "unresolved",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "unresolved",
+            "behavior_id": "behavior-unresolved",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "🐚"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "unresolved"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "unresolved_text",
+                    "text": "a name without an identity"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "function-unresolved"
+        },
+        "functions": [
+          {
+            "function_id": "function-unresolved",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "unresolved"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return declared_result"
+            }
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A🐚B",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "verify",
+      "program": "boolean"
+    },
+    {
+      "kind": "verify",
+      "program": "integer"
+    },
+    {
+      "kind": "verify",
+      "program": "text"
+    },
+    {
+      "kind": "verify",
+      "program": "date"
+    },
+    {
+      "kind": "verify",
+      "program": "money"
+    },
+    {
+      "kind": "verify",
+      "program": "absent"
+    },
+    {
+      "kind": "verify",
+      "program": "present"
+    },
+    {
+      "kind": "verify",
+      "program": "tagged"
+    },
+    {
+      "kind": "verify",
+      "program": "record"
+    },
+    {
+      "kind": "verify",
+      "program": "keyed"
+    },
+    {
+      "kind": "verify",
+      "program": "resolved"
+    },
+    {
+      "kind": "verify",
+      "program": "unresolved"
+    }
+  ],
+  "expected": [
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    },
+    {
+      "status": "execution_pending",
+      "diagnostic_codes": [],
+      "missing_checks": [
+        "restricted_language_and_function_types",
+        "bounded_graph_execution",
+        "saved_scenario_execution",
+        "resolved_identity_membership",
+        "ai_recording_and_output_validation",
+        "external_change_execution_contracts"
+      ]
+    }
+  ]
+}
