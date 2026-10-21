@@ -1,6 +1,6 @@
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
-from datetime import date
+from dataclasses import dataclass, field, replace
+from datetime import date, datetime
 from hashlib import sha256
 from types import MappingProxyType
 
@@ -102,6 +102,8 @@ class Work:
     completed: e.WorkSucceeded | None = None
     waiting: e.RepeatWaiting | None = None
     inputs: tuple[e.ConsumedInput, ...] = ()
+    task: e.TaskRef | None = None
+    request: e.RecordingRequest | None = None
 
 
 @dataclass(frozen=True)
@@ -116,12 +118,31 @@ class WorkspaceState:
     revision: int
     cases: Mapping[str, Case]
     work: Mapping[e.WorkAddress, Work]
-    commands: Mapping[str, e.StartSandbox | e.SignalRepeat]
+    commands: Mapping[str, e.RuntimeCommand]
+    tasks: Mapping[e.TaskRef, e.Task] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    actions: Mapping[tuple[str, str, str], e.HumanCommand] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    recordings: Mapping[e.WorkRevision, e.Recording] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    history: Mapping[e.WorkRevision, Work] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    consumers: Mapping[e.WorkRevision, frozenset[e.WorkAddress]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    pending: Mapping[e.WorkAddress, frozenset[e.WorkAddress]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
 
 @dataclass(frozen=True)
 class Accepted:
     events: tuple[e.RuntimeEvent, ...]
+    state: WorkspaceState
 
 
 @dataclass(frozen=True)
@@ -326,16 +347,94 @@ def _dependencies(
     return (_address(address, node.body.body, "repeat", str(selection.value)),)
 
 
+def command_address(
+    command: e.SignalRepeat | e.HumanCommand | e.SupplyRecording,
+) -> e.WorkAddress:
+    if isinstance(command, e.SignalRepeat):
+        return command.address
+    if isinstance(command, e.SupplyRecording):
+        return command.recording.request.work.address
+    if isinstance(command, e.CorrectResult):
+        return command.work.address
+    return command.task.work.address
+
+
+def command_case(command: e.RuntimeCommand) -> str:
+    return (
+        command.case_id
+        if isinstance(command, e.StartSandbox)
+        else command_address(command).case_id
+    )
+
+
+def action_key(action: e.HumanAction) -> tuple[str, str, str]:
+    return action.company_id, action.origin, action.action_id
+
+
+def same_action(left: e.HumanCommand, right: e.HumanCommand) -> bool:
+    return replace(left, meta=right.meta, bounds=right.bounds) == right
+
+
+def records_resolve(value: p.Value, company: e.CompanyContext) -> bool:
+    if isinstance(value, p.ResolvedRefValue):
+        return value in company.records
+    if isinstance(value, p.UnresolvedTextValue):
+        return False
+    if isinstance(value, (p.PresentValue, p.TaggedValue)):
+        return records_resolve(value.value, company)
+    if isinstance(value, p.RecordValue):
+        return all(records_resolve(item.value, company) for item in value.fields)
+    if isinstance(value, p.KeyedValue):
+        return all(records_resolve(item.value, company) for item in value.entries)
+    return True
+
+
+def recording_outcome(recording: e.Recording, company: e.CompanyContext) -> p.Value:
+    value = recording.value
+    failure = recording.failure
+    if value is not None:
+        if not _valid(value, recording.request.schema):
+            failure = "recording_schema"
+        elif not records_resolve(value, company):
+            failure = "unresolved_identity"
+    valid = failure is None and value is not None
+    return p.RecordValue(
+        "AiOutcome",
+        (
+            p.NamedValue("valid", p.BoolValue(valid)),
+            p.NamedValue(
+                "value",
+                p.PresentValue(p.normalized_value(value))
+                if valid and value is not None
+                else p.AbsentValue(),
+            ),
+            p.NamedValue(
+                "failure",
+                p.PresentValue(p.TextValue(failure))
+                if failure is not None
+                else p.AbsentValue(),
+            ),
+        ),
+    )
+
+
 class _Reducer:
     def __init__(self, state: WorkspaceState, catalog: ProgramCatalog) -> None:
         self.revision = state.revision
         self.cases = dict(state.cases)
         self.work = dict(state.work)
         self.commands = dict(state.commands)
+        self.tasks = dict(state.tasks)
+        self.actions = dict(state.actions)
+        self.recordings = dict(state.recordings)
+        self.history = dict(state.history)
+        self.consumers = dict(state.consumers)
+        self.pending = dict(state.pending)
         self.catalog = catalog
-        self.command: e.StartSandbox | e.SignalRepeat | None = None
+        self.command: e.RuntimeCommand | None = None
         self.ordinal = 0
         self.settled = False
+        self.action_applied = False
         self.instances = 0
         self.usage = lang.Usage(0, 0)
 
@@ -346,6 +445,12 @@ class _Reducer:
             MappingProxyType(self.cases),
             MappingProxyType(self.work),
             MappingProxyType(self.commands),
+            MappingProxyType(self.tasks),
+            MappingProxyType(self.actions),
+            MappingProxyType(self.recordings),
+            MappingProxyType(self.history),
+            MappingProxyType(self.consumers),
+            MappingProxyType(self.pending),
         )
 
     def node(self, address: e.WorkAddress) -> p.Node:
@@ -367,6 +472,7 @@ class _Reducer:
             self.command = command
             self.ordinal = 0
             self.settled = False
+            self.action_applied = isinstance(command, (e.StartSandbox, e.SignalRepeat))
             self.instances = 0
             self.usage = lang.Usage(0, 0)
         else:
@@ -380,7 +486,9 @@ class _Reducer:
             _require(event.ordinal < self.command.bounds.events, "event_limit")
             if isinstance(payload, e.BatchCompleted):
                 _require(
-                    self.settled and payload.count == self.ordinal + 1,
+                    self.settled
+                    and self.action_applied
+                    and payload.count == self.ordinal + 1,
                     "incomplete_batch",
                 )
                 self.commands[event.command_id] = self.command
@@ -391,7 +499,7 @@ class _Reducer:
         self.ordinal += 1
         self.revision += 1
 
-    def start(self, command: e.StartSandbox | e.SignalRepeat) -> None:
+    def start(self, command: e.RuntimeCommand) -> None:
         meta = command.meta
         _require(
             bool(meta.command_id.strip()) and bool(meta.actor.strip()),
@@ -418,13 +526,34 @@ class _Reducer:
                 "case_identity",
             )
             artifact = self.catalog.artifacts[command.artifact]
-            _require(
-                all(
-                    not isinstance(node, (p.AiStep, p.HumanStep))
-                    for node in self.catalog.nodes[command.artifact].values()
-                ),
-                "unsupported_step",
-            )
+            nodes = self.catalog.nodes[command.artifact]
+            for node in nodes.values():
+                if isinstance(node, p.AiStep):
+                    _require(node.result_schema is not None, "unsupported_step")
+                if isinstance(node, (p.AiStep, p.HumanStep)):
+                    _require(command.company is not None, "company_required")
+            if command.company is not None:
+                _require(
+                    bool(command.company.company_id)
+                    and bool(command.company.policy_revision)
+                    and bool(command.company.record_revision),
+                    "company_identity",
+                )
+                for permission in (
+                    *command.company.memberships,
+                    *command.company.observers,
+                ):
+                    _require(
+                        permission.valid_from.utcoffset() is not None
+                        and (
+                            permission.valid_until is None
+                            or (
+                                permission.valid_until.utcoffset() is not None
+                                and permission.valid_from < permission.valid_until
+                            )
+                        ),
+                        "policy_time",
+                    )
             _require(type(command.business_date) is date, "business_date")
             facts = {item.name: item.value for item in command.facts}
             _require(
@@ -437,7 +566,7 @@ class _Reducer:
                 meter.value(facts[item.name])
                 _require(_valid(facts[item.name], item.schema), "input_type")
             self.cases[command.case_id] = Case(command, "running")
-        else:
+        elif isinstance(command, e.SignalRepeat):
             _require(command.address in self.work, "unknown_wait")
             work = self.work[command.address]
             node = self.node(command.address)
@@ -455,6 +584,16 @@ class _Reducer:
             case = self.cases[command.address.case_id]
             _require(case.status == "waiting", "case_terminal")
             self.cases[command.address.case_id] = replace(case, status="running")
+        else:
+            address = command_address(command)
+            _require(address in self.work, "unknown_work")
+            case = self.cases[address.case_id]
+            _require(case.status != "failed", "case_terminal")
+            if isinstance(command, e.SupplyRecording):
+                self.check_recording(command.recording)
+            else:
+                self.check_human(command)
+            self.cases[address.case_id] = replace(case, status="running", failure=None)
 
     def transition(
         self,
@@ -463,14 +602,14 @@ class _Reducer:
         | e.InputBound
         | e.WorkSucceeded
         | e.RepeatWaiting
-        | e.CaseSettled,
+        | e.CaseSettled
+        | e.TaskOpened
+        | e.HumanActed
+        | e.RecordingRequested
+        | e.RecordingConsumed,
     ) -> None:
         assert self.command is not None
-        case_id = (
-            self.command.case_id
-            if isinstance(self.command, e.StartSandbox)
-            else self.command.address.case_id
-        )
+        case_id = command_case(self.command)
         payload_case = (
             payload.case_id
             if isinstance(payload, e.CaseSettled)
@@ -504,6 +643,8 @@ class _Reducer:
                     payload.failure is None
                     and any(
                         work.waiting is not None
+                        or work.task is not None
+                        or work.request is not None
                         for address, work in self.work.items()
                         if address.case_id == payload.case_id
                     ),
@@ -524,7 +665,15 @@ class _Reducer:
         address = payload.address
         self.node(address)
         _require(self.cases[address.case_id].status == "running", "case_terminal")
+        if isinstance(
+            payload,
+            (e.TaskOpened, e.HumanActed, e.RecordingRequested, e.RecordingConsumed),
+        ):
+            _require(address in self.work, "unknown_work")
+            self.continuation(payload)
+            return
         if isinstance(payload, e.WorkOpened):
+            _require(payload.revision == self.next_revision(address), "work_revision")
             _require(address not in self.work, "duplicate_work")
             if payload.parent is None:
                 case = self.cases[address.case_id]
@@ -576,6 +725,12 @@ class _Reducer:
                 item for item in work.inputs if item.name != payload.consumed.name
             ) + (payload.consumed,)
             self.work[address] = replace(work, inputs=inputs)
+            if payload.consumed.producer is not None:
+                assert payload.consumed.producer_revision is not None
+                ref = e.WorkRevision(
+                    payload.consumed.producer, payload.consumed.producer_revision
+                )
+                self.consumers[ref] = self.consumers.get(ref, frozenset()) | {address}
             return
         _require(all(item in work.inputs for item in payload.inputs), "unbound_input")
         if isinstance(payload, e.ControlSelected):
@@ -631,6 +786,11 @@ class _Reducer:
                     "selection_input",
                 )
             self.work[address] = replace(work, selected=payload, waiting=None)
+            self.pending[address] = frozenset(
+                child
+                for child in payload.dependencies
+                if child not in self.work or self.work[child].completed is None
+            )
         elif isinstance(payload, e.RepeatWaiting):
             _require(
                 isinstance(node, p.Repeat)
@@ -682,7 +842,374 @@ class _Reducer:
                 "usage_bounds",
             )
             self.usage = usage
-            self.work[address] = replace(work, completed=payload, waiting=None)
+            self.complete(address, payload)
+
+    def next_revision(self, address: e.WorkAddress) -> int:
+        return 1 + max(
+            (ref.revision for ref in self.history if ref.address == address), default=0
+        )
+
+    def ref(self, address: e.WorkAddress) -> e.WorkRevision:
+        return e.WorkRevision(address, self.work[address].opened.revision)
+
+    def company(self, address: e.WorkAddress) -> e.CompanyContext:
+        company = self.cases[address.case_id].start.company
+        _require(company is not None, "company_required")
+        assert company is not None
+        return company
+
+    def member(
+        self, address: e.WorkAddress, actor: str, role: str, at: datetime
+    ) -> bool:
+        return any(
+            item.actor == actor
+            and item.role == role
+            and address.scope[: len(item.scope)] == item.scope
+            and item.valid_from <= at
+            and (item.valid_until is None or at < item.valid_until)
+            for item in self.company(address).memberships
+        )
+
+    def observer(
+        self, address: e.WorkAddress, action: e.HumanAction, meta: e.CommandMeta
+    ) -> None:
+        _require(
+            action.decided_at.utcoffset() is not None
+            and meta.observed_at.utcoffset() is not None
+            and action.decided_at <= meta.observed_at,
+            "decision_time",
+        )
+        _require(
+            action.company_id == self.company(address).company_id, "company_mismatch"
+        )
+        _require(
+            bool(action.action_id) and bool(action.actor) and bool(action.origin),
+            "action_identity",
+        )
+        if action.origin == "dex":
+            _require(meta.actor == action.actor, "observer_forbidden")
+        else:
+            _require(
+                any(
+                    item.observer == meta.actor
+                    and item.origin == action.origin
+                    and address.scope[: len(item.scope)] == item.scope
+                    and item.valid_from <= meta.observed_at
+                    and (
+                        item.valid_until is None or meta.observed_at < item.valid_until
+                    )
+                    for item in self.company(address).observers
+                ),
+                "observer_forbidden",
+            )
+
+    def check_human(self, command: e.HumanCommand) -> None:
+        address = command_address(command)
+        self.observer(address, command.action, command.meta)
+        if isinstance(command, (e.RespondTask, e.CorrectResult)):
+            _Meter(command.bounds).value(command.value)
+        role = (
+            self.tasks[command.task].eligible_role
+            if isinstance(command, e.RespondTask) and command.task in self.tasks
+            else "corrector"
+            if isinstance(command, e.CorrectResult)
+            else "task_admin"
+        )
+        _require(
+            command.action.role == role
+            and self.member(
+                address, command.action.actor, role, command.action.decided_at
+            ),
+            "actor_forbidden",
+        )
+        if isinstance(command, e.CorrectResult):
+            _require(
+                not isinstance(self.node(address), p.HumanStep),
+                "human_decision_immutable",
+            )
+            _require(command.work == self.ref(address), "stale_work")
+            _require(self.work[address].completed is not None, "missing_result")
+            _require(
+                _valid(command.value, p.node_output(self.node(address))),
+                "response_schema",
+            )
+            _require(
+                records_resolve(command.value, self.company(address)),
+                "unresolved_identity",
+            )
+            return
+        _require(command.task in self.tasks, "unknown_task")
+        task = self.tasks[command.task]
+        _require(
+            task.ref.work == self.ref(address)
+            and self.work[address].task == task.ref
+            and task.status == "open",
+            "stale_task",
+        )
+        if isinstance(command, e.RespondTask):
+            _require(command.reviewed == task.reviewed, "reviewed_revision")
+            _require(
+                task.assignee is None or task.assignee == command.action.actor,
+                "assignment",
+            )
+            _require(_valid(command.value, task.schema), "response_schema")
+            _require(
+                records_resolve(command.value, self.company(address)),
+                "unresolved_identity",
+            )
+        elif isinstance(command, e.ReassignTask) and command.assignee is not None:
+            _require(
+                self.member(
+                    address,
+                    command.assignee,
+                    task.eligible_role,
+                    command.meta.observed_at,
+                ),
+                "assignment",
+            )
+
+    def task_for(self, address: e.WorkAddress) -> e.Task:
+        node = self.node(address)
+        assert isinstance(node, p.HumanStep)
+        work = self.work[address]
+        _require(
+            tuple(item.name for item in work.inputs if len(item.name) <= 2)
+            == tuple(("input", item.name) for item in node.metadata.inputs)
+            + (("request",),),
+            "input_fields",
+        )
+        reviewed = tuple(
+            dict.fromkeys(
+                e.WorkRevision(item.producer, item.producer_revision)
+                for item in work.inputs
+                if item.producer is not None and item.producer_revision is not None
+            )
+        )
+        request = next(item.value for item in work.inputs if item.name == ("request",))
+        return e.Task(
+            e.TaskRef(self.ref(address), 1),
+            self.company(address).company_id,
+            reviewed,
+            node.eligible_role,
+            None,
+            node.due_at,
+            node.metadata.output,
+            request,
+        )
+
+    def recording_request(self, address: e.WorkAddress) -> e.RecordingRequest:
+        node = self.node(address)
+        assert isinstance(node, p.AiStep) and node.result_schema is not None
+        company = self.company(address)
+        _require(
+            tuple(
+                item.name for item in self.work[address].inputs if len(item.name) == 2
+            )
+            == tuple(("input", item.name) for item in node.metadata.inputs),
+            "input_fields",
+        )
+        return e.RecordingRequest(
+            self.ref(address),
+            company.company_id,
+            self.cases[address.case_id].start.artifact,
+            self.work[address].inputs,
+            node.prompt_revision,
+            node.result_schema,
+            company.record_revision,
+        )
+
+    def check_recording(self, recording: e.Recording) -> None:
+        address = recording.request.work.address
+        _require(
+            recording.request == self.work[address].request
+            and recording.request.work == self.ref(address),
+            "recording_request",
+        )
+        _require(recording.request.work not in self.recordings, "recording_conflict")
+        _require(
+            bool(recording.recording_id)
+            and bool(recording.model)
+            and recording.input_tokens >= 0
+            and recording.output_tokens >= 0,
+            "recording_identity",
+        )
+        _require(
+            (recording.value is None) != (recording.failure is None),
+            "recording_content",
+        )
+        if recording.value is not None:
+            _Meter(e.ActivationBounds()).value(recording.value)
+
+    def complete(self, address: e.WorkAddress, payload: e.WorkSucceeded) -> None:
+        work = self.work[address]
+        self.work[address] = replace(
+            work, completed=payload, waiting=None, task=None, request=None
+        )
+        parent = work.opened.parent
+        if parent is not None:
+            self.pending[parent] = self.pending[parent] - {address}
+
+    def continuation(
+        self,
+        payload: e.TaskOpened
+        | e.HumanActed
+        | e.RecordingRequested
+        | e.RecordingConsumed,
+    ) -> None:
+        address = payload.address
+        work = self.work[address]
+        if isinstance(payload, e.TaskOpened):
+            _require(
+                work.task is None
+                and work.completed is None
+                and payload.task == self.task_for(address),
+                "task_request",
+            )
+            self.tasks[payload.task.ref] = payload.task
+            self.work[address] = replace(work, task=payload.task.ref)
+        elif isinstance(payload, e.RecordingRequested):
+            _require(
+                work.request is None
+                and work.completed is None
+                and payload.request == self.recording_request(address),
+                "recording_request",
+            )
+            self.work[address] = replace(work, request=payload.request)
+        elif isinstance(payload, e.RecordingConsumed):
+            _require(
+                isinstance(self.command, e.SupplyRecording)
+                and self.command.recording == payload.recording,
+                "command_recording",
+            )
+            self.check_recording(payload.recording)
+            _require(
+                payload.outcome
+                == recording_outcome(payload.recording, self.company(address)),
+                "recording_outcome",
+            )
+            _require(not self.action_applied, "duplicate_action")
+            self.action_applied = True
+            self.recordings[payload.recording.request.work] = payload.recording
+            self.complete(
+                address,
+                e.WorkSucceeded(
+                    address, payload.outcome, work.inputs, lang.Usage(0, 0)
+                ),
+            )
+        else:
+            command = payload.command
+            _require(
+                self.command == command and command_address(command) == address,
+                "command_action",
+            )
+            self.check_human(command)
+            key = action_key(command.action)
+            _require(key not in self.actions, "action_conflict")
+            _require(not self.action_applied, "duplicate_action")
+            self.action_applied = True
+            self.actions[key] = command
+            if isinstance(command, e.CorrectResult):
+                self.correct(command)
+                return
+            task = self.tasks[command.task]
+            if isinstance(command, e.RespondTask):
+                self.tasks[task.ref] = replace(task, status="answered")
+                self.complete(
+                    address,
+                    e.WorkSucceeded(
+                        address,
+                        p.normalized_value(command.value),
+                        work.inputs,
+                        lang.Usage(0, 0),
+                    ),
+                )
+            elif isinstance(command, e.CancelTask):
+                self.tasks[task.ref] = replace(task, status="cancelled")
+            else:
+                self.tasks[task.ref] = replace(task, status="superseded")
+                replacement = replace(
+                    task,
+                    ref=replace(
+                        task.ref, request_revision=task.ref.request_revision + 1
+                    ),
+                    assignee=command.assignee,
+                )
+                self.tasks[replacement.ref] = replacement
+                self.work[address] = replace(work, task=replacement.ref)
+
+    def correct(self, command: e.CorrectResult) -> None:
+        target = command.work.address
+        affected: set[e.WorkAddress] = set()
+        reselect: set[e.WorkAddress] = set()
+        retired: set[e.WorkAddress] = set()
+        queue = [target]
+        while queue:
+            address = queue.pop()
+            for consumer in self.consumers.get(self.ref(address), ()):
+                if consumer not in affected and consumer != target:
+                    affected.add(consumer)
+                    queue.append(consumer)
+            work = self.work[address]
+            if (
+                address != target
+                and work.selected is not None
+                and (
+                    address in retired
+                    or any(
+                        item.producer == target or item.producer in affected
+                        for item in work.selected.inputs
+                    )
+                )
+            ):
+                reselect.add(address)
+                for child in work.selected.dependencies:
+                    if child in self.work and child not in retired:
+                        retired.add(child)
+                        affected.add(child)
+                        queue.append(child)
+            parent = work.opened.parent
+            if parent is not None and parent not in affected:
+                affected.add(parent)
+                queue.append(parent)
+        for address in sorted(affected | {target}, key=repr):
+            work = self.work[address]
+            self.history[self.ref(address)] = work
+            if work.task is not None:
+                task = self.tasks[work.task]
+                self.tasks[work.task] = replace(task, status="superseded")
+            if address in retired:
+                del self.work[address]
+                self.pending.pop(address, None)
+                continue
+            opened = replace(work.opened, revision=work.opened.revision + 1)
+            if address == target:
+                completed = e.WorkSucceeded(
+                    address,
+                    p.normalized_value(command.value),
+                    work.inputs,
+                    lang.Usage(0, 0),
+                )
+                self.work[address] = replace(work, opened=opened, completed=completed)
+            else:
+                selection = None if address in reselect else work.selected
+                retained_inputs = tuple(
+                    item
+                    for item in work.inputs
+                    if item.producer != target and item.producer not in affected
+                )
+                self.work[address] = Work(
+                    opened, selected=selection, inputs=retained_inputs
+                )
+                if selection is not None:
+                    self.pending[address] = frozenset(selection.dependencies)
+        for address in affected - retired:
+            selected = self.work[address].selected
+            if selected is not None:
+                self.pending[address] = frozenset(
+                    child
+                    for child in selected.dependencies
+                    if child not in self.work or self.work[child].completed is None
+                )
 
     def check_completion(
         self, node: p.Node, work: Work, payload: e.WorkSucceeded
@@ -801,7 +1328,9 @@ class _Reducer:
         node = self.node(address)
         reference: p.Input
         width = 1
-        if isinstance(node, p.CodeStep):
+        if isinstance(node, p.HumanStep) and path == ("request",):
+            return node.request.value
+        if isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)):
             _require(len(path) >= 2 and path[0] == "input", "input_path")
             assert len(path) >= 2
             bindings = {item.name: item.value for item in node.metadata.inputs}
@@ -840,8 +1369,6 @@ class _Reducer:
             _require(path[1] in branches, "input_path")
             reference, width = branches[path[1]].result.value, 2
         else:
-            _require(isinstance(node, p.Repeat), "unsupported_step")
-            assert isinstance(node, p.Repeat)
             refs = {
                 "initial": node.initial.value,
                 "carried": node.body.result.value,
@@ -959,6 +1486,8 @@ class _Reducer:
             )
         _require(
             consumed.producer == producer
+            and consumed.producer_revision
+            == (None if producer is None else self.work[producer].opened.revision)
             and consumed.value == p.normalized_value(value),
             "input_provenance",
         )
@@ -986,9 +1515,7 @@ def rebuild(
 
 
 class _Decider:
-    def __init__(
-        self, reducer: _Reducer, command: e.StartSandbox | e.SignalRepeat
-    ) -> None:
+    def __init__(self, reducer: _Reducer, command: e.RuntimeCommand) -> None:
         self.reducer = reducer
         self.command = command
         self.events: list[e.RuntimeEvent] = []
@@ -1070,9 +1597,16 @@ class _Decider:
             value = _path(value, reference.path)
         self.meter.value(value)
         consumed = e.ConsumedInput(
-            name, reference, p.normalized_value(value), producer, rule_ids, scope
+            name,
+            reference,
+            p.normalized_value(value),
+            producer,
+            rule_ids,
+            scope,
+            None if producer is None else self.reducer.work[producer].opened.revision,
         )
-        self.emit(e.InputBound(address, consumed))
+        if consumed not in self.reducer.work[address].inputs:
+            self.emit(e.InputBound(address, consumed))
         return consumed
 
     def run(
@@ -1087,7 +1621,11 @@ class _Decider:
                 len(context.results) + len(context.locals),
                 len(context.results) + len(context.locals),
             )
-            self.emit(e.WorkOpened(address, parent, context))
+            self.emit(
+                e.WorkOpened(
+                    address, parent, context, self.reducer.next_revision(address)
+                )
+            )
         work = self.reducer.work[address]
         if work.completed is not None:
             return work.completed.value
@@ -1134,7 +1672,20 @@ class _Decider:
             )
             return function_result.value
         if isinstance(node, (p.AiStep, p.HumanStep)):
-            raise _Failure("unsupported_step")
+            if work.task is not None or work.request is not None:
+                return None
+            for item in node.metadata.inputs:
+                self.resolve(address, context, item.value, ("input", item.name))
+            if isinstance(node, p.HumanStep):
+                self.resolve(address, context, node.request.value, ("request",))
+                self.emit(e.TaskOpened(address, self.reducer.task_for(address)))
+            else:
+                self.emit(
+                    e.RecordingRequested(
+                        address, self.reducer.recording_request(address)
+                    )
+                )
+            return None
         if isinstance(node, p.Repeat):
             return self.repeat(address, context, node)
         if work.selected is None:
@@ -1316,27 +1867,85 @@ def decide(
         return Refused("unsupported_activation")
     previous = state.commands.get(command.meta.command_id)
     if previous is not None:
-        return Accepted(()) if previous == command else Refused("command_conflict")
+        return (
+            Accepted((), state) if previous == command else Refused("command_conflict")
+        )
     reducer = _Reducer(state, programs)
+    if isinstance(
+        command, (e.RespondTask, e.ReassignTask, e.CancelTask, e.CorrectResult)
+    ):
+        try:
+            address = command_address(command)
+            _require(address.case_id in state.cases, "unknown_case")
+            reducer.observer(address, command.action, command.meta)
+        except ReplayError as error:
+            return Refused(error.code)
+        recorded = state.actions.get(action_key(command.action))
+        if recorded is not None:
+            return (
+                Accepted((), state)
+                if same_action(recorded, command)
+                else Refused("action_conflict")
+            )
+    if isinstance(command, e.SupplyRecording):
+        recorded_ai = state.recordings.get(command.recording.request.work)
+        if recorded_ai is not None:
+            return (
+                Accepted((), state)
+                if recorded_ai == command.recording
+                else Refused("recording_conflict")
+            )
     decider = _Decider(reducer, command)
     try:
         decider.emit(e.BatchStarted(command))
     except (ReplayError, _Failure) as error:
         return Refused(error.code)
-    case_id = (
-        command.case_id
-        if isinstance(command, e.StartSandbox)
-        else command.address.case_id
-    )
+    case_id = command_case(command)
     case = reducer.cases[case_id]
     root = programs.artifacts[case.start.artifact].draft.root
     failure: str | None = None
     try:
-        for item in case.start.facts:
-            decider.meter.value(item.value)
-        result = decider.run(
-            e.WorkAddress(case_id, p.node_identity(root)), e.Context(), None
-        )
+        if isinstance(
+            command, (e.RespondTask, e.ReassignTask, e.CancelTask, e.CorrectResult)
+        ):
+            decider.emit(e.HumanActed(command_address(command), command))
+        elif isinstance(command, e.SupplyRecording):
+            address = command_address(command)
+            decider.emit(
+                e.RecordingConsumed(
+                    address,
+                    command.recording,
+                    recording_outcome(command.recording, reducer.company(address)),
+                )
+            )
+        if isinstance(command, e.StartSandbox):
+            for item in case.start.facts:
+                decider.meter.value(item.value)
+            result = decider.run(
+                e.WorkAddress(case_id, p.node_identity(root)), e.Context(), None
+            )
+        elif isinstance(command, e.CorrectResult):
+            result = decider.run(
+                e.WorkAddress(case_id, p.node_identity(root)), e.Context(), None
+            )
+        else:
+            address = command_address(command)
+            work = reducer.work[address]
+            result = decider.run(address, work.opened.context, work.opened.parent)
+            parent = work.opened.parent
+            while parent is not None and result is not None:
+                parent_work = reducer.work[parent]
+                parent_node = reducer.node(parent)
+                if (
+                    isinstance(parent_node, (p.Each, p.Parallel))
+                    and reducer.pending[parent]
+                ):
+                    result = None
+                    break
+                result = decider.run(
+                    parent, parent_work.opened.context, parent_work.opened.parent
+                )
+                parent = parent_work.opened.parent
         status = "waiting" if result is None else "succeeded"
     except _Failure as error:
         status, failure = "failed", error.code
@@ -1344,4 +1953,4 @@ def decide(
         e.CaseSettled(case_id, status, failure, decider.meter.usage()), terminal=True
     )
     decider.emit(e.BatchCompleted(len(decider.events) + 1), terminal=True)
-    return Accepted(tuple(decider.events))
+    return Accepted(tuple(decider.events), reducer.freeze())

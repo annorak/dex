@@ -17,6 +17,11 @@ def encode_core(value: object) -> Json:
         return value.isoformat()
     if isinstance(value, tuple):
         return [encode_core(item) for item in cast(tuple[object, ...], value)]
+    if isinstance(value, frozenset):
+        return [
+            encode_core(item)
+            for item in sorted(cast(frozenset[object], value), key=repr)
+        ]
     if isinstance(value, list):
         return [encode_core(item) for item in cast(list[object], value)]
     if isinstance(value, dict):
@@ -101,6 +106,11 @@ def encode_core(value: object) -> Json:
             "kind": "ai",
             "metadata": value.metadata,
             "prompt_revision": value.prompt_revision,
+            **(
+                {"result_schema": value.result_schema}
+                if value.result_schema is not None
+                else {}
+            ),
         }
     elif isinstance(value, p.HumanStep):
         fields = {

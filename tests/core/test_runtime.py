@@ -264,8 +264,10 @@ def test_sequence_provenance_and_determinism() -> None:
     assert completed is not None
     assert completed.inputs[0].producer == e.WorkAddress("case", "first")
     command = start(programs, (p.NamedValue("input", p.IntValue(42)),))
-    assert r.decide(r.rebuild((), programs), command, programs) == r.Accepted(events)
-    assert r.decide(state, command, programs) == r.Accepted(())
+    assert r.decide(r.rebuild((), programs), command, programs) == r.Accepted(
+        events, state
+    )
+    assert r.decide(state, command, programs) == r.Accepted((), state)
     assert r.decide(
         state,
         replace(command, facts=(p.NamedValue("input", p.IntValue(43)),)),
@@ -331,7 +333,7 @@ def test_event_repeat_requires_fresh_exact_signal() -> None:
     assert waiting is not None
     assert waiting.iteration == 1
     assert waiting.carried == p.normalized_value(counter(2, False))
-    assert r.decide(state, signal, programs) == r.Accepted(())
+    assert r.decide(state, signal, programs) == r.Accepted((), state)
     assert r.decide(
         state,
         replace(
@@ -1024,7 +1026,7 @@ def test_activation_accounting_resets_when_waiting_repeat_resumes() -> None:
         assert state.cases["case"].status == (
             "waiting" if iteration == 0 else "succeeded"
         )
-        assert r.decide(state, signal, programs) == r.Accepted(())
+        assert r.decide(state, signal, programs) == r.Accepted((), state)
     assert initial.cases["case"].status == "waiting"
     assert len(initial.work) == 2
     assert len(state.work) == 4

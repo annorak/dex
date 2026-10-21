@@ -1,6 +1,6 @@
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from typing import cast
 
@@ -48,6 +48,7 @@ class SandboxCommand:
     business_date: date
     bounds: e.ActivationBounds
     kind: str = "sandbox"
+    company: e.CompanyContext | None = None
 
 
 @dataclass(frozen=True)
@@ -65,7 +66,31 @@ class RebuildCommand:
     kind: str = "rebuild"
 
 
-type RuntimeCommand = SandboxCommand | SignalCommand | RebuildCommand
+@dataclass(frozen=True)
+class ContinuationCommand:
+    program: str
+    command: e.HumanCommand
+    kind: str
+    advance_revision: bool = False
+
+
+@dataclass(frozen=True)
+class RecordingCommand:
+    program: str
+    meta: e.CommandMeta
+    work: e.WorkRevision
+    recording: str
+    bounds: e.ActivationBounds
+    kind: str = "recording"
+
+
+type RuntimeCommand = (
+    SandboxCommand
+    | SignalCommand
+    | RebuildCommand
+    | ContinuationCommand
+    | RecordingCommand
+)
 type Command = ProgramCommand | FunctionCommand | RuntimeCommand
 
 
@@ -97,6 +122,7 @@ class Scenario:
     programs: tuple[Program, ...]
     commands: tuple[Command, ...]
     expected: tuple[Expected | FunctionExpected | RuntimeExpected, ...]
+    detail: str = "full"
 
 
 def require_object_fields(value: Json, fields: str) -> dict[str, Json]:
@@ -406,9 +432,14 @@ def parse_node(value: Json) -> p.Node:
             parse_metadata(obj["metadata"]), require_text(obj["function_id"])
         )
     if tag == "ai":
-        obj = require_object_fields(value, "kind metadata prompt_revision")
+        fields = "kind metadata prompt_revision"
+        if isinstance(value, dict) and "result_schema" in value:
+            fields += " result_schema"
+        obj = require_object_fields(value, fields)
         return p.AiStep(
-            parse_metadata(obj["metadata"]), require_text(obj["prompt_revision"])
+            parse_metadata(obj["metadata"]),
+            require_text(obj["prompt_revision"]),
+            parse_schema(obj["result_schema"]) if "result_schema" in obj else None,
         )
     if tag == "human":
         obj = require_object_fields(
@@ -618,18 +649,159 @@ def parse_address(value: Json) -> e.WorkAddress:
     )
 
 
+def parse_work_revision(value: Json) -> e.WorkRevision:
+    obj = require_object_fields(value, "address revision")
+    return e.WorkRevision(
+        parse_address(obj["address"]), require_integer(obj["revision"])
+    )
+
+
+def parse_task_ref(value: Json) -> e.TaskRef:
+    obj = require_object_fields(value, "work request_revision")
+    return e.TaskRef(
+        parse_work_revision(obj["work"]), require_integer(obj["request_revision"])
+    )
+
+
+def parse_action(value: Json) -> e.HumanAction:
+    obj = require_object_fields(
+        value, "company_id origin action_id actor role decided_at"
+    )
+    return e.HumanAction(
+        require_text(obj["company_id"]),
+        require_text(obj["origin"]),
+        require_text(obj["action_id"]),
+        require_text(obj["actor"]),
+        require_text(obj["role"]),
+        datetime.fromisoformat(require_text(obj["decided_at"])),
+    )
+
+
+def parse_scope(value: Json) -> tuple[e.ScopePart, ...]:
+    return parse_address({"case_id": "scope", "node_id": "scope", "scope": value}).scope
+
+
+def parse_company(value: Json) -> e.CompanyContext:
+    obj = require_object_fields(
+        value,
+        "company_id policy_revision memberships observers record_revision records",
+    )
+    memberships: list[e.RoleMembership] = []
+    observers: list[e.ObservationPermission] = []
+    records: list[p.ResolvedRefValue] = []
+    for entry in require_items(obj["memberships"]):
+        item = require_object_fields(entry, "actor role scope valid_from valid_until")
+        memberships.append(
+            e.RoleMembership(
+                require_text(item["actor"]),
+                require_text(item["role"]),
+                parse_scope(item["scope"]),
+                datetime.fromisoformat(require_text(item["valid_from"])),
+                None
+                if item["valid_until"] is None
+                else datetime.fromisoformat(require_text(item["valid_until"])),
+            )
+        )
+    for entry in require_items(obj["observers"]):
+        item = require_object_fields(
+            entry, "observer origin scope valid_from valid_until"
+        )
+        observers.append(
+            e.ObservationPermission(
+                require_text(item["observer"]),
+                require_text(item["origin"]),
+                parse_scope(item["scope"]),
+                datetime.fromisoformat(require_text(item["valid_from"])),
+                None
+                if item["valid_until"] is None
+                else datetime.fromisoformat(require_text(item["valid_until"])),
+            )
+        )
+    for entry in require_items(obj["records"]):
+        record = parse_value(entry)
+        if not isinstance(record, p.ResolvedRefValue):
+            raise ScenarioError("Company records require resolved identities.")
+        records.append(record)
+    return e.CompanyContext(
+        require_text(obj["company_id"]),
+        require_text(obj["policy_revision"]),
+        tuple(memberships),
+        tuple(observers),
+        require_text(obj["record_revision"]),
+        frozenset(records),
+    )
+
+
 def parse_command(value: Json) -> Command:
     tag = require_kind(value)
     if tag == "sandbox":
-        obj = require_object_fields(
-            value, "kind program meta case_id facts business_date bounds"
-        )
+        fields = "kind program meta case_id facts business_date bounds"
+        if isinstance(value, dict) and "company" in value:
+            fields += " company"
+        obj = require_object_fields(value, fields)
         return SandboxCommand(
             require_text(obj["program"]),
             parse_meta(obj["meta"]),
             require_text(obj["case_id"]),
             tuple(parse_named_value(item) for item in require_items(obj["facts"])),
             parse_date(obj["business_date"]),
+            parse_bounds(obj["bounds"]),
+            company=parse_company(obj["company"]) if "company" in obj else None,
+        )
+    if tag in {"respond", "reassign", "cancel", "correct"}:
+        fields = (
+            "kind program meta action bounds "
+            + {
+                "respond": "task reviewed value",
+                "reassign": "task assignee",
+                "cancel": "task",
+                "correct": "work value",
+            }[tag]
+        )
+        obj = require_object_fields(value, fields)
+        meta, action, bounds = (
+            parse_meta(obj["meta"]),
+            parse_action(obj["action"]),
+            parse_bounds(obj["bounds"]),
+        )
+        command: e.HumanCommand
+        if tag == "correct":
+            command = e.CorrectResult(
+                meta,
+                parse_work_revision(obj["work"]),
+                action,
+                parse_value(obj["value"]),
+                bounds,
+            )
+        elif tag == "respond":
+            command = e.RespondTask(
+                meta,
+                parse_task_ref(obj["task"]),
+                tuple(
+                    parse_work_revision(item) for item in require_items(obj["reviewed"])
+                ),
+                action,
+                parse_value(obj["value"]),
+                bounds,
+            )
+        elif tag == "reassign":
+            command = e.ReassignTask(
+                meta,
+                parse_task_ref(obj["task"]),
+                action,
+                None if obj["assignee"] is None else require_text(obj["assignee"]),
+                bounds,
+            )
+        else:
+            command = e.CancelTask(meta, parse_task_ref(obj["task"]), action, bounds)
+        return ContinuationCommand(require_text(obj["program"]), command, tag)
+    if tag == "recording":
+        obj = require_object_fields(value, "kind program meta work recording bounds")
+        return RecordingCommand(
+            require_text(obj["program"]),
+            parse_meta(obj["meta"]),
+            parse_work_revision(obj["work"]),
+            require_text(obj["recording"]),
             parse_bounds(obj["bounds"]),
         )
     if tag == "signal":
@@ -666,6 +838,33 @@ def parse_command(value: Json) -> Command:
     if tag not in {"verify", "activate"}:
         raise ScenarioError("Unsupported command kind: " + tag)
     return ProgramCommand(tag, require_text(obj["program"]))
+
+
+def expand_commands(value: Json) -> tuple[Command, ...]:
+    if require_kind(value) != "respond_tasks":
+        return (parse_command(value),)
+    obj = require_object_fields(value, "kind program meta action bounds value targets")
+    meta, action = parse_meta(obj["meta"]), parse_action(obj["action"])
+    bounds, answer = parse_bounds(obj["bounds"]), parse_value(obj["value"])
+    commands: list[Command] = []
+    for index, entry in enumerate(require_items(obj["targets"])):
+        target = require_object_fields(entry, "task reviewed")
+        command = e.RespondTask(
+            replace(meta, command_id=f"{meta.command_id}:{index}"),
+            parse_task_ref(target["task"]),
+            tuple(
+                parse_work_revision(item) for item in require_items(target["reviewed"])
+            ),
+            replace(action, action_id=f"{action.action_id}:{index}"),
+            answer,
+            bounds,
+        )
+        commands.append(
+            ContinuationCommand(require_text(obj["program"]), command, "respond", True)
+        )
+    if not commands:
+        raise ScenarioError("Response series requires explicit targets.")
+    return tuple(commands)
 
 
 def parse_expected(value: Json) -> Expected | FunctionExpected | RuntimeExpected:
@@ -751,16 +950,25 @@ def parse_scenario(source: bytes) -> Scenario:
                 stack.extend((child, depth + 1) for child in item)
             elif isinstance(item, str):
                 item.encode("utf-8")
-        obj = require_object_fields(
-            data, "format scenario_id programs commands expected"
-        )
+        fields = "format scenario_id programs commands expected"
+        if isinstance(data, dict) and "detail" in data:
+            fields += " detail"
+        obj = require_object_fields(data, fields)
+        detail = require_text(obj["detail"]) if "detail" in obj else "full"
+        if detail not in {"full", "changes"}:
+            raise ScenarioError("Unsupported observation detail.")
         if require_text(obj["format"]) != "dex-eval-scenario-2":
             raise ScenarioError("Unsupported evaluator scenario format.")
         result = Scenario(
             require_text(obj["scenario_id"]),
             tuple(parse_program(item) for item in require_items(obj["programs"])),
-            tuple(parse_command(item) for item in require_items(obj["commands"])),
+            tuple(
+                command
+                for item in require_items(obj["commands"])
+                for command in expand_commands(item)
+            ),
             tuple(parse_expected(item) for item in require_items(obj["expected"])),
+            detail,
         )
     except (ValueError, RecursionError) as error:
         raise ScenarioError(str(error)) from error
