@@ -336,6 +336,8 @@ class _Reducer:
         self.command: e.StartSandbox | e.SignalRepeat | None = None
         self.ordinal = 0
         self.settled = False
+        self.instances = 0
+        self.usage = lang.Usage(0, 0)
 
     def freeze(self) -> WorkspaceState:
         _require(self.command is None, "incomplete_batch")
@@ -365,6 +367,8 @@ class _Reducer:
             self.command = command
             self.ordinal = 0
             self.settled = False
+            self.instances = 0
+            self.usage = lang.Usage(0, 0)
         else:
             _require(self.command is not None, "missing_batch")
             assert self.command is not None
@@ -475,8 +479,10 @@ class _Reducer:
         _require(payload_case == case_id, "command_case")
         if isinstance(payload, e.CaseSettled):
             _require(
-                0 <= payload.usage.work <= self.command.bounds.work
-                and 0 <= payload.usage.allocations <= self.command.bounds.allocations,
+                self.usage.work <= payload.usage.work <= self.command.bounds.work
+                and self.usage.allocations
+                <= payload.usage.allocations
+                <= self.command.bounds.allocations,
                 "usage_bounds",
             )
             _require(payload.case_id in self.cases, "unknown_case")
@@ -556,6 +562,8 @@ class _Reducer:
                     and self.work[binding.address].completed is not None,
                     "missing_result",
                 )
+            _require(self.instances < self.command.bounds.instances, "instance_limit")
+            self.instances += 1
             self.work[address] = Work(payload)
             return
         _require(address in self.work, "unknown_work")
@@ -664,6 +672,16 @@ class _Reducer:
                     "incomplete_join",
                 )
             self.check_completion(node, work, payload)
+            usage = lang.Usage(
+                self.usage.work + payload.usage.work,
+                self.usage.allocations + payload.usage.allocations,
+            )
+            _require(
+                usage.work <= self.command.bounds.work
+                and usage.allocations <= self.command.bounds.allocations,
+                "usage_bounds",
+            )
+            self.usage = usage
             self.work[address] = replace(work, completed=payload, waiting=None)
 
     def check_completion(

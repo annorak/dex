@@ -911,3 +911,121 @@ def test_replay_enforces_recorded_event_bound() -> None:
     assert len(changed) > command.bounds.events
     with pytest.raises(r.ReplayError, match="event_limit"):
         r.rebuild(changed, programs)
+
+
+@pytest.mark.parametrize("dimension", ["instances", "work", "allocations"])
+def test_replay_rejects_aggregate_records_above_activation_bounds(
+    dimension: str,
+) -> None:
+    _, events, programs = execute(
+        sequence_program(), (p.NamedValue("input", p.IntValue(42)),)
+    )
+    opened = sum(isinstance(event.payload, e.WorkOpened) for event in events)
+    completions = [
+        event.payload for event in events if isinstance(event.payload, e.WorkSucceeded)
+    ]
+    work = sum(item.usage.work for item in completions)
+    allocations = sum(item.usage.allocations for item in completions)
+    bounds = replace(
+        DEFAULT_BOUNDS,
+        instances=opened - 1 if dimension == "instances" else DEFAULT_BOUNDS.instances,
+        work=work - 1 if dimension == "work" else DEFAULT_BOUNDS.work,
+        allocations=allocations - 1
+        if dimension == "allocations"
+        else DEFAULT_BOUNDS.allocations,
+    )
+    changed: list[e.RuntimeEvent] = []
+    for event in events:
+        payload = event.payload
+        if isinstance(payload, e.BatchStarted):
+            command = replace(payload.command, bounds=bounds)
+            live = r.decide(r.rebuild((), programs), command, programs)
+            assert isinstance(live, r.Accepted)
+            live_state = r.rebuild(live.events, programs)
+            assert live_state.cases["case"].status == "failed"
+            assert (
+                live_state.cases["case"].failure
+                == {
+                    "instances": "instance_limit",
+                    "work": "work_limit",
+                    "allocations": "allocation_limit",
+                }[dimension]
+            )
+            payload = e.BatchStarted(command)
+        elif isinstance(payload, e.CaseSettled):
+            payload = replace(
+                payload,
+                usage=lang.Usage(
+                    min(payload.usage.work, bounds.work),
+                    min(payload.usage.allocations, bounds.allocations),
+                ),
+            )
+        changed.append(replace(event, payload=payload))
+    with pytest.raises(
+        r.ReplayError,
+        match="instance_limit" if dimension == "instances" else "usage_bounds",
+    ):
+        r.rebuild(tuple(changed), programs)
+
+
+@pytest.mark.parametrize("dimension", ["work", "allocations"])
+def test_terminal_usage_covers_successful_work_records(dimension: str) -> None:
+    _, events, programs = execute(
+        sequence_program(), (p.NamedValue("input", p.IntValue(42)),)
+    )
+    changed: list[e.RuntimeEvent] = []
+    for event in events:
+        payload = event.payload
+        if isinstance(payload, e.CaseSettled):
+            payload = replace(
+                payload,
+                usage=lang.Usage(
+                    0 if dimension == "work" else payload.usage.work,
+                    0 if dimension == "allocations" else payload.usage.allocations,
+                ),
+            )
+        changed.append(replace(event, payload=payload))
+    with pytest.raises(r.ReplayError, match="usage_bounds"):
+        r.rebuild(tuple(changed), programs)
+
+
+def test_activation_accounting_resets_when_waiting_repeat_resumes() -> None:
+    state, events, programs = execute(
+        repeat_program(3, event=True), bounds=replace(DEFAULT_BOUNDS, instances=2)
+    )
+    initial = state
+    address = e.WorkAddress("case", "repeat")
+    for iteration in range(2):
+        signal = e.SignalRepeat(
+            e.CommandMeta(
+                "signal-" + str(iteration), "tester", NOW, NOW, state.revision
+            ),
+            address,
+            iteration,
+            "continue",
+        )
+        measured = r.decide(state, signal, programs)
+        assert isinstance(measured, r.Accepted)
+        settled = measured.events[-2].payload
+        assert isinstance(settled, e.CaseSettled)
+        signal = replace(
+            signal,
+            bounds=replace(
+                DEFAULT_BOUNDS,
+                instances=1,
+                work=settled.usage.work,
+                allocations=settled.usage.allocations,
+            ),
+        )
+        accepted = r.decide(state, signal, programs)
+        assert isinstance(accepted, r.Accepted)
+        events += accepted.events
+        state = r.rebuild(events, programs)
+        assert state.cases["case"].status == (
+            "waiting" if iteration == 0 else "succeeded"
+        )
+        assert r.decide(state, signal, programs) == r.Accepted(())
+    assert initial.cases["case"].status == "waiting"
+    assert len(initial.work) == 2
+    assert len(state.work) == 4
+    assert root_value(state) == p.normalized_value(counter(3, True))
