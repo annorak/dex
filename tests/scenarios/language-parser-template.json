@@ -1,0 +1,732 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "language-parser-template",
+  "programs": [
+    {
+      "name": "parse0",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "text",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "text",
+                    "value": "Amount: 12.34;"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "tagged",
+              "variants": [
+                {
+                  "name": "recognized",
+                  "schema": {
+                    "kind": "money_cents"
+                  }
+                },
+                {
+                  "name": "unsupported",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "needs_human",
+                  "schema": {
+                    "kind": "text"
+                  }
+                }
+              ]
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "text",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ],
+            "output": {
+              "kind": "tagged",
+              "variants": [
+                {
+                  "name": "recognized",
+                  "schema": {
+                    "kind": "money_cents"
+                  }
+                },
+                {
+                  "name": "unsupported",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "needs_human",
+                  "schema": {
+                    "kind": "text"
+                  }
+                }
+              ]
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "if starts_with(text, \"Amount: \"):\n    return tag(\"recognized\", parse_money(between(text, \"Amount: \", \";\")))\nif contains(text, \"?\"):\n    return tag(\"needs_human\", \"Amount is uncertain\")\nreturn tag(\"unsupported\", \"Unknown format\")"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "text",
+                    "value": {
+                      "kind": "text",
+                      "value": "Amount: 12.34;"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "tagged",
+                  "tag": "recognized",
+                  "value": {
+                    "kind": "money_cents",
+                    "cents": 1234
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "parse1",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "text",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "text",
+                    "value": "Amount: 12.34;"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "tagged",
+              "variants": [
+                {
+                  "name": "recognized",
+                  "schema": {
+                    "kind": "money_cents"
+                  }
+                },
+                {
+                  "name": "unsupported",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "needs_human",
+                  "schema": {
+                    "kind": "text"
+                  }
+                }
+              ]
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "text",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ],
+            "output": {
+              "kind": "tagged",
+              "variants": [
+                {
+                  "name": "recognized",
+                  "schema": {
+                    "kind": "money_cents"
+                  }
+                },
+                {
+                  "name": "unsupported",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "needs_human",
+                  "schema": {
+                    "kind": "text"
+                  }
+                }
+              ]
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "if starts_with(text, \"Amount: \"):\n    return tag(\"recognized\", parse_money(between(text, \"Amount: \", \";\")))\nif contains(text, \"?\"):\n    return tag(\"needs_human\", \"Amount is uncertain\")\nreturn tag(\"unsupported\", \"Unknown format\")"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "text",
+                    "value": {
+                      "kind": "text",
+                      "value": "Amount: 12.34;"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "tagged",
+                  "tag": "recognized",
+                  "value": {
+                    "kind": "money_cents",
+                    "cents": 1234
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "parse2",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "text",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "text",
+                    "value": "Amount: 12.34;"
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "tagged",
+              "variants": [
+                {
+                  "name": "recognized",
+                  "schema": {
+                    "kind": "money_cents"
+                  }
+                },
+                {
+                  "name": "unsupported",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "needs_human",
+                  "schema": {
+                    "kind": "text"
+                  }
+                }
+              ]
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "text",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ],
+            "output": {
+              "kind": "tagged",
+              "variants": [
+                {
+                  "name": "recognized",
+                  "schema": {
+                    "kind": "money_cents"
+                  }
+                },
+                {
+                  "name": "unsupported",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "needs_human",
+                  "schema": {
+                    "kind": "text"
+                  }
+                }
+              ]
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "if starts_with(text, \"Amount: \"):\n    return tag(\"recognized\", parse_money(between(text, \"Amount: \", \";\")))\nif contains(text, \"?\"):\n    return tag(\"needs_human\", \"Amount is uncertain\")\nreturn tag(\"unsupported\", \"Unknown format\")"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "text",
+                    "value": {
+                      "kind": "text",
+                      "value": "Amount: 12.34;"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "tagged",
+                  "tag": "recognized",
+                  "value": {
+                    "kind": "money_cents",
+                    "cents": 1234
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "template",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Facts",
+            "fields": [
+              {
+                "name": "amount",
+                "schema": {
+                  "kind": "text"
+                }
+              },
+              {
+                "name": "due",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return template(\"Amount {amount} due {due}\", Facts(format_money(parse_money(\"12.34\")), format_date(parse_us_date(\"02/29/2028\"))))"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "Amount 12.34 due 2028-02-29"
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "call",
+      "program": "parse0",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "text",
+          "value": {
+            "kind": "text",
+            "value": "Amount: 12.34;"
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "parse1",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "text",
+          "value": {
+            "kind": "text",
+            "value": "other"
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "parse2",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "text",
+          "value": {
+            "kind": "text",
+            "value": "?"
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "template",
+      "function_id": "f",
+      "inputs": [],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    }
+  ],
+  "expected": [
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "tagged",
+        "tag": "recognized",
+        "value": {
+          "kind": "money_cents",
+          "cents": 1234
+        }
+      },
+      "failure": null
+    },
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "tagged",
+        "tag": "unsupported",
+        "value": {
+          "kind": "text",
+          "value": "Unknown format"
+        }
+      },
+      "failure": null
+    },
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "tagged",
+        "tag": "needs_human",
+        "value": {
+          "kind": "text",
+          "value": "Amount is uncertain"
+        }
+      },
+      "failure": null
+    },
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "text",
+        "value": "Amount 12.34 due 2028-02-29"
+      },
+      "failure": null
+    }
+  ]
+}

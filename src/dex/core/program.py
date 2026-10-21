@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
 from hashlib import sha256
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dex.core.language import CheckedFunctions, LanguageFailure, Limits
 
 
 class Scalar(StrEnum):
@@ -258,11 +262,19 @@ class FunctionBody:
 
 
 @dataclass(frozen=True)
+class FunctionTest:
+    test_id: str
+    inputs: tuple[NamedValue, ...]
+    expected: Value
+
+
+@dataclass(frozen=True)
 class FunctionDeclaration:
     function_id: str
     inputs: tuple[Field, ...]
     output: Schema
     body: FunctionBody
+    tests: tuple[FunctionTest, ...]
 
 
 @dataclass(frozen=True)
@@ -400,13 +412,15 @@ class Diagnostic:
 @dataclass(frozen=True)
 class StructuralFailure:
     diagnostics: tuple[Diagnostic, ...]
+    function_failure: "LanguageFailure | None"
 
 
 @dataclass(frozen=True)
 class StructuralArtifact:
     draft: ProgramDraft
     sources: SourceCatalog
-    verifier_version: str = "structure-1"
+    checked_functions: "CheckedFunctions"
+    verifier_version: str = "structure-language-1"
 
 
 class MissingCheck(StrEnum):
@@ -474,7 +488,10 @@ def normalized_value(value: Value) -> Value:
 
 
 class _Verifier:
-    def __init__(self, draft: ProgramDraft, sources: SourceCatalog) -> None:
+    def __init__(
+        self, draft: ProgramDraft, sources: SourceCatalog, limits: "Limits"
+    ) -> None:
+        self.limits = limits
         self.draft = draft
         self.sources = sources
         self.errors: list[Diagnostic] = []
@@ -971,7 +988,7 @@ class _Verifier:
     def verify(self) -> VerificationResult:
         self.index()
         if self.errors:
-            return StructuralFailure(tuple(self.errors))
+            return StructuralFailure(tuple(self.errors), None)
         self.source_catalog()
         for schema in self.draft.schemas:
             self.schema(schema, "schemas." + schema.name)
@@ -991,7 +1008,7 @@ class _Verifier:
                     "function_body", path, "A function needs versioned source data."
                 )
         if self.errors:
-            return StructuralFailure(tuple(self.errors))
+            return StructuralFailure(tuple(self.errors), None)
         self.walk(self.draft.root)
         self.rules()
         self.names(
@@ -1005,11 +1022,21 @@ class _Verifier:
                 scenario.expected, node_output(self.draft.root), path + ".expected"
             )
         if self.errors:
-            return StructuralFailure(tuple(self.errors))
+            return StructuralFailure(tuple(self.errors), None)
+        from dex.core.language import LanguageFailure, check_functions
+
+        checked = check_functions(self.draft.functions, self.draft.schemas, self.limits)
+        if isinstance(checked, LanguageFailure):
+            return StructuralFailure(
+                (Diagnostic(checked.code, checked.path, checked.message),), checked
+            )
         return ExecutionPending(
-            StructuralArtifact(self.draft, self.sources), tuple(MissingCheck)
+            StructuralArtifact(self.draft, self.sources, checked),
+            tuple(check for check in MissingCheck if check != MissingCheck.LANGUAGE),
         )
 
 
-def verify_program(draft: ProgramDraft, sources: SourceCatalog) -> VerificationResult:
-    return _Verifier(draft, sources).verify()
+def verify_program(
+    draft: ProgramDraft, sources: SourceCatalog, limits: "Limits"
+) -> VerificationResult:
+    return _Verifier(draft, sources, limits).verify()

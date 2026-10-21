@@ -1,5 +1,5 @@
 {
-  "format": "dex-eval-scenario-1",
+  "format": "dex-eval-scenario-2",
   "scenario_id": "program-reference-scope",
   "programs": [
     {
@@ -113,8 +113,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           },
           {
             "function_id": "function-later",
@@ -124,8 +142,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -280,8 +308,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           },
           {
             "function_id": "function-no",
@@ -298,8 +336,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -489,8 +545,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           },
           {
             "function_id": "function-right",
@@ -507,8 +573,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -810,8 +894,51 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return row"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "row",
+                    "value": {
+                      "kind": "record",
+                      "record": "Row",
+                      "fields": [
+                        {
+                          "name": "id",
+                          "value": {
+                            "kind": "text",
+                            "value": "sample"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "key",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "record",
+                  "record": "Row",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "value": {
+                        "kind": "text",
+                        "value": "sample"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
           },
           {
             "function_id": "function-escape",
@@ -828,8 +955,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -1022,8 +1167,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "state",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           },
           {
             "function_id": "function-escape",
@@ -1040,8 +1203,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -1142,8 +1323,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],

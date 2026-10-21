@@ -1,0 +1,1465 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "language-size-limits",
+  "programs": [
+    {
+      "name": "source8",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return 1"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "source9",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return 1\n"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "nesting3",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return (((1)))"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "nesting4",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return ((((1))))"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "string8",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "text",
+                    "value": ""
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return value"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": ""
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": ""
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "string9",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "text"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "text",
+                    "value": ""
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return value"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": ""
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": ""
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "collection1",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Key",
+            "fields": [
+              {
+                "name": "key",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "items",
+                "schema": {
+                  "kind": "keyed",
+                  "item": {
+                    "kind": "record",
+                    "name": "Key",
+                    "fields": [
+                      {
+                        "name": "key",
+                        "schema": {
+                          "kind": "text"
+                        }
+                      }
+                    ]
+                  },
+                  "key_field": "key"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "keyed",
+                    "entries": []
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "items",
+                "schema": {
+                  "kind": "keyed",
+                  "item": {
+                    "kind": "record",
+                    "name": "Key",
+                    "fields": [
+                      {
+                        "name": "key",
+                        "schema": {
+                          "kind": "text"
+                        }
+                      }
+                    ]
+                  },
+                  "key_field": "key"
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return 1"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "items",
+                    "value": {
+                      "kind": "keyed",
+                      "entries": []
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "collection2",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Key",
+            "fields": [
+              {
+                "name": "key",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "items",
+                "schema": {
+                  "kind": "keyed",
+                  "item": {
+                    "kind": "record",
+                    "name": "Key",
+                    "fields": [
+                      {
+                        "name": "key",
+                        "schema": {
+                          "kind": "text"
+                        }
+                      }
+                    ]
+                  },
+                  "key_field": "key"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "keyed",
+                    "entries": []
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "items",
+                "schema": {
+                  "kind": "keyed",
+                  "item": {
+                    "kind": "record",
+                    "name": "Key",
+                    "fields": [
+                      {
+                        "name": "key",
+                        "schema": {
+                          "kind": "text"
+                        }
+                      }
+                    ]
+                  },
+                  "key_field": "key"
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return 1"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "items",
+                    "value": {
+                      "kind": "keyed",
+                      "entries": []
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "integer10",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "integer",
+                    "value": 1
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return value"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "integer",
+                      "value": 1
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "integer11",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "integer",
+                    "value": 1
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return value"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "integer",
+                      "value": 1
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "call",
+      "program": "source8",
+      "function_id": "f",
+      "inputs": [],
+      "limits": {
+        "source_bytes": 8,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "source9",
+      "function_id": "f",
+      "inputs": [],
+      "limits": {
+        "source_bytes": 8,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "nesting3",
+      "function_id": "f",
+      "inputs": [],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 3,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "nesting4",
+      "function_id": "f",
+      "inputs": [],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 3,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "string8",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "value",
+          "value": {
+            "kind": "text",
+            "value": "aaaaaaaa"
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 8,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "string9",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "value",
+          "value": {
+            "kind": "text",
+            "value": "aaaaaaaaa"
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 8,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "collection1",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "items",
+          "value": {
+            "kind": "keyed",
+            "entries": [
+              {
+                "key": "0",
+                "value": {
+                  "kind": "record",
+                  "record": "Key",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "0"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 1,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "collection2",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "items",
+          "value": {
+            "kind": "keyed",
+            "entries": [
+              {
+                "key": "0",
+                "value": {
+                  "kind": "record",
+                  "record": "Key",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "0"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "1",
+                "value": {
+                  "kind": "record",
+                  "record": "Key",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "1"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 1,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "integer10",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "value",
+          "value": {
+            "kind": "integer",
+            "value": 10
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 10,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "integer11",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "value",
+          "value": {
+            "kind": "integer",
+            "value": 11
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 10,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    }
+  ],
+  "expected": [
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "integer",
+        "value": 1
+      },
+      "failure": null
+    },
+    {
+      "status": "function_failure",
+      "value": null,
+      "failure": "source_limit"
+    },
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "integer",
+        "value": 1
+      },
+      "failure": null
+    },
+    {
+      "status": "function_failure",
+      "value": null,
+      "failure": "nesting_limit"
+    },
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "text",
+        "value": "aaaaaaaa"
+      },
+      "failure": null
+    },
+    {
+      "status": "function_failure",
+      "value": null,
+      "failure": "string_limit"
+    },
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "integer",
+        "value": 1
+      },
+      "failure": null
+    },
+    {
+      "status": "function_failure",
+      "value": null,
+      "failure": "collection_limit"
+    },
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "integer",
+        "value": 10
+      },
+      "failure": null
+    },
+    {
+      "status": "function_failure",
+      "value": null,
+      "failure": "integer_limit"
+    }
+  ]
+}

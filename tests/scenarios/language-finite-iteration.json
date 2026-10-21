@@ -1,0 +1,263 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "language-finite-iteration",
+  "programs": [
+    {
+      "name": "iteration",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Row",
+            "fields": [
+              {
+                "name": "key",
+                "schema": {
+                  "kind": "text"
+                }
+              },
+              {
+                "name": "number",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "rows",
+                "schema": {
+                  "kind": "keyed",
+                  "item": {
+                    "kind": "record",
+                    "name": "Row",
+                    "fields": [
+                      {
+                        "name": "key",
+                        "schema": {
+                          "kind": "text"
+                        }
+                      },
+                      {
+                        "name": "number",
+                        "schema": {
+                          "kind": "integer"
+                        }
+                      }
+                    ]
+                  },
+                  "key_field": "key"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "keyed",
+                    "entries": []
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "rows",
+                "schema": {
+                  "kind": "keyed",
+                  "item": {
+                    "kind": "record",
+                    "name": "Row",
+                    "fields": [
+                      {
+                        "name": "key",
+                        "schema": {
+                          "kind": "text"
+                        }
+                      },
+                      {
+                        "name": "number",
+                        "schema": {
+                          "kind": "integer"
+                        }
+                      }
+                    ]
+                  },
+                  "key_field": "key"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "result = \"\"\nfor row in rows:\n    result = result + row.key\nreturn result"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "rows",
+                    "value": {
+                      "kind": "keyed",
+                      "entries": []
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": ""
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "call",
+      "program": "iteration",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "rows",
+          "value": {
+            "kind": "keyed",
+            "entries": [
+              {
+                "key": "b",
+                "value": {
+                  "kind": "record",
+                  "record": "Row",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "b"
+                      }
+                    },
+                    {
+                      "name": "number",
+                      "value": {
+                        "kind": "integer",
+                        "value": 2
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "a",
+                "value": {
+                  "kind": "record",
+                  "record": "Row",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "a"
+                      }
+                    },
+                    {
+                      "name": "number",
+                      "value": {
+                        "kind": "integer",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    }
+  ],
+  "expected": [
+    {
+      "status": "function_result",
+      "value": {
+        "kind": "text",
+        "value": "ab"
+      },
+      "failure": null
+    }
+  ]
+}

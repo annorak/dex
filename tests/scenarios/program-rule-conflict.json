@@ -1,5 +1,5 @@
 {
-  "format": "dex-eval-scenario-1",
+  "format": "dex-eval-scenario-2",
   "scenario_id": "program-rule-conflict",
   "programs": [
     {
@@ -48,8 +48,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [
@@ -217,8 +227,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [
@@ -386,8 +406,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [
@@ -536,7 +566,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -548,7 +577,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",

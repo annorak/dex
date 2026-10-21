@@ -1,6 +1,7 @@
 from datetime import date
 from typing import cast
 
+from dex.core import language as language
 from dex.core import program as p
 from dex.eval.scenario_format import Json
 
@@ -202,12 +203,19 @@ def encode_core(value: object) -> Json:
         }
     elif isinstance(value, p.FunctionBody):
         fields = {"language_version": value.language_version, "source": value.source}
+    elif isinstance(value, p.FunctionTest):
+        fields = {
+            "test_id": value.test_id,
+            "inputs": value.inputs,
+            "expected": value.expected,
+        }
     elif isinstance(value, p.FunctionDeclaration):
         fields = {
             "function_id": value.function_id,
             "inputs": value.inputs,
             "output": value.output,
             "body": value.body,
+            "tests": value.tests,
         }
     elif isinstance(value, p.Branch):
         fields = {"body": value.body, "result": value.result}
@@ -252,6 +260,18 @@ def encode_core(value: object) -> Json:
             "draft": value.draft,
             "sources": value.sources,
             "verifier_version": value.verifier_version,
+            "function_test_results": value.checked_functions.test_results,
+        }
+    elif isinstance(value, language.Usage):
+        fields = {"work": value.work, "allocations": value.allocations}
+    elif isinstance(value, language.FunctionResult):
+        fields = {"value": value.value, "usage": value.usage}
+    elif isinstance(value, language.LanguageFailure):
+        fields = {
+            "code": value.code,
+            "path": value.path,
+            "message": value.message,
+            "usage": value.usage,
         }
     elif isinstance(value, p.Diagnostic):
         fields = {"code": value.code, "path": value.path, "message": value.message}
