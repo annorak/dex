@@ -7,6 +7,7 @@ from typing import cast
 
 import pytest
 
+from dex.core.language import DEFAULT_LIMITS
 from dex.core.program import (
     AiStep,
     Choose,
@@ -34,6 +35,7 @@ from dex.core.program import (
 from dex.eval.scenario_format import (
     MAX_BYTES,
     MAX_DEPTH,
+    Expected,
     ScenarioError,
     parse_scenario,
 )
@@ -54,7 +56,6 @@ NAMES = (
     "program-unsupported-activation",
 )
 MISSING = (
-    "restricted_language_and_function_types",
     "bounded_graph_execution",
     "saved_scenario_execution",
     "resolved_identity_membership",
@@ -99,6 +100,7 @@ def test_fixture_observations_match_independent_expectations(name: str) -> None:
     for command, observed, expected in zip(
         scenario.commands, evaluation.observations, scenario.expected, strict=True
     ):
+        assert isinstance(expected, Expected)
         assert observed.command == command.kind
         assert observed.program == command.program
         assert observed.status == expected.status
@@ -121,7 +123,7 @@ def test_structural_success_preserves_artifact_and_does_not_claim_execution() ->
     assert observed.artifact is not None
     assert observed.artifact.draft == scenario.programs[0].draft
     assert observed.artifact.sources == scenario.programs[0].sources
-    assert observed.artifact.verifier_version == "structure-1"
+    assert observed.artifact.verifier_version == "structure-language-1"
 
 
 @pytest.mark.parametrize("name", NAMES)
@@ -133,7 +135,7 @@ def test_evaluator_preserves_real_verifier_result(name: str) -> None:
         scenario.commands, evaluation.observations, strict=True
     ):
         program = catalog[command.program]
-        result = verify_program(program.draft, program.sources)
+        result = verify_program(program.draft, program.sources, DEFAULT_LIMITS)
         if isinstance(result, StructuralFailure):
             assert observed.artifact is None
             assert observed.diagnostics[: len(result.diagnostics)] == result.diagnostics
@@ -162,7 +164,7 @@ def test_expected_answers_cannot_change_observations() -> None:
     assert after.matches == (False, True, True)
 
 
-def test_function_source_is_inert_data() -> None:
+def test_forbidden_function_source_is_rejected_without_running_python() -> None:
     data = read_document()
     declaration = require_object(require_array(get_draft(data)["functions"])[0])
     body = require_object(declaration["body"])
@@ -170,9 +172,9 @@ def test_function_source_is_inert_data() -> None:
     body["source"] = source
     scenario = parse_scenario(encode_document(data))
     observed = evaluate(scenario).observations[0]
-    assert observed.status == "execution_pending"
-    assert observed.artifact is not None
-    assert observed.artifact.draft.functions[0].body.source == source
+    assert observed.status == "structural_failure"
+    assert observed.diagnostics[0].code == "unsupported_syntax"
+    assert observed.artifact is None
 
 
 def test_wire_variants_produce_core_types() -> None:
@@ -235,7 +237,7 @@ def test_lone_surrogate_is_rejected_inside_a_valid_envelope() -> None:
 
 def test_strict_envelope_version_fields_and_types() -> None:
     mutations: tuple[tuple[str, Json], ...] = (
-        ("format", "dex-eval-scenario-2"),
+        ("format", "dex-eval-scenario-1"),
         ("scenario_id", True),
         ("programs", {}),
         ("commands", "verify"),
@@ -314,7 +316,7 @@ def test_scalar_wire_types_are_exact(kind: str, field: str, value: Json) -> None
 def test_duplicate_object_keys_are_rejected_at_any_depth() -> None:
     original = read_fixture_bytes()
     for needle, replacement in (
-        (b'"format":', b'"format": "dex-eval-scenario-1", "format":'),
+        (b'"format":', b'"format": "dex-eval-scenario-2", "format":'),
         (b'"revision":', b'"revision": "r1", "revision":'),
     ):
         assert needle in original

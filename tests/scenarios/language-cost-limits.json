@@ -1,0 +1,340 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "language-cost-limits",
+  "programs": [
+    {
+      "name": "builtin_work",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Facts",
+            "fields": [
+              {
+                "name": "amount",
+                "schema": {
+                  "kind": "text"
+                }
+              },
+              {
+                "name": "due",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "flag",
+                "schema": {
+                  "kind": "boolean"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "boolean",
+                    "value": false
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "flag",
+                "schema": {
+                  "kind": "boolean"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "if flag:\n    return template(\"{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}\", Facts(\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\", \"unused\"))\nreturn \"\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "flag",
+                    "value": {
+                      "kind": "boolean",
+                      "value": false
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": ""
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "builtin_allocation",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Facts",
+            "fields": [
+              {
+                "name": "amount",
+                "schema": {
+                  "kind": "text"
+                }
+              },
+              {
+                "name": "due",
+                "schema": {
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "step",
+            "behavior_id": "behavior-step",
+            "intent": "Return the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "procedure",
+                  "revision": "r1",
+                  "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+                  "extraction": "procedure-r1-text",
+                  "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+                },
+                "section": "approval",
+                "locator": "paragraph-1",
+                "start": 1,
+                "end": 2,
+                "quote": "\ud83d\udc1a"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "flag",
+                "schema": {
+                  "kind": "boolean"
+                },
+                "value": {
+                  "kind": "literal",
+                  "value": {
+                    "kind": "boolean",
+                    "value": false
+                  }
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "changes": []
+          },
+          "function_id": "f"
+        },
+        "functions": [
+          {
+            "function_id": "f",
+            "inputs": [
+              {
+                "name": "flag",
+                "schema": {
+                  "kind": "boolean"
+                }
+              }
+            ],
+            "output": {
+              "kind": "text"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "if flag:\n    return template(\"{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}{amount}\", Facts(\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\", \"unused\"))\nreturn \"\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "flag",
+                    "value": {
+                      "kind": "boolean",
+                      "value": false
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": ""
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "procedure",
+              "revision": "r1",
+              "original_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48",
+              "extraction": "procedure-r1-text",
+              "extraction_sha256": "sha256:1253677aecd11da0f3a73029b914e04377e603f79c1bfb9378f1560b6d7cee48"
+            },
+            "text": "A\ud83d\udc1aB",
+            "sections": [
+              {
+                "name": "approval",
+                "locator": "paragraph-1",
+                "start": 0,
+                "end": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "call",
+      "program": "builtin_work",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "flag",
+          "value": {
+            "kind": "boolean",
+            "value": true
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 16000000,
+        "work": 5000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    },
+    {
+      "kind": "call",
+      "program": "builtin_allocation",
+      "function_id": "f",
+      "inputs": [
+        {
+          "name": "flag",
+          "value": {
+            "kind": "boolean",
+            "value": true
+          }
+        }
+      ],
+      "limits": {
+        "source_bytes": 65536,
+        "nesting": 32,
+        "string_bytes": 65536,
+        "collection_count": 10000,
+        "integer_magnitude": 9223372036854775807,
+        "allocations": 30000,
+        "work": 5000000,
+        "functions": 128,
+        "ast_nodes": 20000,
+        "call_depth": 16
+      }
+    }
+  ],
+  "expected": [
+    {
+      "status": "function_failure",
+      "value": null,
+      "failure": "work_limit"
+    },
+    {
+      "status": "function_failure",
+      "value": null,
+      "failure": "allocation_limit"
+    }
+  ]
+}

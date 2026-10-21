@@ -45,10 +45,10 @@ def test_valid_scenario_writes_actual_and_separate_expected(tmp_path: Path) -> N
     assert result.returncode == 0, result.stderr
     assert result.stdout == (out / "actual.json").read_text()
     actual = cast(dict[str, Json], json.loads(result.stdout))
-    assert actual["format"] == "dex-eval-actual-1"
+    assert actual["format"] == "dex-eval-actual-2"
     assert "expected" not in actual
     evidence = cast(dict[str, Json], json.loads((out / "expected.json").read_text()))
-    assert evidence["format"] == "dex-eval-expected-1"
+    assert evidence["format"] == "dex-eval-expected-2"
     assert evidence["matches"] == [True]
 
 

@@ -5,6 +5,7 @@ from datetime import date, datetime
 from typing import cast
 
 from dex.core import program as p
+from dex.core.language import Limits
 
 type Json = None | bool | int | float | str | list[Json] | dict[str, Json]
 MAX_BYTES = 8 * 1024 * 1024
@@ -23,9 +24,21 @@ class Program:
 
 
 @dataclass(frozen=True)
-class Command:
+class ProgramCommand:
     kind: str
     program: str
+
+
+@dataclass(frozen=True)
+class FunctionCommand:
+    program: str
+    function_id: str
+    inputs: tuple[p.NamedValue, ...]
+    limits: Limits
+    kind: str = "call"
+
+
+type Command = ProgramCommand | FunctionCommand
 
 
 @dataclass(frozen=True)
@@ -36,11 +49,18 @@ class Expected:
 
 
 @dataclass(frozen=True)
+class FunctionExpected:
+    status: str
+    value: p.Value | None
+    failure: str | None
+
+
+@dataclass(frozen=True)
 class Scenario:
     scenario_id: str
     programs: tuple[Program, ...]
     commands: tuple[Command, ...]
-    expected: tuple[Expected, ...]
+    expected: tuple[Expected | FunctionExpected, ...]
 
 
 def require_object_fields(value: Json, fields: str) -> dict[str, Json]:
@@ -426,7 +446,7 @@ def parse_node(value: Json) -> p.Node:
 
 
 def parse_function(value: Json) -> p.FunctionDeclaration:
-    obj = require_object_fields(value, "function_id inputs output body")
+    obj = require_object_fields(value, "function_id inputs output body tests")
     body = require_object_fields(obj["body"], "language_version source")
     return p.FunctionDeclaration(
         require_text(obj["function_id"]),
@@ -435,6 +455,7 @@ def parse_function(value: Json) -> p.FunctionDeclaration:
         p.FunctionBody(
             require_text(body["language_version"]), require_text(body["source"])
         ),
+        tuple(parse_function_test(item) for item in require_items(obj["tests"])),
     )
 
 
@@ -500,15 +521,53 @@ def parse_program(value: Json) -> Program:
     )
 
 
+def parse_function_test(value: Json) -> p.FunctionTest:
+    obj = require_object_fields(value, "test_id inputs expected")
+    return p.FunctionTest(
+        require_text(obj["test_id"]),
+        tuple(parse_named_value(item) for item in require_items(obj["inputs"])),
+        parse_value(obj["expected"]),
+    )
+
+
+def parse_limits(value: Json) -> Limits:
+    obj = require_object_fields(
+        value,
+        "source_bytes nesting string_bytes collection_count integer_magnitude allocations work functions ast_nodes call_depth",
+    )
+    return Limits(**{name: require_integer(item) for name, item in obj.items()})
+
+
 def parse_command(value: Json) -> Command:
+    tag = require_kind(value)
+    if tag == "call":
+        obj = require_object_fields(value, "kind program function_id inputs limits")
+        return FunctionCommand(
+            require_text(obj["program"]),
+            require_text(obj["function_id"]),
+            tuple(parse_named_value(item) for item in require_items(obj["inputs"])),
+            parse_limits(obj["limits"]),
+        )
     obj = require_object_fields(value, "kind program")
-    tag = require_text(obj["kind"])
     if tag not in {"verify", "activate"}:
         raise ScenarioError("Unsupported command kind: " + tag)
-    return Command(tag, require_text(obj["program"]))
+    return ProgramCommand(tag, require_text(obj["program"]))
 
 
-def parse_expected(value: Json) -> Expected:
+def parse_expected(value: Json) -> Expected | FunctionExpected:
+    if isinstance(value, dict) and value.get("status") in {
+        "function_result",
+        "function_failure",
+    }:
+        obj = require_object_fields(value, "status value failure")
+        status = require_text(obj["status"])
+        result = None if obj["value"] is None else parse_value(obj["value"])
+        failure = None if obj["failure"] is None else require_text(obj["failure"])
+        if (
+            status == "function_result" and (result is None or failure is not None)
+        ) or (status == "function_failure" and (result is not None or failure is None)):
+            raise ScenarioError("Function expectation must name one value or failure.")
+        return FunctionExpected(status, result, failure)
     obj = require_object_fields(value, "status diagnostic_codes missing_checks")
     status = require_text(obj["status"])
     if status not in {
@@ -565,7 +624,7 @@ def parse_scenario(source: bytes) -> Scenario:
         obj = require_object_fields(
             data, "format scenario_id programs commands expected"
         )
-        if require_text(obj["format"]) != "dex-eval-scenario-1":
+        if require_text(obj["format"]) != "dex-eval-scenario-2":
             raise ScenarioError("Unsupported evaluator scenario format.")
         result = Scenario(
             require_text(obj["scenario_id"]),

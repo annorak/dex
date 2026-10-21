@@ -5,6 +5,7 @@ from hashlib import sha256
 import pytest
 
 from dex.core import program as p
+from dex.core.language import DEFAULT_LIMITS
 
 TEXT = "a😀éZ"
 PIN = p.SourcePin(
@@ -62,17 +63,17 @@ def draft(
 def codes(
     program: p.ProgramDraft, sources: p.SourceCatalog = SOURCES
 ) -> tuple[str, ...]:
-    result = p.verify_program(program, sources)
+    result = p.verify_program(program, sources, DEFAULT_LIMITS)
     assert isinstance(result, p.StructuralFailure)
     return tuple(item.code for item in result.diagnostics)
 
 
 def pending(program: p.ProgramDraft) -> p.ExecutionPending:
-    result = p.verify_program(program, SOURCES)
+    result = p.verify_program(program, SOURCES, DEFAULT_LIMITS)
     assert isinstance(result, p.ExecutionPending)
     assert result.artifact.draft == program
     assert result.artifact.sources == SOURCES
-    assert set(result.missing_checks) == set(p.MissingCheck)
+    assert set(result.missing_checks) == set(p.MissingCheck) - {p.MissingCheck.LANGUAGE}
     return result
 
 
@@ -409,11 +410,15 @@ def test_duplicate_node_identity_and_excessive_nesting_fail_visibly() -> None:
 
 def test_code_declarations_remain_inert_and_signature_checked() -> None:
     function = p.FunctionDeclaration(
-        "compute", (), p.Scalar.BOOLEAN, p.FunctionBody("restricted-1", "return True")
+        "compute",
+        (),
+        p.Scalar.BOOLEAN,
+        p.FunctionBody("restricted-1", "return True"),
+        (p.FunctionTest("true", (), p.BoolValue(True)),),
     )
     node = p.CodeStep(leaf("code").metadata, "compute")
     result = pending(draft(node, functions=(function,)))
-    assert p.MissingCheck.LANGUAGE in result.missing_checks
+    assert p.MissingCheck.LANGUAGE not in result.missing_checks
     wrong = replace(function, output=p.Scalar.TEXT)
     assert "function_signature" in codes(draft(node, functions=(wrong,)))
     assert "unknown_function" in codes(draft(node))
@@ -503,7 +508,9 @@ def test_events_reject_program_identity_mismatch(field: str, event_kind: str) ->
         if field == "program_id"
         else replace(identity, program_revision="different")
     )
-    with pytest.raises(ValueError, match="Event program identity must match its payload"):
+    with pytest.raises(
+        ValueError, match="Event program identity must match its payload"
+    ):
         if event_kind == "drafted":
             ProgramDrafted(identity, program)
         else:

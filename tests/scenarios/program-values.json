@@ -1,5 +1,5 @@
 {
-  "format": "dex-eval-scenario-1",
+  "format": "dex-eval-scenario-2",
   "scenario_id": "program-values",
   "programs": [
     {
@@ -69,8 +69,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "boolean",
+                      "value": true
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -166,8 +184,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "integer",
+                      "value": 1
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -263,8 +299,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "text",
+                      "value": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -360,8 +414,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "date",
+                      "value": "2026-01-01"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -457,8 +529,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "money_cents",
+                      "cents": 100
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -559,8 +649,25 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "absent"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -665,8 +772,25 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "absent"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -782,8 +906,30 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "tagged",
+                      "tag": "ok",
+                      "value": {
+                        "kind": "text",
+                        "value": "sample"
+                      }
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -919,8 +1065,35 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "record",
+                      "record": "Row",
+                      "fields": [
+                        {
+                          "name": "id",
+                          "value": {
+                            "kind": "text",
+                            "value": "sample"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -1072,8 +1245,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "keyed",
+                      "entries": []
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -1188,8 +1379,28 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "resolved_ref",
+                      "record": "Row",
+                      "key_field": "id",
+                      "key": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -1285,8 +1496,26 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "unresolved_text",
+                      "text": "sample"
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -1371,7 +1600,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1383,7 +1611,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1395,7 +1622,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1407,7 +1633,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1419,7 +1644,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1431,7 +1655,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1443,7 +1666,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1455,7 +1677,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1467,7 +1688,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1479,7 +1699,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1491,7 +1710,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",
@@ -1503,7 +1721,6 @@
       "status": "execution_pending",
       "diagnostic_codes": [],
       "missing_checks": [
-        "restricted_language_and_function_types",
         "bounded_graph_execution",
         "saved_scenario_execution",
         "resolved_identity_membership",

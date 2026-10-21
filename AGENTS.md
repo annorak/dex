@@ -27,6 +27,14 @@ Backend tasks don't build UI. The UI is built separately, against the server's A
 
 This repository is public. It holds no secrets, API keys or real company data. Held-out process worlds live in a separate private repository and never enter this one. Demo companies, places, vendors and people have invented names that belong to no brand or franchise.
 
+## M1 pull requests
+
+Every remaining M1 pull request title starts with `[dex-engine]`.
+Use `pstack:bro` for the description. Explain plainly what changed, why, what now works, and what remains unavailable. Include concise verification evidence.
+
+PR #1 passed CI and 173 tests. Its performance checks and full independent reviewer round were not completed before merge.
+The repository owner lands every M1 pull request. Do not merge or enable auto-merge.
+
 ## Commands
 
 Run commands from the repository root with Python 3.13 or newer and uv 0.11.31.
@@ -36,10 +44,10 @@ Run commands from the repository root with Python 3.13 or newer and uv 0.11.31.
 | `uv sync --locked --python 3.13` | Install the project and pinned development tools into `.venv`. |
 | `make check` | Run all repository checks locally or in CI. |
 | `uv run --locked dex --help` | Show the available CLI help. |
-| `uv run --locked dex eval --scenario FILE --out RUN` | Verify an evaluator scenario and save actual results separately from expected evidence. RUN must be a fresh directory. |
+| `uv run --locked dex eval --scenario FILE --out RUN` | Verify a program or execute a checked function scenario and save actual results separately from expected evidence. RUN must be a fresh directory. |
 
 `make check` runs Ruff, strict Pyright, import contracts, core lints, secret scanning, contract tests, and CLI help. The contract tests verify clean inputs, planted violations, and restored inputs using the real checker commands.
 
 Core lint checks `src/dex/core`. Contract tests also exercise its rules on temporary source files.
 
-CLI help and evaluator scenarios are implemented. Scenario evaluation checks structure, records missing execution checks, and cannot activate a program. Semantic refusals and expectation mismatches exit nonzero. The planned `dex bundle`, `dex demo`, `dex report`, and `dex workspace` commands are unavailable.
+CLI help and evaluator scenarios are implemented. Scenario evaluation checks structure, types and saved function tests, and executes bounded function calls. Graph execution and activation remain unavailable. Semantic refusals and expectation mismatches exit nonzero. The planned `dex bundle`, `dex demo`, `dex report`, and `dex workspace` commands are unavailable.

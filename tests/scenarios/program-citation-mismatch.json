@@ -1,5 +1,5 @@
 {
-  "format": "dex-eval-scenario-1",
+  "format": "dex-eval-scenario-2",
   "scenario_id": "program-citation-mismatch",
   "programs": [
     {
@@ -48,8 +48,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -124,8 +134,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
@@ -200,8 +220,18 @@
             },
             "body": {
               "language_version": "restricted-1",
-              "source": "return declared_result"
-            }
+              "source": "return \"sample\""
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [],
+                "expected": {
+                  "kind": "text",
+                  "value": "sample"
+                }
+              }
+            ]
           }
         ],
         "rules": [],
