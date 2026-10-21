@@ -1,0 +1,253 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "runtime-effective-date",
+  "programs": [
+    {
+      "name": "program",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "code",
+          "metadata": {
+            "step_id": "policy",
+            "behavior_id": "behavior-policy",
+            "intent": "Use the declared result.",
+            "citations": [
+              {
+                "pin": {
+                  "source": "guide",
+                  "revision": "r1",
+                  "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                  "extraction": "text",
+                  "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                },
+                "section": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24,
+                "quote": "Use the declared result."
+              }
+            ],
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                },
+                "value": {
+                  "kind": "rule",
+                  "target": "limit",
+                  "scope": [],
+                  "path": []
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "changes": []
+          },
+          "function_id": "identity"
+        },
+        "functions": [
+          {
+            "function_id": "identity",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return value"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "integer",
+                      "value": 1
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [
+          {
+            "rule_id": "before",
+            "target": "limit",
+            "scope": [],
+            "effective_from": "2026-01-01",
+            "effective_until": "2026-02-01",
+            "consequence": {
+              "schema": {
+                "kind": "integer"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "integer",
+                  "value": 10
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "guide",
+                  "revision": "r1",
+                  "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                  "extraction": "text",
+                  "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                },
+                "section": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24,
+                "quote": "Use the declared result."
+              }
+            ]
+          },
+          {
+            "rule_id": "after",
+            "target": "limit",
+            "scope": [],
+            "effective_from": "2026-02-01",
+            "effective_until": null,
+            "consequence": {
+              "schema": {
+                "kind": "integer"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "integer",
+                  "value": 20
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "guide",
+                  "revision": "r1",
+                  "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                  "extraction": "text",
+                  "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                },
+                "section": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24,
+                "quote": "Use the declared result."
+              }
+            ]
+          }
+        ],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "guide",
+              "revision": "r1",
+              "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+              "extraction": "text",
+              "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+            },
+            "text": "Use the declared result.",
+            "sections": [
+              {
+                "name": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "sandbox",
+      "program": "program",
+      "meta": {
+        "command_id": "command-0",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 0
+      },
+      "case_id": "before",
+      "facts": [],
+      "business_date": "2026-01-31",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    },
+    {
+      "kind": "sandbox",
+      "program": "program",
+      "meta": {
+        "command_id": "command-1",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 6
+      },
+      "case_id": "boundary",
+      "facts": [],
+      "business_date": "2026-02-01",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    }
+  ],
+  "expected": [
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "integer",
+        "value": 10
+      },
+      "failure": null,
+      "work_nodes": null
+    },
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "integer",
+        "value": 20
+      },
+      "failure": null,
+      "work_nodes": null
+    }
+  ]
+}

@@ -1,19 +1,35 @@
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
+from dex.core import events as e
 from dex.core import language as language
 from dex.core import program as p
+from dex.core import runtime as r
 from dex.eval.scenario_format import (
     MAX_BYTES,
     FunctionCommand,
     FunctionExpected,
+    RebuildCommand,
+    RuntimeExpected,
+    SandboxCommand,
     Scenario,
     ScenarioError,
+    SignalCommand,
     parse_scenario,
 )
 from dex.eval.scenario_output import encode_core
+
+
+@dataclass(frozen=True)
+class RuntimeObservation:
+    value: p.Value | None
+    failure: str | None
+    events: tuple[e.RuntimeEvent, ...]
+    work: tuple[r.Work, ...]
+    revision: int
+    replay_equal: bool
 
 
 @dataclass(frozen=True)
@@ -25,6 +41,7 @@ class Observation:
     missing_checks: tuple[p.MissingCheck, ...]
     artifact: p.StructuralArtifact | None
     function: language.FunctionResult | language.LanguageFailure | None
+    runtime: RuntimeObservation | None = None
 
 
 @dataclass(frozen=True)
@@ -36,6 +53,9 @@ class Evaluation:
 def evaluate(scenario: Scenario) -> Evaluation:
     programs = {item.name: item for item in scenario.programs}
     observations: list[Observation] = []
+    runtime_history: tuple[e.RuntimeEvent, ...] = ()
+    runtime_state = r.rebuild((), r.ProgramCatalog(()))
+    runtime_entries: dict[str, r.ArtifactEntry] = {}
     for command in scenario.commands:
         program = programs[command.program]
         limits = (
@@ -55,6 +75,111 @@ def evaluate(scenario: Scenario) -> Evaluation:
             diagnostics = ()
             missing = result.missing_checks
             artifact = result.artifact
+        if isinstance(command, (SandboxCommand, SignalCommand, RebuildCommand)):
+            if isinstance(result, p.StructuralFailure):
+                observations.append(
+                    Observation(
+                        command.kind,
+                        command.program,
+                        "structural_failure",
+                        diagnostics,
+                        (),
+                        None,
+                        None,
+                    )
+                )
+                continue
+            runtime_entries[command.program] = r.ArtifactEntry(
+                r.artifact_pin(result.artifact), result.artifact
+            )
+            catalog = r.ProgramCatalog(tuple(runtime_entries.values()))
+            batch: tuple[e.RuntimeEvent, ...] = ()
+            failure: str | None = None
+            case_id = (
+                command.signal.address.case_id
+                if isinstance(command, SignalCommand)
+                else command.case_id
+            )
+            if isinstance(command, RebuildCommand):
+                if case_id not in runtime_state.cases:
+                    raise ScenarioError("Rebuild references an unknown case: " + case_id)
+                replay_events = runtime_history
+                replay_catalog = catalog
+                if command.corruption == "event_version" and replay_events:
+                    replay_events = (
+                        replace(replay_events[0], format_version=999),
+                    ) + replay_events[1:]
+                elif command.corruption == "missing_artifact":
+                    replay_catalog = r.ProgramCatalog(())
+                elif command.corruption == "truncate":
+                    replay_events = replay_events[:-1]
+                try:
+                    restored = r.rebuild(replay_events, replay_catalog)
+                    if restored != runtime_state:
+                        raise ScenarioError("Replay differs from live state.")
+                except r.ReplayError as error:
+                    failure = error.code
+                status = (
+                    "replay_failed"
+                    if failure is not None
+                    else "runtime_" + runtime_state.cases[case_id].status
+                )
+            else:
+                core_command = (
+                    command.signal
+                    if isinstance(command, SignalCommand)
+                    else e.StartSandbox(
+                        command.meta,
+                        command.case_id,
+                        runtime_entries[command.program].pin,
+                        command.facts,
+                        command.business_date,
+                        command.bounds,
+                    )
+                )
+                decision = r.decide(runtime_state, core_command, catalog)
+                if isinstance(decision, r.Refused):
+                    status, failure = "runtime_refused", decision.code
+                else:
+                    batch = decision.events
+                    runtime_history += batch
+                    runtime_state = r.rebuild(runtime_history, catalog)
+                    status = "runtime_" + runtime_state.cases[case_id].status
+                    failure = runtime_state.cases[case_id].failure
+            case_work = tuple(
+                work
+                for address, work in runtime_state.work.items()
+                if address.case_id == case_id
+            )
+            root_work = next(
+                (work for work in case_work if work.opened.parent is None), None
+            )
+            value = (
+                root_work.completed.value
+                if root_work is not None and root_work.completed is not None
+                else None
+            )
+            runtime = RuntimeObservation(
+                value,
+                failure,
+                batch,
+                case_work,
+                runtime_state.revision,
+                r.rebuild(runtime_history, catalog) == runtime_state,
+            )
+            observations.append(
+                Observation(
+                    command.kind,
+                    command.program,
+                    status,
+                    (),
+                    missing,
+                    None,
+                    None,
+                    runtime,
+                )
+            )
+            continue
         if isinstance(command, FunctionCommand):
             if isinstance(result, p.StructuralFailure):
                 status = "function_failure"
@@ -98,6 +223,22 @@ def evaluate(scenario: Scenario) -> Evaluation:
         )
     matches = tuple(
         (
+            actual.status == expected.status
+            and actual.runtime is not None
+            and actual.runtime.value
+            == (None if expected.value is None else p.normalized_value(expected.value))
+            and actual.runtime.failure == expected.failure
+            and actual.runtime.replay_equal
+            and (
+                expected.work_nodes is None
+                or tuple(
+                    sorted(work.opened.address.node_id for work in actual.runtime.work)
+                )
+                == tuple(sorted(expected.work_nodes))
+            )
+        )
+        if isinstance(expected, RuntimeExpected)
+        else (
             actual.status == expected.status
             and (
                 isinstance(actual.function, language.FunctionResult)
@@ -143,6 +284,7 @@ def run_scenario(path: Path, out: Path) -> int:
                         "missing_checks": item.missing_checks,
                         "artifact": item.artifact,
                         "function": item.function,
+                        "runtime": item.runtime,
                     }
                     for item in evaluation.observations
                 ],
@@ -157,8 +299,9 @@ def run_scenario(path: Path, out: Path) -> int:
                         "status": item.status,
                         "value": item.value,
                         "failure": item.failure,
+                        **({"work_nodes": item.work_nodes} if isinstance(item, RuntimeExpected) else {}),
                     }
-                    if isinstance(item, FunctionExpected)
+                    if isinstance(item, (FunctionExpected, RuntimeExpected))
                     else {
                         "status": item.status,
                         "diagnostic_codes": item.diagnostic_codes,
@@ -208,7 +351,13 @@ def run_scenario(path: Path, out: Path) -> int:
         0
         if all(evaluation.matches)
         and all(
-            item.status in {"execution_pending", "function_result"}
+            item.status
+            in {
+                "execution_pending",
+                "function_result",
+                "runtime_succeeded",
+                "runtime_waiting",
+            }
             for item in evaluation.observations
         )
         else 1

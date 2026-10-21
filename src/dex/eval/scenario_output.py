@@ -1,3 +1,5 @@
+from dataclasses import fields as dataclass_fields
+from dataclasses import is_dataclass
 from datetime import date
 from typing import cast
 
@@ -79,6 +81,13 @@ def encode_core(value: object) -> Json:
             "kind": "local",
             "owner": value.owner,
             "name": value.name,
+            "path": value.path,
+        }
+    elif isinstance(value, p.RuleInputRef):
+        fields = {
+            "kind": "rule",
+            "target": value.target,
+            "scope": value.scope,
             "path": value.path,
         }
     elif isinstance(value, p.CodeStep):
@@ -275,6 +284,13 @@ def encode_core(value: object) -> Json:
         }
     elif isinstance(value, p.Diagnostic):
         fields = {"code": value.code, "path": value.path, "message": value.message}
+    elif is_dataclass(value) and not isinstance(value, type):
+        fields = {
+            "kind": type(value).__name__,
+            **{
+                item.name: getattr(value, item.name) for item in dataclass_fields(value)
+            },
+        }
     else:
         raise TypeError("Unsupported core output type: " + type(value).__name__)
     return {name: encode_core(item) for name, item in fields.items()}

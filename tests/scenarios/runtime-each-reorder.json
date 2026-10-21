@@ -1,0 +1,611 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "runtime-each-reorder",
+  "programs": [
+    {
+      "name": "program",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Entry",
+            "fields": [
+              {
+                "name": "key",
+                "schema": {
+                  "kind": "text"
+                }
+              },
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [
+          {
+            "name": "entries",
+            "schema": {
+              "kind": "keyed",
+              "item": {
+                "kind": "record",
+                "name": "Entry",
+                "fields": [
+                  {
+                    "name": "key",
+                    "schema": {
+                      "kind": "text"
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "schema": {
+                      "kind": "integer"
+                    }
+                  }
+                ]
+              },
+              "key_field": "key"
+            }
+          }
+        ],
+        "root": {
+          "kind": "each",
+          "node_id": "each",
+          "collection": {
+            "kind": "program_input",
+            "name": "entries",
+            "path": []
+          },
+          "output": {
+            "kind": "keyed",
+            "item": {
+              "kind": "record",
+              "name": "Entry",
+              "fields": [
+                {
+                  "name": "key",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "value",
+                  "schema": {
+                    "kind": "integer"
+                  }
+                }
+              ]
+            },
+            "key_field": "key"
+          },
+          "input_schema": {
+            "kind": "keyed",
+            "item": {
+              "kind": "record",
+              "name": "Entry",
+              "fields": [
+                {
+                  "name": "key",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "value",
+                  "schema": {
+                    "kind": "integer"
+                  }
+                }
+              ]
+            },
+            "key_field": "key"
+          },
+          "body": {
+            "body": {
+              "kind": "code",
+              "metadata": {
+                "step_id": "copy",
+                "behavior_id": "behavior-copy",
+                "intent": "Use the declared result.",
+                "citations": [
+                  {
+                    "pin": {
+                      "source": "guide",
+                      "revision": "r1",
+                      "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                      "extraction": "text",
+                      "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                    },
+                    "section": "all",
+                    "locator": "paragraph",
+                    "start": 0,
+                    "end": 24,
+                    "quote": "Use the declared result."
+                  }
+                ],
+                "inputs": [
+                  {
+                    "name": "value",
+                    "schema": {
+                      "kind": "record",
+                      "name": "Entry",
+                      "fields": [
+                        {
+                          "name": "key",
+                          "schema": {
+                            "kind": "text"
+                          }
+                        },
+                        {
+                          "name": "value",
+                          "schema": {
+                            "kind": "integer"
+                          }
+                        }
+                      ]
+                    },
+                    "value": {
+                      "kind": "local",
+                      "owner": "each",
+                      "name": "item",
+                      "path": []
+                    }
+                  }
+                ],
+                "output": {
+                  "kind": "record",
+                  "name": "Entry",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "schema": {
+                        "kind": "text"
+                      }
+                    },
+                    {
+                      "name": "value",
+                      "schema": {
+                        "kind": "integer"
+                      }
+                    }
+                  ]
+                },
+                "changes": []
+              },
+              "function_id": "identity"
+            },
+            "result": {
+              "schema": {
+                "kind": "record",
+                "name": "Entry",
+                "fields": [
+                  {
+                    "name": "key",
+                    "schema": {
+                      "kind": "text"
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "schema": {
+                      "kind": "integer"
+                    }
+                  }
+                ]
+              },
+              "value": {
+                "kind": "result",
+                "node": "copy",
+                "path": []
+              }
+            }
+          }
+        },
+        "functions": [
+          {
+            "function_id": "identity",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "record",
+                  "name": "Entry",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "schema": {
+                        "kind": "text"
+                      }
+                    },
+                    {
+                      "name": "value",
+                      "schema": {
+                        "kind": "integer"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "output": {
+              "kind": "record",
+              "name": "Entry",
+              "fields": [
+                {
+                  "name": "key",
+                  "schema": {
+                    "kind": "text"
+                  }
+                },
+                {
+                  "name": "value",
+                  "schema": {
+                    "kind": "integer"
+                  }
+                }
+              ]
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return value"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "record",
+                      "record": "Entry",
+                      "fields": [
+                        {
+                          "name": "key",
+                          "value": {
+                            "kind": "text",
+                            "value": "a"
+                          }
+                        },
+                        {
+                          "name": "value",
+                          "value": {
+                            "kind": "integer",
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "record",
+                  "record": "Entry",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "a"
+                      }
+                    },
+                    {
+                      "name": "value",
+                      "value": {
+                        "kind": "integer",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "guide",
+              "revision": "r1",
+              "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+              "extraction": "text",
+              "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+            },
+            "text": "Use the declared result.",
+            "sections": [
+              {
+                "name": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "sandbox",
+      "program": "program",
+      "meta": {
+        "command_id": "command-0",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 0
+      },
+      "case_id": "one",
+      "facts": [
+        {
+          "name": "entries",
+          "value": {
+            "kind": "keyed",
+            "entries": [
+              {
+                "key": "b",
+                "value": {
+                  "kind": "record",
+                  "record": "Entry",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "b"
+                      }
+                    },
+                    {
+                      "name": "value",
+                      "value": {
+                        "kind": "integer",
+                        "value": 2
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "a",
+                "value": {
+                  "kind": "record",
+                  "record": "Entry",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "a"
+                      }
+                    },
+                    {
+                      "name": "value",
+                      "value": {
+                        "kind": "integer",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "business_date": "2026-01-01",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    },
+    {
+      "kind": "sandbox",
+      "program": "program",
+      "meta": {
+        "command_id": "command-1",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 15
+      },
+      "case_id": "two",
+      "facts": [
+        {
+          "name": "entries",
+          "value": {
+            "kind": "keyed",
+            "entries": [
+              {
+                "key": "a",
+                "value": {
+                  "kind": "record",
+                  "record": "Entry",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "a"
+                      }
+                    },
+                    {
+                      "name": "value",
+                      "value": {
+                        "kind": "integer",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "b",
+                "value": {
+                  "kind": "record",
+                  "record": "Entry",
+                  "fields": [
+                    {
+                      "name": "key",
+                      "value": {
+                        "kind": "text",
+                        "value": "b"
+                      }
+                    },
+                    {
+                      "name": "value",
+                      "value": {
+                        "kind": "integer",
+                        "value": 2
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "business_date": "2026-01-01",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    }
+  ],
+  "expected": [
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "keyed",
+        "entries": [
+          {
+            "key": "b",
+            "value": {
+              "kind": "record",
+              "record": "Entry",
+              "fields": [
+                {
+                  "name": "key",
+                  "value": {
+                    "kind": "text",
+                    "value": "b"
+                  }
+                },
+                {
+                  "name": "value",
+                  "value": {
+                    "kind": "integer",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "key": "a",
+            "value": {
+              "kind": "record",
+              "record": "Entry",
+              "fields": [
+                {
+                  "name": "key",
+                  "value": {
+                    "kind": "text",
+                    "value": "a"
+                  }
+                },
+                {
+                  "name": "value",
+                  "value": {
+                    "kind": "integer",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "failure": null,
+      "work_nodes": [
+        "each",
+        "copy",
+        "copy"
+      ]
+    },
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "keyed",
+        "entries": [
+          {
+            "key": "b",
+            "value": {
+              "kind": "record",
+              "record": "Entry",
+              "fields": [
+                {
+                  "name": "key",
+                  "value": {
+                    "kind": "text",
+                    "value": "b"
+                  }
+                },
+                {
+                  "name": "value",
+                  "value": {
+                    "kind": "integer",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "key": "a",
+            "value": {
+              "kind": "record",
+              "record": "Entry",
+              "fields": [
+                {
+                  "name": "key",
+                  "value": {
+                    "kind": "text",
+                    "value": "a"
+                  }
+                },
+                {
+                  "name": "value",
+                  "value": {
+                    "kind": "integer",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "failure": null,
+      "work_nodes": [
+        "each",
+        "copy",
+        "copy"
+      ]
+    }
+  ]
+}

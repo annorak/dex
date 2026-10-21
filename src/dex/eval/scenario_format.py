@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import cast
 
+from dex.core import events as e
 from dex.core import program as p
 from dex.core.language import Limits
 
@@ -38,7 +39,34 @@ class FunctionCommand:
     kind: str = "call"
 
 
-type Command = ProgramCommand | FunctionCommand
+@dataclass(frozen=True)
+class SandboxCommand:
+    program: str
+    meta: e.CommandMeta
+    case_id: str
+    facts: tuple[p.NamedValue, ...]
+    business_date: date
+    bounds: e.ActivationBounds
+    kind: str = "sandbox"
+
+
+@dataclass(frozen=True)
+class SignalCommand:
+    program: str
+    signal: e.SignalRepeat
+    kind: str = "signal"
+
+
+@dataclass(frozen=True)
+class RebuildCommand:
+    program: str
+    case_id: str
+    corruption: str
+    kind: str = "rebuild"
+
+
+type RuntimeCommand = SandboxCommand | SignalCommand | RebuildCommand
+type Command = ProgramCommand | FunctionCommand | RuntimeCommand
 
 
 @dataclass(frozen=True)
@@ -56,11 +84,19 @@ class FunctionExpected:
 
 
 @dataclass(frozen=True)
+class RuntimeExpected:
+    status: str
+    value: p.Value | None
+    failure: str | None
+    work_nodes: tuple[str, ...] | None
+
+
+@dataclass(frozen=True)
 class Scenario:
     scenario_id: str
     programs: tuple[Program, ...]
     commands: tuple[Command, ...]
-    expected: tuple[Expected | FunctionExpected, ...]
+    expected: tuple[Expected | FunctionExpected | RuntimeExpected, ...]
 
 
 def require_object_fields(value: Json, fields: str) -> dict[str, Json]:
@@ -248,6 +284,13 @@ def parse_input(value: Json) -> p.Input:
         return p.LocalRef(
             require_text(obj["owner"]),
             require_text(obj["name"]),
+            tuple(require_text(item) for item in require_items(obj["path"])),
+        )
+    if tag == "rule":
+        obj = require_object_fields(value, "kind target scope path")
+        return p.RuleInputRef(
+            require_text(obj["target"]),
+            tuple(parse_binding(item) for item in require_items(obj["scope"])),
             tuple(require_text(item) for item in require_items(obj["path"])),
         )
     raise ScenarioError("Unsupported input kind: " + tag)
@@ -538,8 +581,79 @@ def parse_limits(value: Json) -> Limits:
     return Limits(**{name: require_integer(item) for name, item in obj.items()})
 
 
+def parse_meta(value: Json) -> e.CommandMeta:
+    obj = require_object_fields(
+        value, "command_id actor occurred_at observed_at expected_revision"
+    )
+    return e.CommandMeta(
+        require_text(obj["command_id"]),
+        require_text(obj["actor"]),
+        datetime.fromisoformat(require_text(obj["occurred_at"])),
+        datetime.fromisoformat(require_text(obj["observed_at"])),
+        require_integer(obj["expected_revision"]),
+    )
+
+
+def parse_bounds(value: Json) -> e.ActivationBounds:
+    obj = require_object_fields(value, "work allocations instances events")
+    return e.ActivationBounds(
+        **{name: require_integer(item) for name, item in obj.items()}
+    )
+
+
+def parse_address(value: Json) -> e.WorkAddress:
+    obj = require_object_fields(value, "case_id node_id scope")
+    scope: list[e.ScopePart] = []
+    for item in require_items(obj["scope"]):
+        part = require_object_fields(item, "owner kind key")
+        scope.append(
+            e.ScopePart(
+                require_text(part["owner"]),
+                require_text(part["kind"]),
+                require_text(part["key"]),
+            )
+        )
+    return e.WorkAddress(
+        require_text(obj["case_id"]), require_text(obj["node_id"]), tuple(scope)
+    )
+
+
 def parse_command(value: Json) -> Command:
     tag = require_kind(value)
+    if tag == "sandbox":
+        obj = require_object_fields(
+            value, "kind program meta case_id facts business_date bounds"
+        )
+        return SandboxCommand(
+            require_text(obj["program"]),
+            parse_meta(obj["meta"]),
+            require_text(obj["case_id"]),
+            tuple(parse_named_value(item) for item in require_items(obj["facts"])),
+            parse_date(obj["business_date"]),
+            parse_bounds(obj["bounds"]),
+        )
+    if tag == "signal":
+        obj = require_object_fields(
+            value, "kind program meta address iteration event bounds"
+        )
+        return SignalCommand(
+            require_text(obj["program"]),
+            e.SignalRepeat(
+                parse_meta(obj["meta"]),
+                parse_address(obj["address"]),
+                require_integer(obj["iteration"]),
+                require_text(obj["event"]),
+                parse_bounds(obj["bounds"]),
+            ),
+        )
+    if tag == "rebuild":
+        obj = require_object_fields(value, "kind program case_id corruption")
+        corruption = require_text(obj["corruption"])
+        if corruption not in {"none", "event_version", "missing_artifact", "truncate"}:
+            raise ScenarioError("Unsupported replay corruption.")
+        return RebuildCommand(
+            require_text(obj["program"]), require_text(obj["case_id"]), corruption
+        )
     if tag == "call":
         obj = require_object_fields(value, "kind program function_id inputs limits")
         return FunctionCommand(
@@ -554,7 +668,23 @@ def parse_command(value: Json) -> Command:
     return ProgramCommand(tag, require_text(obj["program"]))
 
 
-def parse_expected(value: Json) -> Expected | FunctionExpected:
+def parse_expected(value: Json) -> Expected | FunctionExpected | RuntimeExpected:
+    if isinstance(value, dict) and value.get("status") in {
+        "runtime_succeeded",
+        "runtime_waiting",
+        "runtime_failed",
+        "runtime_refused",
+        "replay_failed",
+    }:
+        obj = require_object_fields(value, "status value failure work_nodes")
+        return RuntimeExpected(
+            require_text(obj["status"]),
+            None if obj["value"] is None else parse_value(obj["value"]),
+            None if obj["failure"] is None else require_text(obj["failure"]),
+            None
+            if obj["work_nodes"] is None
+            else tuple(require_text(item) for item in require_items(obj["work_nodes"])),
+        )
     if isinstance(value, dict) and value.get("status") in {
         "function_result",
         "function_failure",

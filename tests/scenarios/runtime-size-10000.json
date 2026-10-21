@@ -1,0 +1,300 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "runtime-size-10000",
+  "programs": [
+    {
+      "name": "program",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [],
+        "root": {
+          "kind": "repeat",
+          "node_id": "repeat",
+          "initial": {
+            "schema": {
+              "kind": "integer"
+            },
+            "value": {
+              "kind": "literal",
+              "value": {
+                "kind": "integer",
+                "value": 0
+              }
+            }
+          },
+          "body": {
+            "body": {
+              "kind": "code",
+              "metadata": {
+                "step_id": "advance",
+                "behavior_id": "behavior-advance",
+                "intent": "Use the declared result.",
+                "citations": [
+                  {
+                    "pin": {
+                      "source": "guide",
+                      "revision": "r1",
+                      "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                      "extraction": "text",
+                      "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                    },
+                    "section": "all",
+                    "locator": "paragraph",
+                    "start": 0,
+                    "end": 24,
+                    "quote": "Use the declared result."
+                  }
+                ],
+                "inputs": [
+                  {
+                    "name": "value",
+                    "schema": {
+                      "kind": "integer"
+                    },
+                    "value": {
+                      "kind": "local",
+                      "owner": "repeat",
+                      "name": "state",
+                      "path": []
+                    }
+                  }
+                ],
+                "output": {
+                  "kind": "integer"
+                },
+                "changes": []
+              },
+              "function_id": "increment"
+            },
+            "result": {
+              "schema": {
+                "kind": "integer"
+              },
+              "value": {
+                "kind": "result",
+                "node": "advance",
+                "path": []
+              }
+            }
+          },
+          "until": {
+            "kind": "rule",
+            "target": "done",
+            "scope": [
+              {
+                "name": "count",
+                "schema": {
+                  "kind": "integer"
+                },
+                "value": {
+                  "kind": "result",
+                  "node": "advance",
+                  "path": []
+                }
+              }
+            ],
+            "path": []
+          },
+          "bound": {
+            "kind": "finite",
+            "limit": 9999
+          }
+        },
+        "functions": [
+          {
+            "function_id": "increment",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return value + 1"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "integer",
+                      "value": 0
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [
+          {
+            "rule_id": "continue",
+            "target": "done",
+            "scope": [],
+            "effective_from": "2026-01-01",
+            "effective_until": null,
+            "consequence": {
+              "schema": {
+                "kind": "boolean"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "boolean",
+                  "value": false
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "guide",
+                  "revision": "r1",
+                  "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                  "extraction": "text",
+                  "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                },
+                "section": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24,
+                "quote": "Use the declared result."
+              }
+            ]
+          },
+          {
+            "rule_id": "finish",
+            "target": "done",
+            "scope": [
+              {
+                "dimension": "count",
+                "schema": {
+                  "kind": "integer"
+                },
+                "value": {
+                  "kind": "integer",
+                  "value": 9999
+                }
+              }
+            ],
+            "effective_from": "2026-01-01",
+            "effective_until": null,
+            "consequence": {
+              "schema": {
+                "kind": "boolean"
+              },
+              "value": {
+                "kind": "literal",
+                "value": {
+                  "kind": "boolean",
+                  "value": true
+                }
+              }
+            },
+            "citations": [
+              {
+                "pin": {
+                  "source": "guide",
+                  "revision": "r1",
+                  "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                  "extraction": "text",
+                  "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                },
+                "section": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24,
+                "quote": "Use the declared result."
+              }
+            ]
+          }
+        ],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "guide",
+              "revision": "r1",
+              "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+              "extraction": "text",
+              "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+            },
+            "text": "Use the declared result.",
+            "sections": [
+              {
+                "name": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "sandbox",
+      "program": "program",
+      "meta": {
+        "command_id": "command-0",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 0
+      },
+      "case_id": "case",
+      "facts": [],
+      "business_date": "2026-01-01",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    },
+    {
+      "kind": "rebuild",
+      "program": "program",
+      "case_id": "case",
+      "corruption": "none"
+    }
+  ],
+  "expected": [
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "integer",
+        "value": 9999
+      },
+      "failure": null,
+      "work_nodes": null
+    },
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "integer",
+        "value": 9999
+      },
+      "failure": null,
+      "work_nodes": null
+    }
+  ]
+}

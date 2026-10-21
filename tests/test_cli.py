@@ -264,3 +264,26 @@ def test_output_preserves_wire_discriminators(tmp_path: Path) -> None:
     assert decoded["keyed"]["kind"] == "keyed"
     assert decoded["resolved"]["kind"] == "resolved_ref"
     assert decoded["unresolved"]["kind"] == "unresolved_text"
+
+
+def test_rebuild_unknown_case_preserves_outputs(tmp_path: Path) -> None:
+    scenario = cast(
+        dict[str, Json], json.loads((SCENARIOS / "runtime-sequence.json").read_text())
+    )
+    commands = cast(list[Json], scenario["commands"])
+    rebuild = cast(dict[str, Json], commands[-1])
+    assert rebuild["kind"] == "rebuild"
+    rebuild["case_id"] = "unknown-case"
+    source = tmp_path / "unknown-case.json"
+    source.write_text(json.dumps(scenario))
+    out = tmp_path / "output"
+    out.mkdir()
+    existing = out / "actual.json"
+    existing.write_text("preserve existing output")
+    result = run_cli("eval", "--scenario", str(source), "--out", str(out), cwd=tmp_path)
+    assert result.returncode == 2, result.stderr
+    assert "unknown case" in result.stderr.lower()
+    assert "scenario_error" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert existing.read_text() == "preserve existing output"
+    assert sorted(path.name for path in out.iterdir()) == ["actual.json"]

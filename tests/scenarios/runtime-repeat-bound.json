@@ -1,0 +1,783 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "runtime-repeat-bound",
+  "programs": [
+    {
+      "name": "bounded",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Counter",
+            "fields": [
+              {
+                "name": "count",
+                "schema": {
+                  "kind": "integer"
+                }
+              },
+              {
+                "name": "ready",
+                "schema": {
+                  "kind": "boolean"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "repeat",
+          "node_id": "repeat",
+          "initial": {
+            "schema": {
+              "kind": "record",
+              "name": "Counter",
+              "fields": [
+                {
+                  "name": "count",
+                  "schema": {
+                    "kind": "integer"
+                  }
+                },
+                {
+                  "name": "ready",
+                  "schema": {
+                    "kind": "boolean"
+                  }
+                }
+              ]
+            },
+            "value": {
+              "kind": "literal",
+              "value": {
+                "kind": "record",
+                "record": "Counter",
+                "fields": [
+                  {
+                    "name": "count",
+                    "value": {
+                      "kind": "integer",
+                      "value": 0
+                    }
+                  },
+                  {
+                    "name": "ready",
+                    "value": {
+                      "kind": "boolean",
+                      "value": false
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "body": {
+            "body": {
+              "kind": "code",
+              "metadata": {
+                "step_id": "advance",
+                "behavior_id": "advance-v1",
+                "intent": "Use the declared result.",
+                "citations": [
+                  {
+                    "pin": {
+                      "source": "guide",
+                      "revision": "r1",
+                      "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                      "extraction": "text",
+                      "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                    },
+                    "section": "all",
+                    "locator": "paragraph",
+                    "start": 0,
+                    "end": 24,
+                    "quote": "Use the declared result."
+                  }
+                ],
+                "inputs": [
+                  {
+                    "name": "state",
+                    "schema": {
+                      "kind": "record",
+                      "name": "Counter",
+                      "fields": [
+                        {
+                          "name": "count",
+                          "schema": {
+                            "kind": "integer"
+                          }
+                        },
+                        {
+                          "name": "ready",
+                          "schema": {
+                            "kind": "boolean"
+                          }
+                        }
+                      ]
+                    },
+                    "value": {
+                      "kind": "local",
+                      "owner": "repeat",
+                      "name": "state",
+                      "path": []
+                    }
+                  },
+                  {
+                    "name": "limit",
+                    "schema": {
+                      "kind": "integer"
+                    },
+                    "value": {
+                      "kind": "literal",
+                      "value": {
+                        "kind": "integer",
+                        "value": 3
+                      }
+                    }
+                  }
+                ],
+                "output": {
+                  "kind": "record",
+                  "name": "Counter",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "schema": {
+                        "kind": "integer"
+                      }
+                    },
+                    {
+                      "name": "ready",
+                      "schema": {
+                        "kind": "boolean"
+                      }
+                    }
+                  ]
+                },
+                "changes": []
+              },
+              "function_id": "advance"
+            },
+            "result": {
+              "schema": {
+                "kind": "record",
+                "name": "Counter",
+                "fields": [
+                  {
+                    "name": "count",
+                    "schema": {
+                      "kind": "integer"
+                    }
+                  },
+                  {
+                    "name": "ready",
+                    "schema": {
+                      "kind": "boolean"
+                    }
+                  }
+                ]
+              },
+              "value": {
+                "kind": "result",
+                "node": "advance",
+                "path": []
+              }
+            }
+          },
+          "until": {
+            "kind": "result",
+            "node": "advance",
+            "path": [
+              "ready"
+            ]
+          },
+          "bound": {
+            "kind": "finite",
+            "limit": 2
+          }
+        },
+        "functions": [
+          {
+            "function_id": "advance",
+            "inputs": [
+              {
+                "name": "state",
+                "schema": {
+                  "kind": "record",
+                  "name": "Counter",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "schema": {
+                        "kind": "integer"
+                      }
+                    },
+                    {
+                      "name": "ready",
+                      "schema": {
+                        "kind": "boolean"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "limit",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ],
+            "output": {
+              "kind": "record",
+              "name": "Counter",
+              "fields": [
+                {
+                  "name": "count",
+                  "schema": {
+                    "kind": "integer"
+                  }
+                },
+                {
+                  "name": "ready",
+                  "schema": {
+                    "kind": "boolean"
+                  }
+                }
+              ]
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "count = state.count + 1\nreturn Counter(count, count >= limit)"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "state",
+                    "value": {
+                      "kind": "record",
+                      "record": "Counter",
+                      "fields": [
+                        {
+                          "name": "count",
+                          "value": {
+                            "kind": "integer",
+                            "value": 0
+                          }
+                        },
+                        {
+                          "name": "ready",
+                          "value": {
+                            "kind": "boolean",
+                            "value": false
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "limit",
+                    "value": {
+                      "kind": "integer",
+                      "value": 2
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "record",
+                  "record": "Counter",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "value": {
+                        "kind": "integer",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "name": "ready",
+                      "value": {
+                        "kind": "boolean",
+                        "value": false
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "guide",
+              "revision": "r1",
+              "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+              "extraction": "text",
+              "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+            },
+            "text": "Use the declared result.",
+            "sections": [
+              {
+                "name": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "waiting",
+      "draft": {
+        "program_id": "sample",
+        "revision": "event",
+        "schemas": [
+          {
+            "kind": "record",
+            "name": "Counter",
+            "fields": [
+              {
+                "name": "count",
+                "schema": {
+                  "kind": "integer"
+                }
+              },
+              {
+                "name": "ready",
+                "schema": {
+                  "kind": "boolean"
+                }
+              }
+            ]
+          }
+        ],
+        "inputs": [],
+        "root": {
+          "kind": "repeat",
+          "node_id": "repeat",
+          "initial": {
+            "schema": {
+              "kind": "record",
+              "name": "Counter",
+              "fields": [
+                {
+                  "name": "count",
+                  "schema": {
+                    "kind": "integer"
+                  }
+                },
+                {
+                  "name": "ready",
+                  "schema": {
+                    "kind": "boolean"
+                  }
+                }
+              ]
+            },
+            "value": {
+              "kind": "literal",
+              "value": {
+                "kind": "record",
+                "record": "Counter",
+                "fields": [
+                  {
+                    "name": "count",
+                    "value": {
+                      "kind": "integer",
+                      "value": 0
+                    }
+                  },
+                  {
+                    "name": "ready",
+                    "value": {
+                      "kind": "boolean",
+                      "value": false
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "body": {
+            "body": {
+              "kind": "code",
+              "metadata": {
+                "step_id": "advance",
+                "behavior_id": "advance-v1",
+                "intent": "Use the declared result.",
+                "citations": [
+                  {
+                    "pin": {
+                      "source": "guide",
+                      "revision": "r1",
+                      "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                      "extraction": "text",
+                      "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                    },
+                    "section": "all",
+                    "locator": "paragraph",
+                    "start": 0,
+                    "end": 24,
+                    "quote": "Use the declared result."
+                  }
+                ],
+                "inputs": [
+                  {
+                    "name": "state",
+                    "schema": {
+                      "kind": "record",
+                      "name": "Counter",
+                      "fields": [
+                        {
+                          "name": "count",
+                          "schema": {
+                            "kind": "integer"
+                          }
+                        },
+                        {
+                          "name": "ready",
+                          "schema": {
+                            "kind": "boolean"
+                          }
+                        }
+                      ]
+                    },
+                    "value": {
+                      "kind": "local",
+                      "owner": "repeat",
+                      "name": "state",
+                      "path": []
+                    }
+                  },
+                  {
+                    "name": "limit",
+                    "schema": {
+                      "kind": "integer"
+                    },
+                    "value": {
+                      "kind": "literal",
+                      "value": {
+                        "kind": "integer",
+                        "value": 2
+                      }
+                    }
+                  }
+                ],
+                "output": {
+                  "kind": "record",
+                  "name": "Counter",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "schema": {
+                        "kind": "integer"
+                      }
+                    },
+                    {
+                      "name": "ready",
+                      "schema": {
+                        "kind": "boolean"
+                      }
+                    }
+                  ]
+                },
+                "changes": []
+              },
+              "function_id": "advance"
+            },
+            "result": {
+              "schema": {
+                "kind": "record",
+                "name": "Counter",
+                "fields": [
+                  {
+                    "name": "count",
+                    "schema": {
+                      "kind": "integer"
+                    }
+                  },
+                  {
+                    "name": "ready",
+                    "schema": {
+                      "kind": "boolean"
+                    }
+                  }
+                ]
+              },
+              "value": {
+                "kind": "result",
+                "node": "advance",
+                "path": []
+              }
+            }
+          },
+          "until": {
+            "kind": "result",
+            "node": "advance",
+            "path": [
+              "ready"
+            ]
+          },
+          "bound": {
+            "kind": "event",
+            "event": "continue"
+          }
+        },
+        "functions": [
+          {
+            "function_id": "advance",
+            "inputs": [
+              {
+                "name": "state",
+                "schema": {
+                  "kind": "record",
+                  "name": "Counter",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "schema": {
+                        "kind": "integer"
+                      }
+                    },
+                    {
+                      "name": "ready",
+                      "schema": {
+                        "kind": "boolean"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "limit",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ],
+            "output": {
+              "kind": "record",
+              "name": "Counter",
+              "fields": [
+                {
+                  "name": "count",
+                  "schema": {
+                    "kind": "integer"
+                  }
+                },
+                {
+                  "name": "ready",
+                  "schema": {
+                    "kind": "boolean"
+                  }
+                }
+              ]
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "count = state.count + 1\nreturn Counter(count, count >= limit)"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "state",
+                    "value": {
+                      "kind": "record",
+                      "record": "Counter",
+                      "fields": [
+                        {
+                          "name": "count",
+                          "value": {
+                            "kind": "integer",
+                            "value": 0
+                          }
+                        },
+                        {
+                          "name": "ready",
+                          "value": {
+                            "kind": "boolean",
+                            "value": false
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "limit",
+                    "value": {
+                      "kind": "integer",
+                      "value": 2
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "record",
+                  "record": "Counter",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "value": {
+                        "kind": "integer",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "name": "ready",
+                      "value": {
+                        "kind": "boolean",
+                        "value": false
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "guide",
+              "revision": "r1",
+              "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+              "extraction": "text",
+              "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+            },
+            "text": "Use the declared result.",
+            "sections": [
+              {
+                "name": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "sandbox",
+      "program": "bounded",
+      "meta": {
+        "command_id": "command-0",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 0
+      },
+      "case_id": "finite",
+      "facts": [],
+      "business_date": "2026-01-01",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    },
+    {
+      "kind": "sandbox",
+      "program": "waiting",
+      "meta": {
+        "command_id": "command-1",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 19
+      },
+      "case_id": "event",
+      "facts": [],
+      "business_date": "2026-01-01",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    },
+    {
+      "kind": "signal",
+      "program": "waiting",
+      "meta": {
+        "command_id": "command-2",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 32
+      },
+      "address": {
+        "case_id": "event",
+        "node_id": "repeat",
+        "scope": []
+      },
+      "iteration": 0,
+      "event": "continue",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    }
+  ],
+  "expected": [
+    {
+      "status": "runtime_failed",
+      "value": null,
+      "failure": "repeat_exhausted",
+      "work_nodes": null
+    },
+    {
+      "status": "runtime_waiting",
+      "value": null,
+      "failure": null,
+      "work_nodes": null
+    },
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "record",
+        "record": "Counter",
+        "fields": [
+          {
+            "name": "count",
+            "value": {
+              "kind": "integer",
+              "value": 2
+            }
+          },
+          {
+            "name": "ready",
+            "value": {
+              "kind": "boolean",
+              "value": true
+            }
+          }
+        ]
+      },
+      "failure": null,
+      "work_nodes": null
+    }
+  ]
+}

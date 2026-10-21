@@ -361,6 +361,10 @@ def test_core_randomness(tmp_path: Path, source: str) -> None:
         ("from typing import get_type_hints as resolve", "CORE_IMPORT"),
         ("import typing as types\nresolve = types.get_type_hints", "CORE_DYNAMIC"),
         ("import json\nreader = json.load", "CORE_IMPORT"),
+        ("from types import CodeType", "CORE_IMPORT"),
+        ("from types import FunctionType", "CORE_IMPORT"),
+        ("import types\nmodule = types", "CORE_DYNAMIC"),
+        ("import types\nconstructor = types.CodeType", "CORE_IMPORT"),
     ],
 )
 def test_core_randomness_dynamic_escapes(
@@ -374,6 +378,18 @@ def test_core_randomness_dynamic_escapes(
 )
 def test_core_import_rejects_unapproved_modules(tmp_path: Path, source: str) -> None:
     assert_core_rejection(tmp_path / "core", source, "CORE_IMPORT")
+
+
+def test_core_mapping_proxy_is_allowed(tmp_path: Path) -> None:
+    root = tmp_path / "core"
+    root.mkdir()
+    (root / "state.py").write_text(
+        "from types import MappingProxyType\nstate = MappingProxyType({'case': 1})\n",
+        encoding="utf-8",
+    )
+    run_check(
+        [sys.executable, "-B", CHECK_CORE, root], cwd=tmp_path, expected_returncode=0
+    )
 
 
 @pytest.mark.parametrize(
