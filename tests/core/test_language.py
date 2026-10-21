@@ -398,3 +398,177 @@ def test_saved_tests_share_verification_work_budget() -> None:
     )
     assert isinstance(result, l.LanguageFailure)
     assert result.code == "work_limit"
+
+
+def equality_value(
+    component: str, length: int
+) -> tuple[p.Schema, p.Value, tuple[p.RecordSchema, ...]]:
+    text = "x" * length
+    if component == "unresolved":
+        return p.UnresolvedSchema(), p.UnresolvedTextValue(text), ()
+    if component == "tag":
+        return (
+            p.TaggedSchema((p.Field(text, p.Scalar.INTEGER),)),
+            p.TaggedValue(text, p.IntValue(1)),
+            (),
+        )
+    if component == "text":
+        return p.Scalar.TEXT, p.TextValue(text), ()
+    if component == "present":
+        return p.OptionalSchema(p.Scalar.TEXT), p.PresentValue(p.TextValue(text)), ()
+    record_name = text if component in {"record", "reference_record"} else "Row"
+    field_name = text if component in {"record_field", "reference_field"} else "key"
+    key = text if component in {"keyed_key", "reference_key"} else "key"
+    schema = p.RecordSchema(record_name, (p.Field(field_name, p.Scalar.TEXT),))
+    value = p.RecordValue(record_name, (p.NamedValue(field_name, p.TextValue(key)),))
+    if component.startswith("reference_"):
+        return (
+            p.ReferenceSchema(record_name, field_name),
+            p.ResolvedRefValue(record_name, field_name, key),
+            (schema,),
+        )
+    if component == "keyed_key":
+        return (
+            p.KeyedSchema(schema, field_name),
+            p.KeyedValue((p.KeyedEntry(key, value),)),
+            (schema,),
+        )
+    return schema, value, (schema,)
+
+
+@pytest.mark.parametrize(
+    "component",
+    (
+        "text",
+        "present",
+        "reference_record",
+        "reference_field",
+        "reference_key",
+        "unresolved",
+        "tag",
+        "record",
+        "record_field",
+        "keyed_key",
+    ),
+)
+def test_equality_charges_every_semantic_text_component(component: str) -> None:
+    comparison_costs: list[int] = []
+    for length in (1, 1000):
+        schema, value, schemas = equality_value(component, length)
+        values = (p.NamedValue("left", value), p.NamedValue("right", value))
+        inputs = (p.Field("left", schema), p.Field("right", schema))
+        costs: list[int] = []
+        for source in ("return True", "return left == right"):
+            artifact = checked(
+                declaration(
+                    source, p.Scalar.BOOLEAN, inputs, values, p.BoolValue(True)
+                ),
+                schemas,
+            )
+            result = l.execute_function(artifact, "f", values, l.DEFAULT_LIMITS)
+            assert isinstance(result, l.FunctionResult), result
+            assert result.value == p.BoolValue(True)
+            costs.append(result.usage.work)
+            if length == 1000 and source == "return left == right":
+                exhausted = l.execute_function(
+                    artifact, "f", values, replace(l.DEFAULT_LIMITS, work=costs[0] + 1000)
+                )
+                assert isinstance(exhausted, l.LanguageFailure), exhausted
+                assert exhausted.code == "work_limit"
+        comparison_costs.append(costs[1] - costs[0])
+    assert comparison_costs[1] - comparison_costs[0] >= 2 * 999
+
+
+HELPER_CASES: tuple[
+    tuple[str, str, p.Schema, p.Value, tuple[p.RecordSchema, ...]], ...
+] = (
+    (
+        "record",
+        'record("Display row", "Ada")',
+        p.RecordSchema("Display row", (p.Field("name", p.Scalar.TEXT),)),
+        p.RecordValue("Display row", (p.NamedValue("name", p.TextValue("Ada")),)),
+        (p.RecordSchema("Display row", (p.Field("name", p.Scalar.TEXT),)),),
+    ),
+    (
+        "tag",
+        'tag("known", 1)',
+        p.TaggedSchema((p.Field("known", p.Scalar.INTEGER),)),
+        p.TaggedValue("known", p.IntValue(1)),
+        (),
+    ),
+    ("absent", "absent()", p.OptionalSchema(p.Scalar.INTEGER), p.AbsentValue(), ()),
+    (
+        "present",
+        "present(1)",
+        p.OptionalSchema(p.Scalar.INTEGER),
+        p.PresentValue(p.IntValue(1)),
+        (),
+    ),
+    ("require", "require(present(1))", p.Scalar.INTEGER, p.IntValue(1), ()),
+    ("is_present", "is_present(present(1))", p.Scalar.BOOLEAN, p.BoolValue(True), ()),
+    (
+        "lookup",
+        'lookup(rows, "missing")',
+        p.OptionalSchema(p.RecordSchema("Row", (p.Field("key", p.Scalar.TEXT),))),
+        p.AbsentValue(),
+        (p.RecordSchema("Row", (p.Field("key", p.Scalar.TEXT),)),),
+    ),
+    (
+        "template",
+        'template("{name}", Facts("Ada"))',
+        p.Scalar.TEXT,
+        p.TextValue("Ada"),
+        (p.RecordSchema("Facts", (p.Field("name", p.Scalar.TEXT),)),),
+    ),
+)
+
+
+@pytest.mark.parametrize("name,expression,output,expected,schemas", HELPER_CASES)
+def test_generic_helpers_are_not_shadowed_by_record_names(
+    name: str,
+    expression: str,
+    output: p.Schema,
+    expected: p.Value,
+    schemas: tuple[p.RecordSchema, ...],
+) -> None:
+    collision = p.RecordSchema(name, (p.Field("number", p.Scalar.INTEGER),))
+    inputs = (
+        (p.Field("rows", p.KeyedSchema(schemas[0], "key")),) if name == "lookup" else ()
+    )
+    values = (p.NamedValue("rows", p.KeyedValue(())),) if name == "lookup" else ()
+    artifact = checked(
+        declaration("return " + expression, output, inputs, values, expected),
+        (*schemas, collision),
+    )
+    result = l.execute_function(artifact, "f", values, l.DEFAULT_LIMITS)
+    assert isinstance(result, l.FunctionResult), result
+    assert result.value == expected
+
+
+@pytest.mark.parametrize("name", tuple(item[0] for item in HELPER_CASES))
+def test_explicit_record_constructor_supports_every_helper_name(name: str) -> None:
+    schema = p.RecordSchema(name, (p.Field("number", p.Scalar.INTEGER),))
+    value = p.RecordValue(name, (p.NamedValue("number", p.IntValue(1)),))
+    artifact = checked(
+        declaration(f'return record("{name}", 1)', schema, expected=value), (schema,)
+    )
+    result = l.execute_function(artifact, "f", (), l.DEFAULT_LIMITS)
+    assert isinstance(result, l.FunctionResult), result
+    assert result.value == value
+
+
+@pytest.mark.parametrize("name", tuple(item[0] for item in HELPER_CASES))
+def test_invalid_helper_signatures_cannot_fall_through_to_record_constructors(
+    name: str,
+) -> None:
+    fields = (p.Field("number", p.Scalar.INTEGER),) if name == "absent" else ()
+    members = (p.NamedValue("number", p.IntValue(1)),) if name == "absent" else ()
+    schema = p.RecordSchema(name, fields)
+    source = "return absent(1)" if name == "absent" else f"return {name}()"
+    result = l.check_functions(
+        (declaration(source, schema, expected=p.RecordValue(name, members)),),
+        (schema,),
+        l.DEFAULT_LIMITS,
+    )
+    assert isinstance(result, l.LanguageFailure), result
+    assert result.code == "unsupported_call"

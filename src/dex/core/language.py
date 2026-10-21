@@ -207,6 +207,20 @@ OPERATORS: dict[type[ast.AST], str] = {
 }
 
 
+GENERIC_HELPERS = frozenset(
+    {
+        "present",
+        "require",
+        "is_present",
+        "lookup",
+        "template",
+        "tag",
+        "absent",
+        "record",
+    }
+)
+
+
 BUILTINS = (
     Builtin("money", (p.Scalar.INTEGER,), p.Scalar.MONEY),
     Builtin("cents", (p.Scalar.MONEY,), p.Scalar.INTEGER),
@@ -652,14 +666,6 @@ class _Checker:
                 "Builtin arguments differ from signature.",
             )
             return Call(name, arguments, builtin.output)
-        if name in self.records:
-            record = self.records[name]
-            _require(
-                types == tuple(item.schema for item in record.fields),
-                "type_error",
-                "Record arguments differ from fields.",
-            )
-            return RecordConstructor(record, arguments)
         if name == "record" and arguments:
             label = arguments[0]
             if (
@@ -728,6 +734,14 @@ class _Checker:
             and all(field.schema == p.Scalar.TEXT for field in types[1].fields)
         ):
             return Call(name, arguments, p.Scalar.TEXT)
+        if name in self.records and name not in GENERIC_HELPERS:
+            record = self.records[name]
+            _require(
+                types == tuple(item.schema for item in record.fields),
+                "type_error",
+                "Record arguments differ from fields.",
+            )
+            return RecordConstructor(record, arguments)
         raise _Rejected("unsupported_call", name)
 
     def block(
@@ -845,16 +859,7 @@ def check_functions(
                 _schema(item.schema, schemas, budget)
             _schema(declaration.output, schemas, budget)
         checker = _Checker(declarations, schemas, budget)
-        reserved = set(checker.builtins) | {
-            "present",
-            "require",
-            "is_present",
-            "lookup",
-            "template",
-            "tag",
-            "absent",
-            "record",
-        }
+        reserved = set(checker.builtins) | GENERIC_HELPERS
         _require(
             len(checker.records) == len(schemas),
             "duplicate_identity",
@@ -1320,18 +1325,29 @@ def _compare(operator: str, left: int | str, right: int | str) -> bool:
 
 def _weight(value: p.Value, budget: _Budget) -> int:
     budget.charge()
-    if isinstance(value, p.TextValue):
-        budget.charge(len(value.value))
-        return len(value.value) + 1
+    if isinstance(value, (p.TextValue, p.UnresolvedTextValue)):
+        text = value.value if isinstance(value, p.TextValue) else value.text
+        budget.charge(len(text))
+        return len(text) + 1
+    if isinstance(value, p.ResolvedRefValue):
+        size = len(value.record) + len(value.key_field) + len(value.key)
+        budget.charge(size)
+        return size + 1
     if isinstance(value, p.RecordValue):
-        return 1 + sum(
-            len(item.name) + _weight(item.value, budget) for item in value.fields
+        budget.charge(len(value.record))
+        return (
+            1
+            + len(value.record)
+            + sum(len(item.name) + _weight(item.value, budget) for item in value.fields)
         )
     if isinstance(value, p.KeyedValue):
         return 1 + sum(
             len(item.key) + _weight(item.value, budget) for item in value.entries
         )
-    if isinstance(value, (p.PresentValue, p.TaggedValue)):
+    if isinstance(value, p.TaggedValue):
+        budget.charge(len(value.tag))
+        return 1 + len(value.tag) + _weight(value.value, budget)
+    if isinstance(value, p.PresentValue):
         return 1 + _weight(value.value, budget)
     return 1
 
