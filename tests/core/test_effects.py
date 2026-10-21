@@ -4,7 +4,18 @@ from unittest.mock import patch
 
 import pytest
 from test_continuations import COMPANY, accept, action, human, meta
-from test_runtime import INTEGER, NOW, catalog, code, draft, identity, start
+from test_runtime import (
+    COUNTER,
+    INTEGER,
+    NOW,
+    catalog,
+    code,
+    counter,
+    draft,
+    identity,
+    repeat_program,
+    start,
+)
 
 from dex.core import authority as a
 from dex.core import events as e
@@ -548,4 +559,274 @@ def test_effect_transitions_preserve_prior_workspace_snapshots() -> None:
     assert not approved.unresolved_attempts
     assert isinstance(run.state.effects[ref].progress, a.Attempted)
     assert proposed.work == approved.work == run.state.work
+    run.replay()
+
+
+@pytest.mark.parametrize("progress", ["approved", "uncertain", "confirmed"])
+def test_repeat_correction_preserves_effect_facts_and_blocks_stale_attempt(
+    progress: str,
+) -> None:
+    program = repeat_program(3)
+    root = program.root
+    assert isinstance(root, p.Repeat)
+    body = root.body.body
+    assert isinstance(body, p.CodeStep)
+    change = p.ChangeDeclaration(
+        "change",
+        "publish",
+        p.Export(COUNTER, p.ResultRef("advance")),
+        (
+            p.Binding(
+                "iteration_input", INTEGER, p.LocalRef("repeat", "state", ("count",))
+            ),
+        ),
+        p.Literal(p.TextValue("once")),
+    )
+    body = replace(body, metadata=replace(body.metadata, changes=(change,)))
+    programs = catalog(
+        replace(program, root=replace(root, body=replace(root.body, body=body)))
+    )
+    opened = accept(
+        r.rebuild((), programs), replace(start(programs), company=POLICY), programs
+    )
+    state, history = opened.state, opened.events
+    ref = next(
+        ref for ref in state.effects if ref.key.scope.parts[0].value == p.IntValue(2)
+    )
+    approved = accept(
+        state,
+        e.ApproveEffect(
+            meta(state, "approve"), ref, action("approve", role="effect_approver")
+        ),
+        programs,
+    )
+    state, history = approved.state, history + approved.events
+    if progress != "approved":
+        attempted = accept(
+            state,
+            e.BeginEffectAttempt(meta(state, "attempt", "executor"), ref, "attempt"),
+            programs,
+        )
+        state, history = attempted.state, history + attempted.events
+        command = (
+            e.MarkEffectUncertain(
+                meta(state, "outcome", "executor"), ref, "attempt", "lost"
+            )
+            if progress == "uncertain"
+            else e.ConfirmEffect(
+                meta(state, "outcome", "executor"),
+                ref,
+                "attempt",
+                a.ExecutionReceipt("adapter", "external", "confirmed"),
+            )
+        )
+        completed = accept(state, command, programs)
+        state, history = completed.state, history + completed.events
+    fact = state.effects[ref]
+    first = next(
+        address
+        for address in state.work
+        if address.node_id == "advance" and address.scope[-1].key == "0"
+    )
+    corrected = accept(
+        state,
+        e.CorrectResult(
+            meta(state, "correct", "admin"),
+            e.WorkRevision(first, 1),
+            action("correct", "admin", "corrector"),
+            counter(10, True),
+        ),
+        programs,
+    )
+    assert corrected.state.effects[ref] == fact
+    result = r.decide(
+        corrected.state,
+        e.BeginEffectAttempt(
+            meta(corrected.state, "stale-attempt", "executor"), ref, "different-attempt"
+        ),
+        programs,
+    )
+    assert isinstance(result, r.Refused)
+    assert r.rebuild(history + corrected.events, programs) == corrected.state
+
+
+@pytest.mark.parametrize("gate", ["direct", "composite", "composite_choice", "choice"])
+def test_renewed_business_gate_requires_a_new_exact_approval(gate: str) -> None:
+    source = code("source", p.Literal(p.IntValue(1)))
+    decision = human(source=p.ResultRef("source"), schema=p.Scalar.BOOLEAN)
+    if gate == "composite":
+        decision_node: p.Node = p.Sequence(
+            "review", (decision,), p.Export(p.Scalar.BOOLEAN, p.ResultRef("human"))
+        )
+    elif gate == "composite_choice":
+        decision_node = p.Choose(
+            "review",
+            p.Literal(p.BoolValue(True)),
+            p.Branch(decision, p.Export(p.Scalar.BOOLEAN, p.ResultRef("human"))),
+            p.Branch(
+                human("unused", schema=p.Scalar.BOOLEAN),
+                p.Export(p.Scalar.BOOLEAN, p.ResultRef("unused")),
+            ),
+            p.Scalar.BOOLEAN,
+        )
+    else:
+        decision_node = decision
+    writer: p.Node = producer()
+    result_name = "write"
+    if gate == "choice":
+        writer = p.Choose(
+            "choice",
+            p.ResultRef("human"),
+            p.Branch(writer, p.Export(INTEGER, p.ResultRef("write"))),
+            p.Branch(
+                code("skip", p.Literal(p.IntValue(0))),
+                p.Export(INTEGER, p.ResultRef("skip")),
+            ),
+            INTEGER,
+        )
+        result_name = "choice"
+    run = Run(
+        p.Sequence(
+            "root",
+            (code("sibling", p.Literal(p.IntValue(3))), source, decision_node, writer),
+            p.Export(INTEGER, p.ResultRef(result_name)),
+        )
+    )
+    task = next(task for task in run.state.tasks.values() if task.status == "open")
+    run.apply(
+        e.RespondTask(
+            meta(run.state, "business-1"),
+            task.ref,
+            task.reviewed,
+            action("business-1"),
+            p.BoolValue(True),
+        )
+    )
+    first = run.ref()
+    first_business = task.ref.work
+    assert ("company-a", "dex", "business-1") in run.state.effects[
+        first
+    ].revision.decisions
+    run.approve()
+    sibling = run.state.work[e.WorkAddress("case", "sibling")]
+    run.correct(2, "source")
+    assert run.state.cases["case"].status == "waiting"
+    assert isinstance(
+        r.decide(
+            run.state,
+            e.BeginEffectAttempt(meta(run.state, "stale", "executor"), first, "stale"),
+            run.catalog,
+        ),
+        r.Refused,
+    )
+    task = next(task for task in run.state.tasks.values() if task.status == "open")
+    run.apply(
+        e.RespondTask(
+            meta(run.state, "business-2"),
+            task.ref,
+            task.reviewed,
+            action("business-2"),
+            p.BoolValue(True),
+        )
+    )
+    renewed = run.ref()
+    assert task.ref.work in run.state.effects[renewed].revision.dependencies
+    assert first_business not in run.state.effects[renewed].revision.dependencies
+    assert renewed.key == first.key and renewed.revision > first.revision
+    assert run.state.effects[renewed].revision.decisions == (
+        ("company-a", "dex", "business-2"),
+    )
+    assert isinstance(run.state.effects[renewed].progress, a.Proposed)
+    assert isinstance(
+        r.decide(
+            run.state,
+            e.BeginEffectAttempt(
+                meta(run.state, "unapproved", "executor"), renewed, "unapproved"
+            ),
+            run.catalog,
+        ),
+        r.Refused,
+    )
+    assert run.state.work[e.WorkAddress("case", "sibling")] == sibling
+    run.approve(renewed, "approval-2")
+    run.begin(renewed, "attempt-2")
+    run.replay()
+
+
+def test_business_correction_preserves_an_independent_parallel_branch() -> None:
+    branch = p.Sequence(
+        "process",
+        (
+            code("source", p.Literal(p.IntValue(1))),
+            human(source=p.ResultRef("source")),
+            producer(),
+        ),
+        p.Export(INTEGER, p.ResultRef("write")),
+    )
+    run = Run(branch)
+    original = next(iter(run.catalog.artifacts.values())).draft
+    output = p.RecordSchema(
+        "Pair", (p.Field("process", INTEGER), p.Field("sibling", INTEGER))
+    )
+    root = p.Parallel(
+        "parallel",
+        (
+            p.NamedBranch(
+                "process", p.Branch(branch, p.Export(INTEGER, p.ResultRef("process")))
+            ),
+            p.NamedBranch(
+                "sibling",
+                p.Branch(
+                    code("sibling", p.Literal(p.IntValue(8))),
+                    p.Export(INTEGER, p.ResultRef("sibling")),
+                ),
+            ),
+        ),
+        output,
+    )
+    run.catalog = catalog(replace(original, root=root, schemas=(output,)))
+    opened = accept(
+        r.rebuild((), run.catalog),
+        replace(start(run.catalog), company=POLICY),
+        run.catalog,
+    )
+    run.state, run.events = opened.state, opened.events
+    task = next(task for task in run.state.tasks.values() if task.status == "open")
+    run.apply(
+        e.RespondTask(
+            meta(run.state, "business"),
+            task.ref,
+            task.reviewed,
+            action("business"),
+            p.IntValue(7),
+        )
+    )
+    run.approve()
+    ref = run.ref()
+    sibling = next(
+        address for address in run.state.work if address.node_id == "sibling"
+    )
+    sibling_work = run.state.work[sibling]
+    target = next(address for address in run.state.work if address.node_id == "source")
+    corrected = run.apply(
+        e.CorrectResult(
+            meta(run.state, "correct", "admin"),
+            e.WorkRevision(target, 1),
+            action("correct", "admin", "corrector"),
+            p.IntValue(2),
+        )
+    )
+    assert run.state.cases["case"].status == "waiting"
+    assert run.state.work[sibling] == sibling_work
+    assert all(
+        getattr(event.payload, "address", None) != sibling for event in corrected.events
+    )
+    assert isinstance(
+        r.decide(
+            run.state,
+            e.BeginEffectAttempt(meta(run.state, "stale", "executor"), ref, "stale"),
+            run.catalog,
+        ),
+        r.Refused,
+    )
     run.replay()

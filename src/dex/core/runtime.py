@@ -525,6 +525,7 @@ class _Reducer:
         self.selection_positions: dict[e.WorkAddress, dict[e.WorkAddress, int]] = {}
         self.branch_indexes: dict[e.WorkAddress, dict[str, e.WorkAddress]] = {}
         self.entry_indexes: dict[e.WorkAddress, dict[str, p.RecordValue]] = {}
+        self.business_decisions: dict[e.WorkRevision, tuple[e.WorkRevision, ...]] = {}
         self.catalog = catalog
         self.command: e.RuntimeCommand | None = None
         self.ordinal = 0
@@ -578,6 +579,7 @@ class _Reducer:
             _require(event.command_id == command.meta.command_id, "command_identity")
             _require(command.meta.command_id not in self.commands, "duplicate_command")
             _require(command.meta.expected_revision == self.revision, "stale_revision")
+            self.usage = lang.Usage(0, 0)
             self.start(command)
             self.command = command
             self.ordinal = 0
@@ -586,7 +588,6 @@ class _Reducer:
             self.required_proposals.clear()
             self.refresh_effects.clear()
             self.instances = 0
-            self.usage = lang.Usage(0, 0)
         else:
             _require(self.command is not None, "missing_batch")
             assert self.command is not None
@@ -631,6 +632,15 @@ class _Reducer:
             and 3 <= bounds.events <= defaults.events,
             "invalid_bounds",
         )
+        meter = _Meter(bounds)
+        if isinstance(command, (e.RespondTask, e.CorrectResult)):
+            meter.value(command.value)
+        elif (
+            isinstance(command, e.SupplyRecording)
+            and command.recording.value is not None
+        ):
+            meter.value(command.recording.value)
+        self.usage = meter.usage()
         if isinstance(command, e.StartSandbox):
             _require(command.artifact in self.catalog.artifacts, "missing_artifact")
             _require(
@@ -684,7 +694,6 @@ class _Reducer:
                 len(facts) == len(command.facts) == len(artifact.draft.inputs),
                 "input_fields",
             )
-            meter = _Meter(command.bounds)
             for item in artifact.draft.inputs:
                 _require(item.name in facts, "input_fields")
                 meter.value(facts[item.name])
@@ -896,6 +905,8 @@ class _Reducer:
             _require(self.instances < self.command.bounds.instances, "instance_limit")
             self.instances += 1
             self.work[address] = Work(payload)
+            for ref in payload.context.controls:
+                self.consumers[ref] = self.consumers.get(ref, frozenset()) | {address}
             return
         _require(address in self.work, "unknown_work")
         work = self.work[address]
@@ -1064,6 +1075,7 @@ class _Reducer:
             )
             if ref in self.work_actions:
                 decisions.add(self.work_actions[ref])
+            pending.extend(work.opened.context.controls)
             pending.extend(
                 e.WorkRevision(item.producer, item.producer_revision)
                 for item in work.inputs
@@ -1438,8 +1450,6 @@ class _Reducer:
     def check_human(self, command: e.HumanCommand) -> None:
         address = command_address(command)
         self.observer(address, command.action, command.meta)
-        if isinstance(command, (e.RespondTask, e.CorrectResult)):
-            _Meter(command.bounds).value(command.value)
         role = (
             self.tasks[command.task].eligible_role
             if isinstance(command, e.RespondTask) and command.task in self.tasks
@@ -1569,15 +1579,13 @@ class _Reducer:
             (recording.value is None) != (recording.failure is None),
             "recording_content",
         )
-        if recording.value is not None:
-            _Meter(e.ActivationBounds()).value(recording.value)
 
     def set_inputs(
         self, address: e.WorkAddress, inputs: tuple[e.ConsumedInput, ...]
     ) -> None:
         work = self.work[address]
-        previous: set[e.WorkRevision] = set()
-        current: set[e.WorkRevision] = set()
+        previous = set(work.opened.context.controls)
+        current = set(work.opened.context.controls)
         for group, refs in ((work.inputs, previous), (inputs, current)):
             for item in group:
                 if item.producer is not None:
@@ -1709,6 +1717,7 @@ class _Reducer:
 
     def correct(self, command: e.CorrectResult) -> None:
         target = command.work.address
+        self.business_decisions.clear()
         affected: set[e.WorkAddress] = set()
         reselect: set[e.WorkAddress] = set()
         retired: set[e.WorkAddress] = set()
@@ -1718,13 +1727,20 @@ class _Reducer:
             for consumer in self.consumers.get(self.ref(address), ()):
                 if consumer == target:
                     continue
-                selection = self.work[consumer].selected
+                consumer_work = self.work[consumer]
+                selection = consumer_work.selected
+                should_retire = (
+                    consumer not in retired
+                    and self.ref(address) in consumer_work.opened.context.controls
+                )
+                if should_retire:
+                    retired.add(consumer)
                 should_reselect = (
                     consumer not in reselect
                     and selection is not None
                     and any(item.producer == address for item in selection.inputs)
                 )
-                if consumer not in affected or should_reselect:
+                if consumer not in affected or should_reselect or should_retire:
                     affected.add(consumer)
                     queue.append(consumer)
             work = self.work[address]
@@ -1733,6 +1749,7 @@ class _Reducer:
                 and work.selected is not None
                 and (
                     address in retired
+                    or isinstance(self.node(address), p.Repeat)
                     or any(
                         item.producer == target or item.producer in affected
                         for item in work.selected.inputs
@@ -1741,7 +1758,7 @@ class _Reducer:
             ):
                 reselect.add(address)
                 for child in work.selected.dependencies:
-                    if child in self.work and child not in retired:
+                    if child != target and child in self.work and child not in retired:
                         retired.add(child)
                         affected.add(child)
                         queue.append(child)
@@ -1764,6 +1781,12 @@ class _Reducer:
                 self.tasks[work.task] = replace(task, status="superseded")
             if address in retired:
                 self.set_inputs(address, ())
+                for ref in work.opened.context.controls:
+                    consumers = self.consumers[ref] - {address}
+                    if consumers:
+                        self.consumers[ref] = consumers
+                    else:
+                        del self.consumers[ref]
                 del self.work[address]
                 self.pending.pop(address, None)
                 continue
@@ -1870,6 +1893,36 @@ class _Reducer:
         self.branch_indexes.pop(address, None)
         self.entry_indexes.pop(address, None)
 
+    def governing_decisions(self, address: e.WorkAddress) -> tuple[e.WorkRevision, ...]:
+        root = self.ref(address)
+        pending = [(root, False)]
+        while pending:
+            ref, expanded = pending.pop()
+            if ref in self.business_decisions:
+                continue
+            current = self.work.get(ref.address)
+            work = (
+                current
+                if current is not None and current.opened.revision == ref.revision
+                else self.history[ref]
+            )
+            dependencies = work.opened.context.controls
+            if work.selected is not None:
+                dependencies += tuple(
+                    self.ref(child) for child in work.selected.dependencies
+                )
+            if not expanded:
+                pending.append((ref, True))
+                pending.extend((dependency, False) for dependency in dependencies)
+                continue
+            decisions: set[e.WorkRevision] = (
+                {ref} if ref in self.work_actions else set()
+            )
+            for dependency in dependencies:
+                decisions.update(self.business_decisions[dependency])
+            self.business_decisions[ref] = tuple(sorted(decisions, key=repr))
+        return self.business_decisions[root]
+
     def child_context(
         self, parent_address: e.WorkAddress, child: e.WorkAddress
     ) -> e.Context:
@@ -1883,6 +1936,14 @@ class _Reducer:
                 if sibling == child:
                     break
                 context = _with_result(context, sibling)
+                context = replace(
+                    context,
+                    controls=tuple(
+                        dict.fromkeys(
+                            (*context.controls, *self.governing_decisions(sibling))
+                        )
+                    ),
+                )
         elif isinstance(node, p.Each):
             assert isinstance(selected.selection, p.KeyedValue)
             key = child.scope[-1].key
@@ -1910,6 +1971,15 @@ class _Reducer:
                     ),
                 ),
             )
+        if isinstance(node, (p.Choose, p.Each, p.Repeat)):
+            controls = list(context.controls)
+            for item in selected.inputs:
+                if item.producer is not None:
+                    assert item.producer_revision is not None
+                    controls.append(
+                        e.WorkRevision(item.producer, item.producer_revision)
+                    )
+            context = replace(context, controls=tuple(dict.fromkeys(controls)))
         return context
 
     def input_context(self, address: e.WorkAddress, name: tuple[str, ...]) -> e.Context:
@@ -2328,8 +2398,8 @@ class _Decider:
                 raise _Failure("instance_limit")
             self.meter.instances += 1
             self.meter.charge(
-                len(context.results) + len(context.locals),
-                len(context.results) + len(context.locals),
+                len(context.results) + len(context.locals) + len(context.controls),
+                len(context.results) + len(context.locals) + len(context.controls),
             )
             self.emit(
                 e.WorkOpened(
@@ -2423,7 +2493,9 @@ class _Decider:
         result: p.Value
         if isinstance(node, p.Sequence):
             for child in selected.dependencies:
-                value = self.run(child, context, address)
+                value = self.run(
+                    child, self.reducer.child_context(address, child), address
+                )
                 if value is None:
                     return None
                 context = _with_result(context, child)
@@ -2434,7 +2506,10 @@ class _Decider:
             assert isinstance(selected.selection, p.BoolValue)
             branch = node.when_true if selected.selection.value else node.when_false
             child = selected.dependencies[0]
-            if self.run(child, context, address) is None:
+            if (
+                self.run(child, self.reducer.child_context(address, child), address)
+                is None
+            ):
                 return None
             consumed = self.resolve(
                 address, _with_result(context, child), branch.result.value, ("result",)
@@ -2451,20 +2526,10 @@ class _Decider:
             entries: list[p.KeyedEntry] = []
             fields: list[p.NamedValue] = []
             for index, child in enumerate(selected.dependencies):
-                child_context = context
+                child_context = self.reducer.child_context(address, child)
                 if isinstance(node, p.Each):
                     assert isinstance(selected.selection, p.KeyedValue)
                     entry = selected.selection.entries[index]
-                    child_context = replace(
-                        context,
-                        locals=context.locals
-                        + (
-                            e.LocalBinding(address.node_id, "item", entry.value),
-                            e.LocalBinding(
-                                address.node_id, "key", p.TextValue(entry.key)
-                            ),
-                        ),
-                    )
                     branch = node.body
                     key = entry.key
                 else:
@@ -2507,7 +2572,6 @@ class _Decider:
         work = self.reducer.work[address]
         if work.selected is None:
             initial = self.resolve(address, context, node.initial.value, ("initial",))
-            carried = initial.value
             iteration = 0
             inputs = (initial,)
         elif work.waiting is not None:
@@ -2516,14 +2580,12 @@ class _Decider:
                 or self.command.address != address
             ):
                 return None
-            carried = work.waiting.carried
             iteration = work.waiting.iteration + 1
             inputs = work.waiting.inputs
         else:
             assert isinstance(work.selected.selection, p.IntValue)
             iteration = work.selected.selection.value
             inputs = work.selected.inputs
-            carried = inputs[0].value
         while True:
             self.meter.charge()
             selection = p.IntValue(iteration)
@@ -2534,11 +2596,7 @@ class _Decider:
             selected = self.reducer.work[address].selected
             assert selected is not None
             child = selected.dependencies[0]
-            local = replace(
-                context,
-                locals=context.locals
-                + (e.LocalBinding(address.node_id, "state", carried),),
-            )
+            local = self.reducer.child_context(address, child)
             if self.run(child, local, address) is None:
                 return None
             local = _with_result(local, child)
@@ -2563,7 +2621,6 @@ class _Decider:
                 return None
             if iteration + 1 >= node.bound.limit:
                 raise _Failure("repeat_exhausted")
-            carried = next_value.value
             inputs = (next_value, until)
             iteration += 1
 
@@ -2662,6 +2719,7 @@ def decide(
     decider = _Decider(reducer, command)
     try:
         decider.emit(e.BatchStarted(command))
+        decider.meter.charge(reducer.usage.work, reducer.usage.allocations)
     except (ReplayError, _Failure) as error:
         return Refused(error.code)
     case_id = command_case(command)
@@ -2742,11 +2800,19 @@ def decide(
     except ReplayError as error:
         return Refused(error.code)
     except _Failure as error:
-        if reducer.required_proposals:
+        if reducer.required_proposals or (
+            not isinstance(command, (e.StartSandbox, e.SignalRepeat))
+            and error.code
+            in {"work_limit", "allocation_limit", "event_limit", "instance_limit"}
+        ):
             return Refused(error.code)
         status, failure = "failed", error.code
-    decider.emit(
-        e.CaseSettled(case_id, status, failure, decider.meter.usage()), terminal=True
-    )
-    decider.emit(e.BatchCompleted(len(decider.events) + 1), terminal=True)
+    try:
+        decider.emit(
+            e.CaseSettled(case_id, status, failure, decider.meter.usage()),
+            terminal=True,
+        )
+        decider.emit(e.BatchCompleted(len(decider.events) + 1), terminal=True)
+    except (ReplayError, _Failure) as error:
+        return Refused(error.code)
     return Accepted(tuple(decider.events), reducer.freeze())

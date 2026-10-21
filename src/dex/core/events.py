@@ -298,6 +298,7 @@ class LocalBinding:
 class Context:
     results: tuple[ResultBinding, ...] = ()
     locals: tuple[LocalBinding, ...] = ()
+    controls: tuple[WorkRevision, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -5,11 +5,12 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from test_continuations import COMPANY, action, meta
+from test_continuations import COMPANY, accept, action, meta
 from test_runtime import (
     NOW,
     catalog,
     code,
+    counter,
     draft,
     execute,
     identity,
@@ -182,3 +183,42 @@ def test_repeat_replaces_shared_producer_bindings_without_stale_edges() -> None:
         assert address not in state.consumers.get(previous, ())
         assert r.rebuild(history, programs) == state
     assert state.cases["case"].status == "succeeded"
+
+
+@pytest.mark.parametrize("finished", [True, False])
+def test_repeat_correction_rebuilds_later_carried_work(finished: bool) -> None:
+    programs = catalog(repeat_program(3))
+    opened = accept(
+        r.rebuild((), programs), replace(start(programs), company=COMPANY), programs
+    )
+    first = next(
+        address
+        for address in opened.state.work
+        if address.node_id == "advance" and address.scope[-1].key == "0"
+    )
+    corrected = accept(
+        opened.state,
+        e.CorrectResult(
+            meta(opened.state, "correct", "admin"),
+            e.WorkRevision(first, 1),
+            action("correct", "admin", "corrector"),
+            counter(10, finished),
+        ),
+        programs,
+    )
+    assert root_value(corrected.state) == counter(10 if finished else 11, True)
+    later = [
+        address
+        for address in opened.state.work
+        if address.node_id == "advance" and address != first
+    ]
+    assert all(
+        e.WorkRevision(address, 1) in corrected.state.history for address in later
+    )
+    assert all(
+        address not in corrected.state.work
+        or corrected.state.work[address].opened.revision == 2
+        for address in later
+    )
+    assert opened.state.work[first].opened.revision == 1
+    assert r.rebuild(opened.events + corrected.events, programs) == corrected.state

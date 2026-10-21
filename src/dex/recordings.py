@@ -115,7 +115,9 @@ def parse_recording(text: str, request: e.RecordingRequest) -> e.Recording:
         raw = cast(
             Json, json.loads(text, object_pairs_hook=_unique, parse_constant=_constant)
         )
-    except (json.JSONDecodeError, RecursionError) as error:
+    except RecordingError:
+        raise
+    except (ValueError, RecursionError) as error:
         raise RecordingError("recording_json") from error
     obj = _object(
         raw,

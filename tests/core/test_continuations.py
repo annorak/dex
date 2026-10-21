@@ -696,3 +696,175 @@ def test_naive_policy_and_observation_times_are_refused() -> None:
         command, meta=replace(command.meta, observed_at=NOW.replace(tzinfo=None))
     )
     assert r.decide(state, command, programs) == r.Refused("decision_time")
+
+
+@pytest.mark.parametrize(
+    "kind", ["response", "reassign", "cancel", "correct", "recording"]
+)
+def test_tight_event_budget_refuses_atomically_and_action_can_be_retried(
+    kind: str,
+) -> None:
+    if kind == "recording":
+        programs = catalog(ai_program())
+        opened = accept(
+            r.rebuild((), programs), replace(start(programs), company=COMPANY), programs
+        )
+        state, history = opened.state, opened.events
+        request = state.work[e.WorkAddress("case", "ai")].request
+        assert request is not None
+        command: e.RuntimeCommand = e.SupplyRecording(
+            meta(state, "recording"),
+            e.Recording(request, "one", "model", 1, 1, p.IntValue(7), None),
+        )
+    else:
+        state, history, programs = setup(
+            code("source", p.Literal(p.IntValue(1))) if kind == "correct" else None
+        )
+        if kind == "correct":
+            command = e.CorrectResult(
+                meta(state, "correct", "admin"),
+                e.WorkRevision(e.WorkAddress("case", "source"), 1),
+                action("correct", "admin", "corrector"),
+                p.IntValue(2),
+            )
+        else:
+            answer = response(state)
+            command = answer
+            if kind == "reassign":
+                command = e.ReassignTask(
+                    meta(state, "reassign", "admin"),
+                    answer.task,
+                    action("reassign", "admin", "task_admin"),
+                    "bob",
+                )
+            elif kind == "cancel":
+                command = e.CancelTask(
+                    meta(state, "cancel", "admin"),
+                    answer.task,
+                    action("cancel", "admin", "task_admin"),
+                )
+    refused = r.decide(
+        state, replace(command, bounds=e.ActivationBounds(events=3)), programs
+    )
+    assert refused == r.Refused("event_limit")
+    assert r.rebuild(history, programs) == state
+    accepted = accept(state, command, programs)
+    assert accept(accepted.state, command, programs).events == ()
+    assert r.rebuild(history + accepted.events, programs) == accepted.state
+
+
+def test_supplied_response_usage_is_aggregate_and_replay_enforced() -> None:
+    state, history, programs = setup(human(schema=p.Scalar.TEXT))
+    command = replace(response(state), value=p.TextValue("x" * 1000))
+    assert r.decide(
+        state,
+        replace(command, bounds=e.ActivationBounds(work=1001, allocations=5000)),
+        programs,
+    ) == r.Refused("work_limit")
+    answered = accept(state, command, programs)
+    settled = next(
+        event.payload
+        for event in answered.events
+        if isinstance(event.payload, e.CaseSettled)
+    )
+    assert settled.usage == lang.Usage(1004, 4001)
+    damaged = tuple(
+        replace(event, payload=replace(event.payload, usage=lang.Usage(3, 0)))
+        if isinstance(event.payload, e.CaseSettled)
+        else event
+        for event in answered.events
+    )
+    with pytest.raises(r.ReplayError, match="usage_bounds"):
+        r.rebuild(history + damaged, programs)
+    assert accept(answered.state, command, programs).events == ()
+
+
+@pytest.mark.parametrize(
+    "value,reason",
+    [
+        ("9" * 5000, "recording_json"),
+        ("NaN", "recording_number"),
+        ('0,"value":1', "recording_duplicate_field"),
+    ],
+    ids=["oversized_integer", "nonfinite", "duplicate"],
+)
+def test_recording_json_errors_have_stable_boundary_reasons(
+    value: str, reason: str
+) -> None:
+    import json
+
+    from dex.recordings import RecordingError, parse_recording, request_digest
+
+    programs = catalog(ai_program())
+    state = accept(
+        r.rebuild((), programs), replace(start(programs), company=COMPANY), programs
+    ).state
+    request = state.work[e.WorkAddress("case", "ai")].request
+    assert request is not None
+    text = json.dumps(
+        {
+            "format": "dex-recording-1",
+            "request_digest": request_digest(request),
+            "recording_id": "one",
+            "model": "model",
+            "input_tokens": 1,
+            "output_tokens": 1,
+            "value": "PLACEHOLDER",
+            "failure": None,
+        }
+    ).replace('"PLACEHOLDER"', value)
+    with pytest.raises(RecordingError, match=reason):
+        parse_recording(text, request)
+
+
+def test_supplied_recording_allocation_is_aggregate_and_replay_enforced() -> None:
+    program = ai_program()
+    root = program.root
+    assert isinstance(root, p.Sequence)
+    ai = root.children[0]
+    assert isinstance(ai, p.AiStep)
+    outcome = p.ai_outcome_schema(p.Scalar.TEXT)
+    ai = replace(
+        ai, metadata=replace(ai.metadata, output=outcome), result_schema=p.Scalar.TEXT
+    )
+    programs = catalog(
+        replace(
+            program,
+            root=replace(root, children=(ai, *root.children[1:])),
+            schemas=(outcome,),
+        )
+    )
+    opened = accept(
+        r.rebuild((), programs), replace(start(programs), company=COMPANY), programs
+    )
+    state = opened.state
+    request = state.work[e.WorkAddress("case", "ai")].request
+    assert request is not None
+    recording = e.Recording(
+        request, "one", "model", 1, 1, p.TextValue("x" * 1000), None
+    )
+    command = e.SupplyRecording(meta(state, "recording"), recording)
+    assert r.decide(
+        state,
+        replace(command, bounds=e.ActivationBounds(work=5000, allocations=1000)),
+        programs,
+    ) == r.Refused("allocation_limit")
+    assert r.rebuild(opened.events, programs) == state
+    accepted = accept(state, command, programs)
+    settled = next(
+        event.payload
+        for event in accepted.events
+        if isinstance(event.payload, e.CaseSettled)
+    )
+    assert settled.usage.allocations >= 4001
+    assert settled.usage.work >= 1001
+    damaged = tuple(
+        replace(event, payload=replace(event.payload, usage=lang.Usage(80, 333)))
+        if isinstance(event.payload, e.CaseSettled)
+        else event
+        for event in accepted.events
+    )
+    with pytest.raises(r.ReplayError, match="usage_bounds"):
+        r.rebuild(opened.events + damaged, programs)
+    assert accept(accepted.state, command, programs).events == ()
+    assert r.rebuild(opened.events + accepted.events, programs) == accepted.state
