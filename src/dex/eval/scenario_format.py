@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime
 from typing import cast
 
+from dex.core import authority as a
 from dex.core import events as e
 from dex.core import program as p
 from dex.core.language import Limits
@@ -75,6 +76,14 @@ class ContinuationCommand:
 
 
 @dataclass(frozen=True)
+class EffectCommand:
+    program: str
+    command: e.EffectCommand
+    kind: str
+    advance_revision: bool = False
+
+
+@dataclass(frozen=True)
 class RecordingCommand:
     program: str
     meta: e.CommandMeta
@@ -90,6 +99,7 @@ type RuntimeCommand = (
     | RebuildCommand
     | ContinuationCommand
     | RecordingCommand
+    | EffectCommand
 )
 type Command = ProgramCommand | FunctionCommand | RuntimeCommand
 
@@ -396,11 +406,21 @@ def parse_binding(value: Json) -> p.Binding:
 
 
 def parse_change(value: Json) -> p.ChangeDeclaration:
-    obj = require_object_fields(value, "change_id operation payload")
+    fields = "change_id operation payload"
+    if isinstance(value, dict) and "scope" in value:
+        fields += " scope occurrence preconditions"
+    obj = require_object_fields(value, fields)
     return p.ChangeDeclaration(
         require_text(obj["change_id"]),
         require_text(obj["operation"]),
         parse_export(obj["payload"]),
+        tuple(parse_binding(item) for item in require_items(obj["scope"]))
+        if "scope" in obj
+        else None,
+        parse_input(obj["occurrence"]) if "occurrence" in obj else None,
+        tuple(parse_binding(item) for item in require_items(obj["preconditions"]))
+        if "preconditions" in obj
+        else (),
     )
 
 
@@ -732,8 +752,130 @@ def parse_company(value: Json) -> e.CompanyContext:
     )
 
 
+def parse_effect_ref(value: Json) -> a.EffectRef:
+    obj = require_object_fields(value, "key revision")
+    key = require_object_fields(
+        obj["key"], "company_id case_id scope operation occurrence"
+    )
+    parts = tuple(parse_named_value(item) for item in require_items(key["scope"]))
+    names = tuple(item.name for item in parts)
+    if names != tuple(sorted(set(names))):
+        raise ScenarioError("Effect scope requires unique sorted dimensions.")
+    return a.EffectRef(
+        a.EffectKey(
+            require_text(key["company_id"]),
+            require_text(key["case_id"]),
+            a.OperationScope(parts),
+            require_text(key["operation"]),
+            require_text(key["occurrence"]),
+        ),
+        require_integer(obj["revision"]),
+    )
+
+
+def parse_receipt(value: Json) -> a.ExecutionReceipt:
+    obj = require_object_fields(value, "adapter_revision external_id evidence")
+    return a.ExecutionReceipt(
+        require_text(obj["adapter_revision"]),
+        require_text(obj["external_id"]),
+        require_text(obj["evidence"]),
+    )
+
+
+def parse_effect_command(value: Json) -> EffectCommand:
+    tag = require_kind(value)
+    fields = (
+        "kind program meta effect bounds "
+        + {
+            "approve_effect": "action",
+            "revoke_effect_approval": "action approval",
+            "amend_effect": "action original occurrence",
+            "begin_effect_attempt": "attempt_id",
+            "mark_effect_uncertain": "attempt_id reason",
+            "confirm_effect": "attempt_id receipt",
+            "reconcile_effect": "attempt_id conclusion",
+        }[tag]
+    )
+    obj = require_object_fields(value, fields)
+    meta, ref, bounds = (
+        parse_meta(obj["meta"]),
+        parse_effect_ref(obj["effect"]),
+        parse_bounds(obj["bounds"]),
+    )
+    command: e.EffectCommand
+    if tag == "approve_effect":
+        command = e.ApproveEffect(meta, ref, parse_action(obj["action"]), bounds)
+    elif tag == "revoke_effect_approval":
+        approval = tuple(require_text(item) for item in require_items(obj["approval"]))
+        if len(approval) != 3:
+            raise ScenarioError(
+                "Approval identity requires company, origin, and action ID."
+            )
+        command = e.RevokeEffectApproval(
+            meta, ref, approval, parse_action(obj["action"]), bounds
+        )
+    elif tag == "amend_effect":
+        command = e.AmendEffect(
+            meta,
+            ref,
+            parse_effect_ref(obj["original"]),
+            require_text(obj["occurrence"]),
+            parse_action(obj["action"]),
+            bounds,
+        )
+    elif tag == "begin_effect_attempt":
+        command = e.BeginEffectAttempt(
+            meta, ref, require_text(obj["attempt_id"]), bounds
+        )
+    elif tag == "mark_effect_uncertain":
+        command = e.MarkEffectUncertain(
+            meta,
+            ref,
+            require_text(obj["attempt_id"]),
+            require_text(obj["reason"]),
+            bounds,
+        )
+    elif tag == "confirm_effect":
+        command = e.ConfirmEffect(
+            meta,
+            ref,
+            require_text(obj["attempt_id"]),
+            parse_receipt(obj["receipt"]),
+            bounds,
+        )
+    else:
+        conclusion_kind = require_kind(obj["conclusion"])
+        conclusion: a.Reconciliation
+        if conclusion_kind == "applied":
+            conclusion_obj = require_object_fields(obj["conclusion"], "kind receipt")
+            conclusion = a.Applied(parse_receipt(conclusion_obj["receipt"]))
+        elif conclusion_kind == "fenced_not_applied":
+            conclusion_obj = require_object_fields(
+                obj["conclusion"], "kind fence_evidence"
+            )
+            conclusion = a.FencedNotApplied(
+                require_text(conclusion_obj["fence_evidence"])
+            )
+        else:
+            raise ScenarioError("Unsupported reconciliation conclusion.")
+        command = e.ReconcileEffect(
+            meta, ref, require_text(obj["attempt_id"]), conclusion, bounds
+        )
+    return EffectCommand(require_text(obj["program"]), command, tag)
+
+
 def parse_command(value: Json) -> Command:
     tag = require_kind(value)
+    if tag in {
+        "approve_effect",
+        "revoke_effect_approval",
+        "amend_effect",
+        "begin_effect_attempt",
+        "mark_effect_uncertain",
+        "confirm_effect",
+        "reconcile_effect",
+    }:
+        return parse_effect_command(value)
     if tag == "sandbox":
         fields = "kind program meta case_id facts business_date bounds"
         if isinstance(value, dict) and "company" in value:
@@ -841,6 +983,30 @@ def parse_command(value: Json) -> Command:
 
 
 def expand_commands(value: Json) -> tuple[Command, ...]:
+    if require_kind(value) == "approve_effects":
+        obj = require_object_fields(value, "kind program meta action bounds targets")
+        meta, action, bounds = (
+            parse_meta(obj["meta"]),
+            parse_action(obj["action"]),
+            parse_bounds(obj["bounds"]),
+        )
+        targets = require_items(obj["targets"])
+        if not targets:
+            raise ScenarioError("Approval series requires explicit targets.")
+        return tuple(
+            EffectCommand(
+                require_text(obj["program"]),
+                e.ApproveEffect(
+                    replace(meta, command_id=f"{meta.command_id}:{index}"),
+                    parse_effect_ref(target),
+                    replace(action, action_id=f"{action.action_id}:{index}"),
+                    bounds,
+                ),
+                "approve_effect",
+                True,
+            )
+            for index, target in enumerate(targets)
+        )
     if require_kind(value) != "respond_tasks":
         return (parse_command(value),)
     obj = require_object_fields(value, "kind program meta action bounds value targets")

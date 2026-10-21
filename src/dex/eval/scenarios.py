@@ -3,6 +3,7 @@ import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from dex.core import authority as a
 from dex.core import events as e
 from dex.core import language as language
 from dex.core import program as p
@@ -10,6 +11,7 @@ from dex.core import runtime as r
 from dex.eval.scenario_format import (
     MAX_BYTES,
     ContinuationCommand,
+    EffectCommand,
     FunctionCommand,
     FunctionExpected,
     RebuildCommand,
@@ -21,7 +23,7 @@ from dex.eval.scenario_format import (
     SignalCommand,
     parse_scenario,
 )
-from dex.eval.scenario_output import encode_core
+from dex.eval.scenario_output import write_json
 from dex.recordings import RecordingError, parse_recording
 
 
@@ -34,10 +36,12 @@ class RuntimeObservation:
     revision: int
     replay_equal: bool | None
     tasks: tuple[e.Task, ...] = ()
-    actions: tuple[e.HumanCommand, ...] = ()
+    actions: tuple[e.ActionCommand, ...] = ()
     recordings: tuple[e.Recording, ...] = ()
     history: tuple[r.Work, ...] = ()
     submitted: e.RuntimeCommand | None = None
+    effects: tuple[a.Effect, ...] = ()
+    revoked_approvals: tuple[a.ActionKey, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -97,6 +101,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                 RebuildCommand,
                 ContinuationCommand,
                 RecordingCommand,
+                EffectCommand,
             ),
         ):
             if isinstance(result, p.StructuralFailure):
@@ -122,7 +127,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
             replay_equal: bool | None = None
             batch: tuple[e.RuntimeEvent, ...] = ()
             failure: str | None = None
-            if isinstance(command, ContinuationCommand):
+            if isinstance(command, (ContinuationCommand, EffectCommand)):
                 case_id = r.command_case(command.command)
             elif isinstance(command, RecordingCommand):
                 case_id = command.work.address.case_id
@@ -177,7 +182,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     except RecordingError as error:
                         decision = r.Refused(str(error))
                 else:
-                    if isinstance(command, ContinuationCommand):
+                    if isinstance(command, (ContinuationCommand, EffectCommand)):
                         core_command = command.command
                         if command.advance_revision:
                             core_command = replace(
@@ -209,19 +214,55 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     runtime_state = decision.state
                     status = "runtime_" + runtime_state.cases[case_id].status
                     failure = runtime_state.cases[case_id].failure
-            case_work = tuple(
-                work
-                for address, work in runtime_state.work.items()
-                if address.case_id == case_id
+            is_effect_delta = (
+                isinstance(command, EffectCommand) and scenario.detail == "changes"
+            )
+            case_work = (
+                ()
+                if is_effect_delta
+                else tuple(
+                    work
+                    for address, work in runtime_state.work.items()
+                    if address.case_id == case_id
+                )
             )
             root_work = next(
                 (work for work in case_work if work.opened.parent is None), None
             )
             value = (
                 root_work.completed.value
-                if root_work is not None and root_work.completed is not None
+                if not isinstance(command, EffectCommand)
+                and root_work is not None
+                and root_work.completed is not None
                 else None
             )
+            changed_effects: set[a.EffectRef] = set()
+            changed_actions: set[a.ActionKey] = set()
+            for event in batch:
+                payload = event.payload
+                if isinstance(payload, e.EffectProposed):
+                    changed_effects.add(payload.revision.ref)
+                    previous = before.current_effects.get(payload.revision.ref.key)
+                    if previous is not None:
+                        changed_effects.add(previous)
+                elif isinstance(payload, e.EffectTransitioned):
+                    effect_command = payload.command
+                    changed_effects.add(effect_command.effect)
+                    if isinstance(
+                        effect_command,
+                        (e.ApproveEffect, e.RevokeEffectApproval, e.AmendEffect),
+                    ):
+                        changed_actions.add(r.action_key(effect_command.action))
+                    if isinstance(effect_command, e.AmendEffect):
+                        changed_effects.add(
+                            a.EffectRef(
+                                replace(
+                                    effect_command.effect.key,
+                                    occurrence=effect_command.occurrence,
+                                ),
+                                1,
+                            )
+                        )
             runtime = RuntimeObservation(
                 value,
                 failure,
@@ -235,31 +276,57 @@ def evaluate(scenario: Scenario) -> Evaluation:
                 ),
                 runtime_state.revision,
                 replay_equal,
-                tuple(
+                ()
+                if is_effect_delta
+                else tuple(
                     task
                     for ref, task in runtime_state.tasks.items()
                     if ref.work.address.case_id == case_id
                     and (scenario.detail == "full" or before.tasks.get(ref) != task)
                 ),
-                tuple(
+                tuple(runtime_state.actions[key] for key in sorted(changed_actions))
+                if is_effect_delta
+                else tuple(
                     action
                     for key, action in runtime_state.actions.items()
                     if r.command_case(action) == case_id
                     and (scenario.detail == "full" or key not in before.actions)
                 ),
-                tuple(
+                ()
+                if is_effect_delta
+                else tuple(
                     recording
                     for ref, recording in runtime_state.recordings.items()
                     if ref.address.case_id == case_id
                     and (scenario.detail == "full" or ref not in before.recordings)
                 ),
-                tuple(
+                ()
+                if is_effect_delta
+                else tuple(
                     work
                     for ref, work in runtime_state.history.items()
                     if ref.address.case_id == case_id
                     and (scenario.detail == "full" or ref not in before.history)
                 ),
                 submitted,
+                tuple(
+                    runtime_state.effects[ref]
+                    for ref in sorted(changed_effects, key=repr)
+                    if before.effects.get(ref) != runtime_state.effects[ref]
+                )
+                if scenario.detail == "changes"
+                else tuple(
+                    effect
+                    for ref, effect in runtime_state.effects.items()
+                    if ref.key.case_id == case_id
+                ),
+                tuple(
+                    sorted(
+                        runtime_state.revoked_approvals
+                        if scenario.detail == "full"
+                        else runtime_state.revoked_approvals - before.revoked_approvals
+                    )
+                ),
             )
             observations.append(
                 Observation(
@@ -327,6 +394,8 @@ def evaluate(scenario: Scenario) -> Evaluation:
         tuple(runtime_state.actions.values()),
         tuple(runtime_state.recordings.values()),
         tuple(runtime_state.history.values()),
+        effects=tuple(runtime_state.effects.values()),
+        revoked_approvals=tuple(sorted(runtime_state.revoked_approvals)),
     )
     matches = tuple(
         (
@@ -368,68 +437,60 @@ def evaluate(scenario: Scenario) -> Evaluation:
     return Evaluation(tuple(observations), matches, final_runtime)
 
 
-def serialize_json(value: object) -> str:
-    return json.dumps(encode_core(value), sort_keys=True, indent=2) + "\n"
-
-
 def run_scenario(path: Path, out: Path) -> int:
     try:
         with path.open("rb") as handle:
             source = handle.read(MAX_BYTES + 1)
         scenario = parse_scenario(source)
         evaluation = evaluate(scenario)
-        actual = serialize_json(
-            {
-                "format": "dex-eval-actual-2",
-                "scenario_id": scenario.scenario_id,
-                "detail": scenario.detail,
-                "final_runtime": evaluation.final_runtime,
-                "observations": [
-                    {
-                        "command": item.command,
-                        "program": item.program,
-                        "status": item.status,
-                        "diagnostics": item.diagnostics,
-                        "missing_checks": item.missing_checks,
-                        "artifact": item.artifact,
-                        "function": item.function,
-                        "runtime": item.runtime,
-                    }
-                    for item in evaluation.observations
-                ],
-            }
-        )
-        evidence = serialize_json(
-            {
-                "format": "dex-eval-expected-2",
-                "scenario_id": scenario.scenario_id,
-                "expected": [
-                    {
-                        "status": item.status,
-                        "value": item.value,
-                        "failure": item.failure,
-                        **(
-                            {"work_nodes": item.work_nodes}
-                            if isinstance(item, RuntimeExpected)
-                            else {}
-                        ),
-                    }
-                    if isinstance(item, (FunctionExpected, RuntimeExpected))
-                    else {
-                        "status": item.status,
-                        "diagnostic_codes": item.diagnostic_codes,
-                        "missing_checks": item.missing_checks,
-                    }
-                    for item in scenario.expected
-                ],
-                "matches": evaluation.matches,
-            }
-        )
+        actual = {
+            "format": "dex-eval-actual-2",
+            "scenario_id": scenario.scenario_id,
+            "detail": scenario.detail,
+            "final_runtime": evaluation.final_runtime,
+            "observations": [
+                {
+                    "command": item.command,
+                    "program": item.program,
+                    "status": item.status,
+                    "diagnostics": item.diagnostics,
+                    "missing_checks": item.missing_checks,
+                    "artifact": item.artifact,
+                    "function": item.function,
+                    "runtime": item.runtime,
+                }
+                for item in evaluation.observations
+            ],
+        }
+        evidence = {
+            "format": "dex-eval-expected-2",
+            "scenario_id": scenario.scenario_id,
+            "expected": [
+                {
+                    "status": item.status,
+                    "value": item.value,
+                    "failure": item.failure,
+                    **(
+                        {"work_nodes": item.work_nodes}
+                        if isinstance(item, RuntimeExpected)
+                        else {}
+                    ),
+                }
+                if isinstance(item, (FunctionExpected, RuntimeExpected))
+                else {
+                    "status": item.status,
+                    "diagnostic_codes": item.diagnostic_codes,
+                    "missing_checks": item.missing_checks,
+                }
+                for item in scenario.expected
+            ],
+            "matches": evaluation.matches,
+        }
         out.mkdir(parents=True, exist_ok=False)
         with (out / "expected.json").open("x", encoding="utf-8") as handle:
-            handle.write(evidence)
+            write_json(evidence, (handle,))
         with (out / "actual.json").open("x", encoding="utf-8") as handle:
-            handle.write(actual)
+            write_json(actual, (handle, sys.stdout))
     except (OSError, ScenarioError) as error:
         print(
             json.dumps(
@@ -443,7 +504,6 @@ def run_scenario(path: Path, out: Path) -> int:
             file=sys.stderr,
         )
         return 2
-    print(actual, end="")
     if not all(evaluation.matches):
         print(
             json.dumps(

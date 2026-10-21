@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Literal
 
+from dex.core import authority as a
 from dex.core import program as p
 from dex.core.language import Usage
 from dex.core.program import ExecutionPending, ProgramDraft, VerificationResult
@@ -201,7 +202,82 @@ class CorrectResult:
 type HumanCommand = RespondTask | ReassignTask | CancelTask | CorrectResult
 
 
-type RuntimeCommand = StartSandbox | SignalRepeat | HumanCommand | SupplyRecording
+@dataclass(frozen=True)
+class ApproveEffect:
+    meta: CommandMeta
+    effect: a.EffectRef
+    action: HumanAction
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class RevokeEffectApproval:
+    meta: CommandMeta
+    effect: a.EffectRef
+    approval: a.ActionKey
+    action: HumanAction
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class AmendEffect:
+    meta: CommandMeta
+    effect: a.EffectRef
+    original: a.EffectRef
+    occurrence: str
+    action: HumanAction
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class BeginEffectAttempt:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class MarkEffectUncertain:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    reason: str
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class ConfirmEffect:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    receipt: a.ExecutionReceipt
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class ReconcileEffect:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    conclusion: a.Reconciliation
+    bounds: ActivationBounds = ActivationBounds()
+
+
+type EffectReview = ApproveEffect | RevokeEffectApproval | AmendEffect
+type EffectCommand = (
+    EffectReview
+    | BeginEffectAttempt
+    | MarkEffectUncertain
+    | ConfirmEffect
+    | ReconcileEffect
+)
+type ActionCommand = HumanCommand | EffectReview
+
+
+type RuntimeCommand = (
+    StartSandbox | SignalRepeat | HumanCommand | SupplyRecording | EffectCommand
+)
 type Command = RuntimeCommand | ActivateProgram
 
 
@@ -358,6 +434,16 @@ class RecordingConsumed:
     outcome: p.Value
 
 
+@dataclass(frozen=True)
+class EffectProposed:
+    revision: a.EffectRevision
+
+
+@dataclass(frozen=True)
+class EffectTransitioned:
+    command: EffectCommand
+
+
 type RuntimePayload = (
     BatchStarted
     | WorkOpened
@@ -371,6 +457,8 @@ type RuntimePayload = (
     | HumanActed
     | RecordingRequested
     | RecordingConsumed
+    | EffectProposed
+    | EffectTransitioned
 )
 
 

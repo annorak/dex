@@ -1,9 +1,10 @@
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping, MutableMapping
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from hashlib import sha256
 from types import MappingProxyType
 
+from dex.core import authority as a
 from dex.core import events as e
 from dex.core import language as lang
 from dex.core import program as p
@@ -116,26 +117,57 @@ class Case:
 @dataclass(frozen=True)
 class WorkspaceState:
     revision: int
-    cases: Mapping[str, Case]
-    work: Mapping[e.WorkAddress, Work]
-    commands: Mapping[str, e.RuntimeCommand]
-    tasks: Mapping[e.TaskRef, e.Task] = field(
+    cases: MappingProxyType[str, Case]
+    work: MappingProxyType[e.WorkAddress, Work]
+    commands: MappingProxyType[str, e.RuntimeCommand]
+    tasks: MappingProxyType[e.TaskRef, e.Task] = field(
         default_factory=lambda: MappingProxyType({})
     )
-    actions: Mapping[tuple[str, str, str], e.HumanCommand] = field(
+    actions: MappingProxyType[tuple[str, str, str], e.ActionCommand] = field(
         default_factory=lambda: MappingProxyType({})
     )
-    recordings: Mapping[e.WorkRevision, e.Recording] = field(
+    recordings: MappingProxyType[e.WorkRevision, e.Recording] = field(
         default_factory=lambda: MappingProxyType({})
     )
-    history: Mapping[e.WorkRevision, Work] = field(
+    history: MappingProxyType[e.WorkRevision, Work] = field(
         default_factory=lambda: MappingProxyType({})
     )
-    consumers: Mapping[e.WorkRevision, frozenset[e.WorkAddress]] = field(
+    consumers: MappingProxyType[e.WorkRevision, frozenset[e.WorkAddress]] = field(
         default_factory=lambda: MappingProxyType({})
     )
-    pending: Mapping[e.WorkAddress, frozenset[e.WorkAddress]] = field(
+    pending: MappingProxyType[e.WorkAddress, frozenset[e.WorkAddress]] = field(
         default_factory=lambda: MappingProxyType({})
+    )
+
+    effects: MappingProxyType[a.EffectRef, a.Effect] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    current_effects: MappingProxyType[a.EffectKey, a.EffectRef] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    work_effects: MappingProxyType[tuple[e.WorkRevision, str], a.EffectRef] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    operation_keys: MappingProxyType[tuple[e.WorkAddress, str], a.EffectKey] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    effect_consumers: MappingProxyType[e.WorkRevision, frozenset[a.EffectRef]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    work_actions: MappingProxyType[e.WorkRevision, a.ActionKey] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    unresolved_attempts: MappingProxyType[a.EffectKey, a.EffectRef] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    confirmed_effects: MappingProxyType[a.EffectKey, a.EffectRef] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    attempt_ids: MappingProxyType[tuple[a.EffectKey, str], a.EffectRef] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    revoked_approvals: frozenset[a.ActionKey] = field(
+        default_factory=lambda: frozenset[a.ActionKey]()
     )
 
 
@@ -360,6 +392,19 @@ def command_address(
 
 
 def command_case(command: e.RuntimeCommand) -> str:
+    if isinstance(
+        command,
+        (
+            e.ApproveEffect,
+            e.RevokeEffectApproval,
+            e.AmendEffect,
+            e.BeginEffectAttempt,
+            e.MarkEffectUncertain,
+            e.ConfirmEffect,
+            e.ReconcileEffect,
+        ),
+    ):
+        return command.effect.key.case_id
     return (
         command.case_id
         if isinstance(command, e.StartSandbox)
@@ -371,7 +416,7 @@ def action_key(action: e.HumanAction) -> tuple[str, str, str]:
     return action.company_id, action.origin, action.action_id
 
 
-def same_action(left: e.HumanCommand, right: e.HumanCommand) -> bool:
+def same_action(left: e.ActionCommand, right: e.ActionCommand) -> bool:
     return replace(left, meta=right.meta, bounds=right.bounds) == right
 
 
@@ -418,18 +463,68 @@ def recording_outcome(recording: e.Recording, company: e.CompanyContext) -> p.Va
     )
 
 
+class _StateMap[K, V](MutableMapping[K, V]):
+    def __init__(self, source: MappingProxyType[K, V]) -> None:
+        self._data: MappingProxyType[K, V] | dict[K, V] = source
+
+    def __getitem__(self, key: K) -> V:
+        return self._data[key]
+
+    def __iter__(self) -> Iterator[K]:
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def writable(self) -> dict[K, V]:
+        if isinstance(self._data, MappingProxyType):
+            self._data = self._data.copy()
+        return self._data
+
+    def __setitem__(self, key: K, value: V) -> None:
+        self.writable()[key] = value
+
+    def __delitem__(self, key: K) -> None:
+        del self.writable()[key]
+
+    def freeze(self) -> MappingProxyType[K, V]:
+        if isinstance(self._data, dict):
+            self._data = MappingProxyType(self._data)
+        return self._data
+
+
 class _Reducer:
     def __init__(self, state: WorkspaceState, catalog: ProgramCatalog) -> None:
         self.revision = state.revision
-        self.cases = dict(state.cases)
-        self.work = dict(state.work)
-        self.commands = dict(state.commands)
-        self.tasks = dict(state.tasks)
-        self.actions = dict(state.actions)
-        self.recordings = dict(state.recordings)
-        self.history = dict(state.history)
-        self.consumers = dict(state.consumers)
-        self.pending = dict(state.pending)
+        self.cases = _StateMap(state.cases)
+        self.work = _StateMap(state.work)
+        self.commands = _StateMap(state.commands)
+        self.tasks = _StateMap(state.tasks)
+        self.actions = _StateMap(state.actions)
+        self.recordings = _StateMap(state.recordings)
+        self.history = _StateMap(state.history)
+        self.consumers = _StateMap(state.consumers)
+        self.pending = {
+            address: set(children) for address, children in state.pending.items()
+        }
+        self.effects = _StateMap(state.effects)
+        self.current_effects = _StateMap(state.current_effects)
+        self.work_effects = _StateMap(state.work_effects)
+        self.operation_keys = _StateMap(state.operation_keys)
+        self.effect_consumers = _StateMap(state.effect_consumers)
+        self.work_actions = _StateMap(state.work_actions)
+        self.unresolved_attempts = _StateMap(state.unresolved_attempts)
+        self.confirmed_effects = _StateMap(state.confirmed_effects)
+        self.attempt_ids = _StateMap(state.attempt_ids)
+        self.revoked_approvals = state.revoked_approvals
+        self.required_proposals: set[tuple[e.WorkRevision, str]] = set()
+        self.refresh_effects: set[e.WorkAddress] = set()
+        self.input_indexes: dict[
+            e.WorkAddress, dict[tuple[str, ...], e.ConsumedInput]
+        ] = {}
+        self.selection_positions: dict[e.WorkAddress, dict[e.WorkAddress, int]] = {}
+        self.branch_indexes: dict[e.WorkAddress, dict[str, e.WorkAddress]] = {}
+        self.entry_indexes: dict[e.WorkAddress, dict[str, p.RecordValue]] = {}
         self.catalog = catalog
         self.command: e.RuntimeCommand | None = None
         self.ordinal = 0
@@ -442,15 +537,30 @@ class _Reducer:
         _require(self.command is None, "incomplete_batch")
         return WorkspaceState(
             self.revision,
-            MappingProxyType(self.cases),
-            MappingProxyType(self.work),
-            MappingProxyType(self.commands),
-            MappingProxyType(self.tasks),
-            MappingProxyType(self.actions),
-            MappingProxyType(self.recordings),
-            MappingProxyType(self.history),
-            MappingProxyType(self.consumers),
-            MappingProxyType(self.pending),
+            self.cases.freeze(),
+            self.work.freeze(),
+            self.commands.freeze(),
+            self.tasks.freeze(),
+            self.actions.freeze(),
+            self.recordings.freeze(),
+            self.history.freeze(),
+            self.consumers.freeze(),
+            MappingProxyType(
+                {
+                    address: frozenset(children)
+                    for address, children in self.pending.items()
+                }
+            ),
+            self.effects.freeze(),
+            self.current_effects.freeze(),
+            self.work_effects.freeze(),
+            self.operation_keys.freeze(),
+            self.effect_consumers.freeze(),
+            self.work_actions.freeze(),
+            self.unresolved_attempts.freeze(),
+            self.confirmed_effects.freeze(),
+            self.attempt_ids.freeze(),
+            self.revoked_approvals,
         )
 
     def node(self, address: e.WorkAddress) -> p.Node:
@@ -473,6 +583,8 @@ class _Reducer:
             self.ordinal = 0
             self.settled = False
             self.action_applied = isinstance(command, (e.StartSandbox, e.SignalRepeat))
+            self.required_proposals.clear()
+            self.refresh_effects.clear()
             self.instances = 0
             self.usage = lang.Usage(0, 0)
         else:
@@ -528,6 +640,18 @@ class _Reducer:
             artifact = self.catalog.artifacts[command.artifact]
             nodes = self.catalog.nodes[command.artifact]
             for node in nodes.values():
+                if (
+                    isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep))
+                    and node.metadata.changes
+                ):
+                    _require(command.company is not None, "company_required")
+                    _require(
+                        all(
+                            change.scope is not None and change.occurrence is not None
+                            for change in node.metadata.changes
+                        ),
+                        "unsupported_change",
+                    )
                 if isinstance(node, p.AiStep):
                     _require(node.result_schema is not None, "unsupported_step")
                 if isinstance(node, (p.AiStep, p.HumanStep)):
@@ -566,6 +690,19 @@ class _Reducer:
                 meter.value(facts[item.name])
                 _require(_valid(facts[item.name], item.schema), "input_type")
             self.cases[command.case_id] = Case(command, "running")
+        elif isinstance(
+            command,
+            (
+                e.ApproveEffect,
+                e.RevokeEffectApproval,
+                e.AmendEffect,
+                e.BeginEffectAttempt,
+                e.MarkEffectUncertain,
+                e.ConfirmEffect,
+                e.ReconcileEffect,
+            ),
+        ):
+            self.effect_observer(command)
         elif isinstance(command, e.SignalRepeat):
             _require(command.address in self.work, "unknown_wait")
             work = self.work[command.address]
@@ -606,10 +743,38 @@ class _Reducer:
         | e.TaskOpened
         | e.HumanActed
         | e.RecordingRequested
-        | e.RecordingConsumed,
+        | e.RecordingConsumed
+        | e.EffectProposed
+        | e.EffectTransitioned,
     ) -> None:
         assert self.command is not None
         case_id = command_case(self.command)
+        if isinstance(payload, e.EffectProposed):
+            revision = payload.revision
+            _require(revision.producer.address.case_id == case_id, "command_case")
+            _require(
+                revision
+                == self.effect_revision(
+                    revision.producer.address, revision.change_id, revision.inputs
+                ),
+                "effect_revision",
+            )
+            _require(
+                (revision.producer, revision.change_id) in self.required_proposals
+                or revision.producer.address in self.refresh_effects,
+                "unexpected_proposal",
+            )
+            self.add_effect(revision)
+            self.required_proposals.discard((revision.producer, revision.change_id))
+            return
+        if isinstance(payload, e.EffectTransitioned):
+            _require(
+                payload.command == self.command and not self.action_applied,
+                "command_effect",
+            )
+            self.transition_effect(payload.command)
+            self.action_applied = True
+            return
         payload_case = (
             payload.case_id
             if isinstance(payload, e.CaseSettled)
@@ -617,6 +782,7 @@ class _Reducer:
         )
         _require(payload_case == case_id, "command_case")
         if isinstance(payload, e.CaseSettled):
+            _require(not self.required_proposals, "missing_proposal")
             _require(
                 self.usage.work <= payload.usage.work <= self.command.bounds.work
                 and self.usage.allocations
@@ -631,6 +797,22 @@ class _Reducer:
                 p.node_identity(self.catalog.artifacts[case.start.artifact].draft.root),
             )
             root_work = self.work.get(root)
+            if isinstance(
+                self.command,
+                (
+                    e.ApproveEffect,
+                    e.RevokeEffectApproval,
+                    e.AmendEffect,
+                    e.BeginEffectAttempt,
+                    e.MarkEffectUncertain,
+                    e.ConfirmEffect,
+                    e.ReconcileEffect,
+                ),
+            ):
+                _require(
+                    (payload.status, payload.failure) == (case.status, case.failure),
+                    "effect_case_status",
+                )
             if payload.status == "succeeded":
                 _require(
                     root_work is not None
@@ -688,7 +870,7 @@ class _Reducer:
                 parent = self.work[payload.parent]
                 _require(
                     parent.selected is not None
-                    and address in parent.selected.dependencies,
+                    and address in self.selected_positions(payload.parent),
                     "unselected_work",
                 )
                 _require(
@@ -697,7 +879,7 @@ class _Reducer:
                 )
                 if isinstance(self.node(payload.parent), p.Sequence):
                     assert parent.selected is not None
-                    position = parent.selected.dependencies.index(address)
+                    position = self.selected_positions(payload.parent)[address]
                     _require(
                         all(
                             dep in self.work and self.work[dep].completed is not None
@@ -721,18 +903,31 @@ class _Reducer:
         node = self.node(address)
         if isinstance(payload, e.InputBound):
             self.check_input(address, payload.consumed)
-            inputs = tuple(
-                item for item in work.inputs if item.name != payload.consumed.name
-            ) + (payload.consumed,)
-            self.work[address] = replace(work, inputs=inputs)
-            if payload.consumed.producer is not None:
-                assert payload.consumed.producer_revision is not None
-                ref = e.WorkRevision(
-                    payload.consumed.producer, payload.consumed.producer_revision
+            bindings = self.bound_inputs(address)
+            if payload.consumed.name in bindings:
+                inputs = tuple(
+                    item for item in work.inputs if item.name != payload.consumed.name
+                ) + (payload.consumed,)
+                self.set_inputs(address, inputs)
+            else:
+                self.work[address] = replace(
+                    work, inputs=work.inputs + (payload.consumed,)
                 )
-                self.consumers[ref] = self.consumers.get(ref, frozenset()) | {address}
+                bindings[payload.consumed.name] = payload.consumed
+                if payload.consumed.producer is not None:
+                    assert payload.consumed.producer_revision is not None
+                    ref = e.WorkRevision(
+                        payload.consumed.producer, payload.consumed.producer_revision
+                    )
+                    self.consumers[ref] = self.consumers.get(ref, frozenset()) | {
+                        address
+                    }
             return
-        _require(all(item in work.inputs for item in payload.inputs), "unbound_input")
+        bindings = self.bound_inputs(address)
+        _require(
+            all(bindings.get(item.name) == item for item in payload.inputs),
+            "unbound_input",
+        )
         if isinstance(payload, e.ControlSelected):
             _require(
                 not isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)),
@@ -785,8 +980,9 @@ class _Reducer:
                     and payload.inputs[0].value == payload.selection,
                     "selection_input",
                 )
+            self.clear_selection_indexes(address)
             self.work[address] = replace(work, selected=payload, waiting=None)
-            self.pending[address] = frozenset(
+            self.pending[address] = set(
                 child
                 for child in payload.dependencies
                 if child not in self.work or self.work[child].completed is None
@@ -843,6 +1039,342 @@ class _Reducer:
             )
             self.usage = usage
             self.complete(address, payload)
+
+    def effect_dependencies(
+        self, producer: e.WorkRevision, inputs: tuple[e.ConsumedInput, ...]
+    ) -> tuple[tuple[e.WorkRevision, ...], tuple[a.ActionKey, ...]]:
+        pending = [producer]
+        pending.extend(
+            e.WorkRevision(item.producer, item.producer_revision)
+            for item in inputs
+            if item.producer is not None and item.producer_revision is not None
+        )
+        dependencies: set[e.WorkRevision] = set()
+        decisions: set[a.ActionKey] = set()
+        while pending:
+            ref = pending.pop()
+            if ref in dependencies:
+                continue
+            dependencies.add(ref)
+            current = self.work.get(ref.address)
+            work = (
+                current
+                if current is not None and current.opened.revision == ref.revision
+                else self.history[ref]
+            )
+            if ref in self.work_actions:
+                decisions.add(self.work_actions[ref])
+            pending.extend(
+                e.WorkRevision(item.producer, item.producer_revision)
+                for item in work.inputs
+                if item.producer is not None and item.producer_revision is not None
+            )
+        return tuple(sorted(dependencies, key=repr)), tuple(sorted(decisions))
+
+    def effect_revision(
+        self,
+        address: e.WorkAddress,
+        change_id: str,
+        inputs: tuple[e.ConsumedInput, ...],
+    ) -> a.EffectRevision:
+        _require(
+            address in self.work and self.work[address].completed is not None,
+            "effect_producer",
+        )
+        node = self.node(address)
+        _require(
+            isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)), "effect_producer"
+        )
+        assert isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep))
+        changes = {item.change_id: item for item in node.metadata.changes}
+        _require(change_id in changes, "effect_declaration")
+        change = changes[change_id]
+        assert change.scope is not None and change.occurrence is not None
+        prefix = ("change", change_id)
+        expected = (prefix + ("payload",), prefix + ("occurrence",))
+        expected += tuple(prefix + ("scope", item.name) for item in change.scope)
+        expected += tuple(
+            prefix + ("precondition", item.name) for item in change.preconditions
+        )
+        values = {item.name: item.value for item in inputs}
+        _require(
+            len(values) == len(inputs) and all(name in values for name in expected),
+            "effect_inputs",
+        )
+        for item in inputs:
+            self.check_input(address, item, inputs)
+        payload = values[prefix + ("payload",)]
+        _require(_valid(payload, change.payload.schema), "effect_payload")
+        _require(records_resolve(payload, self.company(address)), "unresolved_identity")
+        _require(
+            all(records_resolve(item.value, self.company(address)) for item in inputs),
+            "unresolved_identity",
+        )
+        occurrence = values[prefix + ("occurrence",)]
+        _require(
+            isinstance(occurrence, p.TextValue) and bool(occurrence.value.strip()),
+            "effect_occurrence",
+        )
+        assert isinstance(occurrence, p.TextValue)
+        scope = a.OperationScope(
+            tuple(
+                sorted(
+                    (
+                        p.NamedValue(item.name, values[prefix + ("scope", item.name)])
+                        for item in change.scope
+                    ),
+                    key=lambda item: item.name,
+                )
+            )
+        )
+        key = a.EffectKey(
+            self.company(address).company_id,
+            address.case_id,
+            scope,
+            change.operation,
+            occurrence.value,
+        )
+        original_key = self.operation_keys.get((address, change_id))
+        _require(original_key is None or original_key == key, "effect_identity_changed")
+        previous = self.current_effects.get(key)
+        ref = a.EffectRef(key, 1 if previous is None else previous.revision + 1)
+        dependencies, decisions = self.effect_dependencies(self.ref(address), inputs)
+        return a.EffectRevision(
+            ref,
+            self.ref(address),
+            change_id,
+            inputs,
+            dependencies,
+            decisions,
+            payload,
+            self.cases[address.case_id].start.artifact,
+            node.metadata.behavior_id,
+            None,
+        )
+
+    def add_effect(self, revision: a.EffectRevision) -> None:
+        previous = self.current_effects.get(revision.ref.key)
+        if previous is not None:
+            self.effects[previous] = replace(
+                self.effects[previous], superseded_by=revision.ref
+            )
+        self.effects[revision.ref] = a.Effect(revision, a.Proposed())
+        self.current_effects[revision.ref.key] = revision.ref
+        if revision.amendment_of is None:
+            self.operation_keys[(revision.producer.address, revision.change_id)] = (
+                revision.ref.key
+            )
+            self.work_effects[(revision.producer, revision.change_id)] = revision.ref
+        for dependency in revision.dependencies:
+            self.effect_consumers[dependency] = self.effect_consumers.get(
+                dependency, frozenset()
+            ) | {revision.ref}
+
+    def check_effect_current(self, revision: a.EffectRevision) -> None:
+        _require(self.current_effects[revision.ref.key] == revision.ref, "stale_effect")
+        for ref in revision.dependencies:
+            work = self.work.get(ref.address)
+            _require(
+                work is not None
+                and work.opened.revision == ref.revision
+                and work.completed is not None,
+                "stale_effect_evidence",
+            )
+        for key in revision.decisions:
+            decision = self.actions[key]
+            _require(
+                isinstance(decision, e.RespondTask)
+                and decision.task.work in revision.dependencies,
+                "business_decision",
+            )
+
+    def effect_observer(self, command: e.EffectCommand) -> None:
+        _require(command.effect in self.effects, "unknown_effect")
+        address = self.effects[command.effect].revision.producer.address
+        if isinstance(
+            command, (e.ApproveEffect, e.RevokeEffectApproval, e.AmendEffect)
+        ):
+            self.observer(address, command.action, command.meta)
+            _require(
+                command.action.role == "effect_approver"
+                and self.member(
+                    address,
+                    command.action.actor,
+                    "effect_approver",
+                    command.action.decided_at,
+                ),
+                "effect_authority",
+            )
+        else:
+            _require(
+                command.meta.observed_at.utcoffset() is not None
+                and self.member(
+                    address,
+                    command.meta.actor,
+                    "effect_executor",
+                    command.meta.observed_at,
+                ),
+                "effect_observer",
+            )
+
+    def transition_effect(self, command: e.EffectCommand) -> None:
+        self.effect_observer(command)
+        effect = self.effects[command.effect]
+        revision, progress = effect.revision, effect.progress
+        if isinstance(
+            command, (e.ApproveEffect, e.RevokeEffectApproval, e.AmendEffect)
+        ):
+            action_identity = action_key(command.action)
+            _require(action_identity not in self.actions, "action_conflict")
+            self.actions[action_identity] = command
+        if isinstance(command, e.ApproveEffect):
+            self.check_effect_current(revision)
+            _require(
+                isinstance(progress, a.Proposed)
+                or (
+                    isinstance(progress, a.Approved)
+                    and action_key(progress.approval.action) in self.revoked_approvals
+                ),
+                "effect_review_conflict",
+            )
+            approval = a.ExactApproval(command.effect, command.action)
+            allowed = a.validate_exact_approval(
+                revision,
+                approval,
+                self.company(revision.producer.address),
+                command.action.decided_at,
+                False,
+            )
+            _require(isinstance(allowed, a.AuthorityAllowed), "effect_authority")
+            self.effects[command.effect] = replace(
+                effect, progress=a.Approved(approval)
+            )
+            return
+        if isinstance(command, e.AmendEffect):
+            self.check_effect_current(revision)
+            _require(
+                command.original in self.effects
+                and self.confirmed_effects.get(command.original.key)
+                == command.original,
+                "amendment_original",
+            )
+            _require(
+                command.original.key == revision.ref.key
+                and bool(command.occurrence.strip())
+                and command.occurrence != revision.ref.key.occurrence,
+                "amendment_identity",
+            )
+            key = replace(revision.ref.key, occurrence=command.occurrence)
+            _require(key not in self.current_effects, "amendment_conflict")
+            self.add_effect(
+                replace(
+                    revision, ref=a.EffectRef(key, 1), amendment_of=command.original
+                )
+            )
+            return
+        if isinstance(progress, a.Proposed):
+            raise ReplayError("exact_approval_required")
+        approval = (
+            progress.approval
+            if isinstance(progress, (a.Approved, a.Attempted))
+            else progress.attempt.approval
+        )
+        if isinstance(command, e.RevokeEffectApproval):
+            _require(command.approval == action_key(approval.action), "stale_approval")
+            _require(
+                action_key(approval.action) not in self.revoked_approvals,
+                "approval_revoked",
+            )
+            self.revoked_approvals = self.revoked_approvals | {
+                action_key(approval.action)
+            }
+            return
+        if isinstance(command, e.BeginEffectAttempt):
+            self.check_effect_current(revision)
+            _require(
+                isinstance(progress, a.Approved)
+                or (
+                    isinstance(progress, a.Reconciled)
+                    and isinstance(progress.conclusion, a.FencedNotApplied)
+                ),
+                "effect_attempt_state",
+            )
+            _require(
+                revision.ref.key not in self.unresolved_attempts, "unresolved_attempt"
+            )
+            _require(
+                revision.ref.key not in self.confirmed_effects, "amendment_required"
+            )
+            _require(
+                all(
+                    isinstance(item.value, p.BoolValue) and item.value.value
+                    for item in revision.inputs
+                    if len(item.name) == 4 and item.name[2] == "precondition"
+                ),
+                "effect_precondition",
+            )
+            allowed = a.validate_exact_approval(
+                revision,
+                approval,
+                self.company(revision.producer.address),
+                command.meta.observed_at,
+                action_key(approval.action) in self.revoked_approvals,
+            )
+            if isinstance(allowed, a.AuthorityRefused):
+                raise ReplayError(allowed.code)
+            attempt_key = revision.ref.key, command.attempt_id
+            _require(
+                bool(command.attempt_id.strip())
+                and attempt_key not in self.attempt_ids,
+                "attempt_identity",
+            )
+            self.attempt_ids[attempt_key] = command.effect
+            self.unresolved_attempts[revision.ref.key] = command.effect
+            self.effects[command.effect] = replace(
+                effect, progress=a.Attempted(approval, command.attempt_id)
+            )
+            return
+        _require(
+            isinstance(progress, (a.Attempted, a.Uncertain)), "effect_attempt_state"
+        )
+        assert isinstance(progress, (a.Attempted, a.Uncertain))
+        attempt = progress if isinstance(progress, a.Attempted) else progress.attempt
+        _require(command.attempt_id == attempt.attempt_id, "attempt_identity")
+        if isinstance(command, e.MarkEffectUncertain):
+            _require(bool(command.reason.strip()), "uncertain_reason")
+            self.effects[command.effect] = replace(
+                effect, progress=a.Uncertain(attempt, command.reason)
+            )
+            return
+        if isinstance(command, e.ConfirmEffect):
+            receipt = command.receipt
+            result: a.Confirmed | a.Reconciled = a.Confirmed(attempt, receipt)
+        else:
+            result = a.Reconciled(attempt, command.conclusion)
+            receipt = (
+                command.conclusion.receipt
+                if isinstance(command.conclusion, a.Applied)
+                else None
+            )
+            if isinstance(command.conclusion, a.FencedNotApplied):
+                _require(
+                    bool(command.conclusion.fence_evidence.strip()),
+                    "reconciliation_fence",
+                )
+        if receipt is not None:
+            _require(
+                bool(receipt.adapter_revision.strip())
+                and bool(receipt.external_id.strip())
+                and bool(receipt.evidence.strip()),
+                "execution_receipt",
+            )
+            self.confirmed_effects[revision.ref.key] = command.effect
+        _require(
+            self.unresolved_attempts.get(revision.ref.key) == command.effect,
+            "unresolved_attempt",
+        )
+        del self.unresolved_attempts[revision.ref.key]
+        self.effects[command.effect] = replace(effect, progress=result)
 
     def next_revision(self, address: e.WorkAddress) -> int:
         return 1 + max(
@@ -1040,14 +1572,51 @@ class _Reducer:
         if recording.value is not None:
             _Meter(e.ActivationBounds()).value(recording.value)
 
+    def set_inputs(
+        self, address: e.WorkAddress, inputs: tuple[e.ConsumedInput, ...]
+    ) -> None:
+        work = self.work[address]
+        previous: set[e.WorkRevision] = set()
+        current: set[e.WorkRevision] = set()
+        for group, refs in ((work.inputs, previous), (inputs, current)):
+            for item in group:
+                if item.producer is not None:
+                    assert item.producer_revision is not None
+                    refs.add(e.WorkRevision(item.producer, item.producer_revision))
+        for ref in previous - current:
+            consumers = self.consumers[ref] - {address}
+            if consumers:
+                self.consumers[ref] = consumers
+            else:
+                del self.consumers[ref]
+        for ref in current - previous:
+            self.consumers[ref] = self.consumers.get(ref, frozenset()) | {address}
+        self.work[address] = replace(work, inputs=inputs)
+        self.input_indexes.pop(address, None)
+
+    def require_effects(self, address: e.WorkAddress) -> None:
+        node = self.node(address)
+        if not isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)):
+            return
+        completed = self.work[address].completed
+        assert completed is not None
+        if isinstance(node, p.AiStep) and _path(
+            completed.value, ("valid",)
+        ) != p.BoolValue(True):
+            return
+        self.required_proposals.update(
+            (self.ref(address), change.change_id) for change in node.metadata.changes
+        )
+
     def complete(self, address: e.WorkAddress, payload: e.WorkSucceeded) -> None:
         work = self.work[address]
         self.work[address] = replace(
             work, completed=payload, waiting=None, task=None, request=None
         )
+        self.require_effects(address)
         parent = work.opened.parent
         if parent is not None:
-            self.pending[parent] = self.pending[parent] - {address}
+            self.pending[parent].discard(address)
 
     def continuation(
         self,
@@ -1113,6 +1682,7 @@ class _Reducer:
                 return
             task = self.tasks[command.task]
             if isinstance(command, e.RespondTask):
+                self.work_actions[task.ref.work] = key
                 self.tasks[task.ref] = replace(task, status="answered")
                 self.complete(
                     address,
@@ -1146,7 +1716,15 @@ class _Reducer:
         while queue:
             address = queue.pop()
             for consumer in self.consumers.get(self.ref(address), ()):
-                if consumer not in affected and consumer != target:
+                if consumer == target:
+                    continue
+                selection = self.work[consumer].selected
+                should_reselect = (
+                    consumer not in reselect
+                    and selection is not None
+                    and any(item.producer == address for item in selection.inputs)
+                )
+                if consumer not in affected or should_reselect:
                     affected.add(consumer)
                     queue.append(consumer)
             work = self.work[address]
@@ -1172,12 +1750,20 @@ class _Reducer:
                 affected.add(parent)
                 queue.append(parent)
         for address in sorted(affected | {target}, key=repr):
+            self.input_indexes.pop(address, None)
+            self.clear_selection_indexes(address)
             work = self.work[address]
+            self.refresh_effects.update(
+                self.effects[ref].revision.producer.address
+                for ref in self.effect_consumers.get(self.ref(address), ())
+                if self.current_effects[ref.key] == ref
+            )
             self.history[self.ref(address)] = work
             if work.task is not None:
                 task = self.tasks[work.task]
                 self.tasks[work.task] = replace(task, status="superseded")
             if address in retired:
+                self.set_inputs(address, ())
                 del self.work[address]
                 self.pending.pop(address, None)
                 continue
@@ -1190,6 +1776,7 @@ class _Reducer:
                     lang.Usage(0, 0),
                 )
                 self.work[address] = replace(work, opened=opened, completed=completed)
+                self.require_effects(address)
             else:
                 selection = None if address in reselect else work.selected
                 retained_inputs = tuple(
@@ -1197,15 +1784,16 @@ class _Reducer:
                     for item in work.inputs
                     if item.producer != target and item.producer not in affected
                 )
+                self.set_inputs(address, retained_inputs)
                 self.work[address] = Work(
                     opened, selected=selection, inputs=retained_inputs
                 )
                 if selection is not None:
-                    self.pending[address] = frozenset(selection.dependencies)
+                    self.pending[address] = set(selection.dependencies)
         for address in affected - retired:
             selected = self.work[address].selected
             if selected is not None:
-                self.pending[address] = frozenset(
+                self.pending[address] = set(
                     child
                     for child in selected.dependencies
                     if child not in self.work or self.work[child].completed is None
@@ -1259,6 +1847,29 @@ class _Reducer:
             expected = p.KeyedValue(tuple(entries))
         _require(payload.value == p.normalized_value(expected), "export_value")
 
+    def bound_inputs(
+        self, address: e.WorkAddress
+    ) -> dict[tuple[str, ...], e.ConsumedInput]:
+        if address not in self.input_indexes:
+            self.input_indexes[address] = {
+                item.name: item for item in self.work[address].inputs
+            }
+        return self.input_indexes[address]
+
+    def selected_positions(self, address: e.WorkAddress) -> dict[e.WorkAddress, int]:
+        if address not in self.selection_positions:
+            selected = self.work[address].selected
+            assert selected is not None
+            self.selection_positions[address] = {
+                child: position for position, child in enumerate(selected.dependencies)
+            }
+        return self.selection_positions[address]
+
+    def clear_selection_indexes(self, address: e.WorkAddress) -> None:
+        self.selection_positions.pop(address, None)
+        self.branch_indexes.pop(address, None)
+        self.entry_indexes.pop(address, None)
+
     def child_context(
         self, parent_address: e.WorkAddress, child: e.WorkAddress
     ) -> e.Context:
@@ -1275,12 +1886,16 @@ class _Reducer:
         elif isinstance(node, p.Each):
             assert isinstance(selected.selection, p.KeyedValue)
             key = child.scope[-1].key
-            entry = next(item for item in selected.selection.entries if item.key == key)
+            if parent_address not in self.entry_indexes:
+                self.entry_indexes[parent_address] = {
+                    item.key: item.value for item in selected.selection.entries
+                }
+            value = self.entry_indexes[parent_address][key]
             context = replace(
                 context,
                 locals=context.locals
                 + (
-                    e.LocalBinding(parent_address.node_id, "item", entry.value),
+                    e.LocalBinding(parent_address.node_id, "item", value),
                     e.LocalBinding(parent_address.node_id, "key", p.TextValue(key)),
                 ),
             )
@@ -1300,6 +1915,8 @@ class _Reducer:
     def input_context(self, address: e.WorkAddress, name: tuple[str, ...]) -> e.Context:
         work = self.work[address]
         context = work.opened.context
+        if name and name[0] == "change":
+            return _with_result(context, address)
         node = self.node(address)
         selected = work.selected
         if selected is None or isinstance(node, p.CodeStep):
@@ -1314,10 +1931,11 @@ class _Reducer:
             context = _with_result(context, selected.dependencies[0])
         elif isinstance(node, (p.Each, p.Parallel)):
             key = name[1] if name[0] == "branch" else ""
-            child = next(
-                (item for item in selected.dependencies if item.scope[-1].key == key),
-                None,
-            )
+            if address not in self.branch_indexes:
+                self.branch_indexes[address] = {
+                    item.scope[-1].key: item for item in selected.dependencies
+                }
+            child = self.branch_indexes[address].get(key)
             if child is not None:
                 context = _with_result(self.child_context(address, child), child)
         return context
@@ -1330,7 +1948,33 @@ class _Reducer:
         width = 1
         if isinstance(node, p.HumanStep) and path == ("request",):
             return node.request.value
-        if isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)):
+        if (
+            isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep))
+            and path[0] == "change"
+        ):
+            _require(len(path) >= 3, "input_path")
+            assert len(path) >= 3
+            changes = {item.change_id: item for item in node.metadata.changes}
+            _require(path[1] in changes, "input_path")
+            change = changes[path[1]]
+            if path[2] == "payload":
+                reference, width = change.payload.value, 3
+            elif path[2] == "occurrence":
+                _require(change.occurrence is not None, "input_path")
+                assert change.occurrence is not None
+                reference, width = change.occurrence, 3
+            else:
+                _require(
+                    len(path) >= 4 and path[2] in {"scope", "precondition"},
+                    "input_path",
+                )
+                assert len(path) >= 4
+                bindings = change.scope if path[2] == "scope" else change.preconditions
+                assert bindings is not None
+                values = {item.name: item.value for item in bindings}
+                _require(path[3] in values, "input_path")
+                reference, width = values[path[3]], 4
+        elif isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)):
             _require(len(path) >= 2 and path[0] == "input", "input_path")
             assert len(path) >= 2
             bindings = {item.name: item.value for item in node.metadata.inputs}
@@ -1390,7 +2034,12 @@ class _Reducer:
             reference = scope[path[-1]]
         return reference
 
-    def check_input(self, address: e.WorkAddress, consumed: e.ConsumedInput) -> None:
+    def check_input(
+        self,
+        address: e.WorkAddress,
+        consumed: e.ConsumedInput,
+        effect_inputs: tuple[e.ConsumedInput, ...] = (),
+    ) -> None:
         context = self.input_context(address, consumed.name)
         reference = consumed.reference
         _require(reference == self.reference(address, consumed.name), "input_reference")
@@ -1437,7 +2086,9 @@ class _Reducer:
                 all(rule_id in rules for rule_id in consumed.rule_ids),
                 "rule_provenance",
             )
-            bound = {item.name: item for item in self.work[address].inputs}
+            bound = {
+                item.name: item for item in (*self.work[address].inputs, *effect_inputs)
+            }
             expected_scope: list[p.NamedValue] = []
             for operand in reference.scope:
                 name = consumed.name + ("scope", operand.name)
@@ -1536,6 +2187,7 @@ class _Decider:
         context: e.Context,
         reference: p.Input,
         name: tuple[str, ...],
+        collected: list[e.ConsumedInput] | None = None,
     ) -> e.ConsumedInput:
         self.meter.charge()
         case = self.reducer.cases[address.case_id].start
@@ -1572,7 +2224,11 @@ class _Decider:
                 p.NamedValue(
                     item.name,
                     self.resolve(
-                        address, context, item.value, name + ("scope", item.name)
+                        address,
+                        context,
+                        item.value,
+                        name + ("scope", item.name),
+                        collected,
                     ).value,
                 )
                 for item in reference.scope
@@ -1605,9 +2261,63 @@ class _Decider:
             scope,
             None if producer is None else self.reducer.work[producer].opened.revision,
         )
-        if consumed not in self.reducer.work[address].inputs:
+        if collected is not None:
+            collected.append(consumed)
+        elif self.reducer.bound_inputs(address).get(consumed.name) != consumed:
             self.emit(e.InputBound(address, consumed))
         return consumed
+
+    def propose(self, address: e.WorkAddress) -> None:
+        node = self.reducer.node(address)
+        if not isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)):
+            return
+        work = self.reducer.work[address]
+        assert work.completed is not None
+        if isinstance(node, p.AiStep) and _path(
+            work.completed.value, ("valid",)
+        ) != p.BoolValue(True):
+            return
+        for change in node.metadata.changes:
+            identity = self.reducer.ref(address), change.change_id
+            if (
+                identity not in self.reducer.required_proposals
+                and address not in self.reducer.refresh_effects
+            ):
+                continue
+            assert change.scope is not None and change.occurrence is not None
+            inputs: list[e.ConsumedInput] = []
+            prefix = ("change", change.change_id)
+            context = _with_result(work.opened.context, address)
+            self.resolve(
+                address, context, change.payload.value, prefix + ("payload",), inputs
+            )
+            self.resolve(
+                address, context, change.occurrence, prefix + ("occurrence",), inputs
+            )
+            for item in change.scope:
+                self.resolve(
+                    address, context, item.value, prefix + ("scope", item.name), inputs
+                )
+            for item in change.preconditions:
+                self.resolve(
+                    address,
+                    context,
+                    item.value,
+                    prefix + ("precondition", item.name),
+                    inputs,
+                )
+            revision = self.reducer.effect_revision(
+                address, change.change_id, tuple(inputs)
+            )
+            previous = self.reducer.work_effects.get(identity)
+            if (
+                previous is not None
+                and replace(revision, ref=previous)
+                == self.reducer.effects[previous].revision
+            ):
+                continue
+            self.meter.charge(len(revision.dependencies), len(revision.dependencies))
+            self.emit(e.EffectProposed(revision))
 
     def run(
         self, address: e.WorkAddress, context: e.Context, parent: e.WorkAddress | None
@@ -1628,6 +2338,7 @@ class _Decider:
             )
         work = self.reducer.work[address]
         if work.completed is not None:
+            self.propose(address)
             return work.completed.value
         context = work.opened.context
         node = self.reducer.node(address)
@@ -1670,6 +2381,7 @@ class _Decider:
                     address, function_result.value, inputs, function_result.usage
                 )
             )
+            self.propose(address)
             return function_result.value
         if isinstance(node, (p.AiStep, p.HumanStep)):
             if work.task is not None or work.request is not None:
@@ -1872,10 +2584,25 @@ def decide(
         )
     reducer = _Reducer(state, programs)
     if isinstance(
-        command, (e.RespondTask, e.ReassignTask, e.CancelTask, e.CorrectResult)
+        command,
+        (
+            e.RespondTask,
+            e.ReassignTask,
+            e.CancelTask,
+            e.CorrectResult,
+            e.ApproveEffect,
+            e.RevokeEffectApproval,
+            e.AmendEffect,
+        ),
     ):
         try:
-            address = command_address(command)
+            if isinstance(
+                command, (e.ApproveEffect, e.RevokeEffectApproval, e.AmendEffect)
+            ):
+                reducer.effect_observer(command)
+                address = state.effects[command.effect].revision.producer.address
+            else:
+                address = command_address(command)
             _require(address.case_id in state.cases, "unknown_case")
             reducer.observer(address, command.action, command.meta)
         except ReplayError as error:
@@ -1887,6 +2614,43 @@ def decide(
                 if same_action(recorded, command)
                 else Refused("action_conflict")
             )
+    if isinstance(
+        command,
+        (
+            e.BeginEffectAttempt,
+            e.MarkEffectUncertain,
+            e.ConfirmEffect,
+            e.ReconcileEffect,
+        ),
+    ):
+        try:
+            reducer.effect_observer(command)
+        except ReplayError as error:
+            return Refused(error.code)
+        progress = state.effects[command.effect].progress
+        attempt = (
+            progress
+            if isinstance(progress, a.Attempted)
+            else (
+                progress.attempt
+                if isinstance(progress, (a.Uncertain, a.Confirmed, a.Reconciled))
+                else None
+            )
+        )
+        if attempt is not None and command.attempt_id == attempt.attempt_id:
+            if (
+                isinstance(command, e.BeginEffectAttempt)
+                or isinstance(command, e.MarkEffectUncertain)
+                and isinstance(progress, a.Uncertain)
+                and command.reason == progress.reason
+                or isinstance(command, e.ConfirmEffect)
+                and isinstance(progress, a.Confirmed)
+                and command.receipt == progress.receipt
+                or isinstance(command, e.ReconcileEffect)
+                and isinstance(progress, a.Reconciled)
+                and command.conclusion == progress.conclusion
+            ):
+                return Accepted((), state)
     if isinstance(command, e.SupplyRecording):
         recorded_ai = state.recordings.get(command.recording.request.work)
         if recorded_ai is not None:
@@ -1901,6 +2665,31 @@ def decide(
     except (ReplayError, _Failure) as error:
         return Refused(error.code)
     case_id = command_case(command)
+    if isinstance(
+        command,
+        (
+            e.ApproveEffect,
+            e.RevokeEffectApproval,
+            e.AmendEffect,
+            e.BeginEffectAttempt,
+            e.MarkEffectUncertain,
+            e.ConfirmEffect,
+            e.ReconcileEffect,
+        ),
+    ):
+        try:
+            decider.emit(e.EffectTransitioned(command))
+            case = reducer.cases[case_id]
+            decider.emit(
+                e.CaseSettled(
+                    case_id, case.status, case.failure, decider.meter.usage()
+                ),
+                terminal=True,
+            )
+            decider.emit(e.BatchCompleted(len(decider.events) + 1), terminal=True)
+        except (ReplayError, _Failure) as error:
+            return Refused(error.code)
+        return Accepted(tuple(decider.events), reducer.freeze())
     case = reducer.cases[case_id]
     root = programs.artifacts[case.start.artifact].draft.root
     failure: str | None = None
@@ -1946,8 +2735,15 @@ def decide(
                     parent, parent_work.opened.context, parent_work.opened.parent
                 )
                 parent = parent_work.opened.parent
+        for address in sorted(reducer.refresh_effects, key=repr):
+            if address in reducer.work and reducer.work[address].completed is not None:
+                decider.propose(address)
         status = "waiting" if result is None else "succeeded"
+    except ReplayError as error:
+        return Refused(error.code)
     except _Failure as error:
+        if reducer.required_proposals:
+            return Refused(error.code)
         status, failure = "failed", error.code
     decider.emit(
         e.CaseSettled(case_id, status, failure, decider.meter.usage()), terminal=True

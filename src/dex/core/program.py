@@ -249,6 +249,9 @@ class ChangeDeclaration:
     change_id: str
     operation: str
     payload: Export
+    scope: tuple[Binding, ...] | None = None
+    occurrence: Input | None = None
+    preconditions: tuple[Binding, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -895,6 +898,25 @@ class _Verifier:
                 self.fail("duplicate_identity", path, change.change_id)
             self.change_ids.add(change.change_id)
             self.export(change.payload, path + ".changes." + change.change_id)
+            if (change.scope is None) != (change.occurrence is None):
+                self.fail(
+                    "effect_identity",
+                    path,
+                    "Scope and occurrence must be declared together.",
+                )
+            if change.scope is not None and change.occurrence is not None:
+                self.names(tuple(item.name for item in change.scope), path)
+                for item in change.scope:
+                    self.schema(item.schema, path)
+                    self.input(item.value, item.schema, path)
+                self.input(change.occurrence, Scalar.TEXT, path)
+            self.names(tuple(item.name for item in change.preconditions), path)
+            for item in change.preconditions:
+                if item.schema != Scalar.BOOLEAN:
+                    self.fail(
+                        "effect_precondition", path, "A precondition must be boolean."
+                    )
+                self.input(item.value, Scalar.BOOLEAN, path)
 
     def walk(self, node: Node) -> None:
         name = node_identity(node)
