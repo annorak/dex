@@ -36,6 +36,7 @@ ALLOWED_MEMBERS: dict[str, set[str]] = {
         "EnumCheck FlagBoundary ReprEnum property member nonmember".split()
     ),
     "hashlib": {"sha256"},
+    "types": {"MappingProxyType"},
     "json": {"dumps", "loads", "JSONDecoder", "JSONEncoder", "JSONDecodeError"},
     "typing": set(
         "Any Annotated Callable ClassVar Concatenate Final Generic Literal "

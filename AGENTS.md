@@ -44,10 +44,10 @@ Run commands from the repository root with Python 3.13 or newer and uv 0.11.31.
 | `uv sync --locked --python 3.13` | Install the project and pinned development tools into `.venv`. |
 | `make check` | Run all repository checks locally or in CI. |
 | `uv run --locked dex --help` | Show the available CLI help. |
-| `uv run --locked dex eval --scenario FILE --out RUN` | Verify a program or execute a checked function scenario and save actual results separately from expected evidence. RUN must be a fresh directory. |
+| `uv run --locked dex eval --scenario FILE --out RUN` | Verify a program, execute checked functions, or run and replay a bounded graph sandbox. Save actual results separately from expected evidence. RUN must be a fresh directory. |
 
 `make check` runs Ruff, strict Pyright, import contracts, core lints, secret scanning, contract tests, and CLI help. The contract tests verify clean inputs, planted violations, and restored inputs using the real checker commands.
 
 Core lint checks `src/dex/core`. Contract tests also exercise its rules on temporary source files.
 
-CLI help and evaluator scenarios are implemented. Scenario evaluation checks structure, types and saved function tests, and executes bounded function calls. Graph execution and activation remain unavailable. Semantic refusals and expectation mismatches exit nonzero. The planned `dex bundle`, `dex demo`, `dex report`, and `dex workspace` commands are unavailable.
+CLI help and evaluator scenarios are implemented. Scenarios check structure, types and saved function tests, and execute bounded functions and graph sandboxes. Sandbox commands are `sandbox`, `signal`, and `rebuild`. Graph execution supports Sequence, Choose, Each, Parallel, and finite or event-suspended Repeat. Human and AI steps, effects, and activation remain unavailable; sandbox success does not complete program verification. Semantic refusals and expectation mismatches exit nonzero. The planned `dex bundle`, `dex demo`, `dex report`, and `dex workspace` commands are unavailable.

@@ -182,7 +182,14 @@ class LocalRef:
     path: tuple[str, ...] = ()
 
 
-type Input = Literal | ProgramInputRef | ResultRef | LocalRef
+@dataclass(frozen=True)
+class RuleInputRef:
+    target: str
+    scope: tuple["Binding", ...]
+    path: tuple[str, ...] = ()
+
+
+type Input = Literal | ProgramInputRef | ResultRef | LocalRef | RuleInputRef
 
 
 @dataclass(frozen=True)
@@ -749,7 +756,25 @@ class _Verifier:
         if isinstance(value, Literal):
             self.value(value.value, expected, path)
             return
-        if isinstance(value, ProgramInputRef):
+        if isinstance(value, RuleInputRef):
+            targets = {
+                rule.target: rule.consequence.schema for rule in self.draft.rules
+            }
+            dimensions = {
+                item.dimension: item.schema
+                for rule in self.draft.rules
+                for item in rule.scope
+            }
+            self.names(tuple(item.name for item in value.scope), path + ".scope")
+            for item in value.scope:
+                if dimensions.get(item.name) != item.schema:
+                    self.fail("rule_scope_type", path, item.name)
+                if isinstance(item.value, RuleInputRef):
+                    self.fail("rule_scope_reference", path, item.name)
+                else:
+                    self.input(item.value, item.schema, path + "." + item.name)
+            actual = targets.get(value.target)
+        elif isinstance(value, ProgramInputRef):
             actual = self.inputs.get(value.name)
         elif isinstance(value, ResultRef):
             actual = self.bindings.get((value.node, ""))

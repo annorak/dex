@@ -1,0 +1,278 @@
+{
+  "format": "dex-eval-scenario-2",
+  "scenario_id": "runtime-artifact-version",
+  "programs": [
+    {
+      "name": "program",
+      "draft": {
+        "program_id": "sample",
+        "revision": "r1",
+        "schemas": [],
+        "inputs": [
+          {
+            "name": "input",
+            "schema": {
+              "kind": "integer"
+            }
+          }
+        ],
+        "root": {
+          "kind": "sequence",
+          "node_id": "sequence",
+          "children": [
+            {
+              "kind": "code",
+              "metadata": {
+                "step_id": "first",
+                "behavior_id": "behavior-first",
+                "intent": "Use the declared result.",
+                "citations": [
+                  {
+                    "pin": {
+                      "source": "guide",
+                      "revision": "r1",
+                      "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                      "extraction": "text",
+                      "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                    },
+                    "section": "all",
+                    "locator": "paragraph",
+                    "start": 0,
+                    "end": 24,
+                    "quote": "Use the declared result."
+                  }
+                ],
+                "inputs": [
+                  {
+                    "name": "value",
+                    "schema": {
+                      "kind": "integer"
+                    },
+                    "value": {
+                      "kind": "program_input",
+                      "name": "input",
+                      "path": []
+                    }
+                  }
+                ],
+                "output": {
+                  "kind": "integer"
+                },
+                "changes": []
+              },
+              "function_id": "identity"
+            },
+            {
+              "kind": "code",
+              "metadata": {
+                "step_id": "second",
+                "behavior_id": "behavior-second",
+                "intent": "Use the declared result.",
+                "citations": [
+                  {
+                    "pin": {
+                      "source": "guide",
+                      "revision": "r1",
+                      "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+                      "extraction": "text",
+                      "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+                    },
+                    "section": "all",
+                    "locator": "paragraph",
+                    "start": 0,
+                    "end": 24,
+                    "quote": "Use the declared result."
+                  }
+                ],
+                "inputs": [
+                  {
+                    "name": "value",
+                    "schema": {
+                      "kind": "integer"
+                    },
+                    "value": {
+                      "kind": "result",
+                      "node": "first",
+                      "path": []
+                    }
+                  }
+                ],
+                "output": {
+                  "kind": "integer"
+                },
+                "changes": []
+              },
+              "function_id": "identity"
+            }
+          ],
+          "result": {
+            "schema": {
+              "kind": "integer"
+            },
+            "value": {
+              "kind": "result",
+              "node": "second",
+              "path": []
+            }
+          }
+        },
+        "functions": [
+          {
+            "function_id": "identity",
+            "inputs": [
+              {
+                "name": "value",
+                "schema": {
+                  "kind": "integer"
+                }
+              }
+            ],
+            "output": {
+              "kind": "integer"
+            },
+            "body": {
+              "language_version": "restricted-1",
+              "source": "return value"
+            },
+            "tests": [
+              {
+                "test_id": "saved",
+                "inputs": [
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "integer",
+                      "value": 1
+                    }
+                  }
+                ],
+                "expected": {
+                  "kind": "integer",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rules": [],
+        "scenarios": []
+      },
+      "sources": {
+        "entries": [
+          {
+            "pin": {
+              "source": "guide",
+              "revision": "r1",
+              "original_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64",
+              "extraction": "text",
+              "extraction_sha256": "sha256:58ece00b09201233d96e1ed9bf325d64401d01261d413a5ce8b3f3d571e2fb64"
+            },
+            "text": "Use the declared result.",
+            "sections": [
+              {
+                "name": "all",
+                "locator": "paragraph",
+                "start": 0,
+                "end": 24
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "kind": "sandbox",
+      "program": "program",
+      "meta": {
+        "command_id": "command-0",
+        "actor": "tester",
+        "occurred_at": "2026-01-01T00:00:00+00:00",
+        "observed_at": "2026-01-01T00:00:00+00:00",
+        "expected_revision": 0
+      },
+      "case_id": "case",
+      "facts": [
+        {
+          "name": "input",
+          "value": {
+            "kind": "integer",
+            "value": 42
+          }
+        }
+      ],
+      "business_date": "2026-01-01",
+      "bounds": {
+        "work": 5000000,
+        "allocations": 16000000,
+        "instances": 20000,
+        "events": 100000
+      }
+    },
+    {
+      "kind": "rebuild",
+      "program": "program",
+      "case_id": "case",
+      "corruption": "none"
+    },
+    {
+      "kind": "rebuild",
+      "program": "program",
+      "case_id": "case",
+      "corruption": "event_version"
+    },
+    {
+      "kind": "rebuild",
+      "program": "program",
+      "case_id": "case",
+      "corruption": "missing_artifact"
+    }
+  ],
+  "expected": [
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "integer",
+        "value": 42
+      },
+      "failure": null,
+      "work_nodes": [
+        "sequence",
+        "first",
+        "second"
+      ]
+    },
+    {
+      "status": "runtime_succeeded",
+      "value": {
+        "kind": "integer",
+        "value": 42
+      },
+      "failure": null,
+      "work_nodes": [
+        "sequence",
+        "first",
+        "second"
+      ]
+    },
+    {
+      "status": "replay_failed",
+      "value": {
+        "kind": "integer",
+        "value": 42
+      },
+      "failure": "event_version",
+      "work_nodes": null
+    },
+    {
+      "status": "replay_failed",
+      "value": {
+        "kind": "integer",
+        "value": 42
+      },
+      "failure": "missing_artifact",
+      "work_nodes": null
+    }
+  ]
+}
