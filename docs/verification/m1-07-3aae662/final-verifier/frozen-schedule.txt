@@ -1,0 +1,184 @@
+{
+  "argv": [
+    "python3",
+    "-c",
+    "from pathlib import Path; import hashlib,subprocess; root=Path(\"/private/tmp/dex-m1-07-audit/final-verifier\"); print((root/\"schedule.json\").read_text()); print(\"SCHEDULE_SHA256\",hashlib.sha256((root/\"schedule.json\").read_bytes()).hexdigest()); print(\"TIMER_SHA256\",hashlib.sha256((root/\"measure.py\").read_bytes()).hexdigest()); subprocess.run([\"uptime\"]); subprocess.run([\"sysctl\",\"-n\",\"hw.logicalcpu\"]); print((root/\"recovery-size-1000.json\").read_text()); print((root/\"recovery-complete.json\").read_text())"
+  ],
+  "command": "python3 -c 'from pathlib import Path; import hashlib,subprocess; root=Path(\"/private/tmp/dex-m1-07-audit/final-verifier\"); print((root/\"schedule.json\").read_text()); print(\"SCHEDULE_SHA256\",hashlib.sha256((root/\"schedule.json\").read_bytes()).hexdigest()); print(\"TIMER_SHA256\",hashlib.sha256((root/\"measure.py\").read_bytes()).hexdigest()); subprocess.run([\"uptime\"]); subprocess.run([\"sysctl\",\"-n\",\"hw.logicalcpu\"]); print((root/\"recovery-size-1000.json\").read_text()); print((root/\"recovery-complete.json\").read_text())'",
+  "cwd": "/private/tmp/dex-m1-07-final-head",
+  "revision": "3aae66219121f96f604d213a90847881a457a9dd",
+  "working_tree_status": "",
+  "metadata_error": null,
+  "started_utc": "2026-10-22T17:30:28.810982+00:00"
+}
+
+STDOUT
+10:30  23 users, load averages: 4.57 4.40 4.53
+{
+  "method": "historical shared timer v2 unchanged; monotonic wall, adjacent UTC drift <=0.050 seconds, single child getrusage Darwin bytes",
+  "claim": "final head satisfies absolute recovery gates and supported median startup/workload wall and RSS regression <=20 percent",
+  "gates": {
+    "recovery_workload_seconds": 10,
+    "full_cli_seconds": 20,
+    "rss_bytes": 536870912,
+    "median_regression": 1.2
+  },
+  "order": [
+    [
+      "cold-trunk-help",
+      "trunk",
+      "help"
+    ],
+    [
+      "unsupported-trunk-workspace",
+      "trunk",
+      "workspace"
+    ],
+    [
+      "unsupported-trunk-recovery",
+      "trunk",
+      "recovery"
+    ],
+    [
+      "help-1-trunk",
+      "trunk",
+      "help"
+    ],
+    [
+      "help-1-head",
+      "head",
+      "help"
+    ],
+    [
+      "help-2-head",
+      "head",
+      "help"
+    ],
+    [
+      "help-2-trunk",
+      "trunk",
+      "help"
+    ],
+    [
+      "help-3-trunk",
+      "trunk",
+      "help"
+    ],
+    [
+      "help-3-head",
+      "head",
+      "help"
+    ],
+    [
+      "help-4-head",
+      "head",
+      "help"
+    ],
+    [
+      "help-4-trunk",
+      "trunk",
+      "help"
+    ],
+    [
+      "help-5-trunk",
+      "trunk",
+      "help"
+    ],
+    [
+      "help-5-head",
+      "head",
+      "help"
+    ],
+    [
+      "workload-1-parent",
+      "parent",
+      "recovery"
+    ],
+    [
+      "workload-1-head",
+      "head",
+      "recovery"
+    ],
+    [
+      "workload-2-head",
+      "head",
+      "recovery"
+    ],
+    [
+      "workload-2-parent",
+      "parent",
+      "recovery"
+    ],
+    [
+      "workload-3-parent",
+      "parent",
+      "recovery"
+    ],
+    [
+      "workload-3-head",
+      "head",
+      "recovery"
+    ],
+    [
+      "workload-4-head",
+      "head",
+      "recovery"
+    ],
+    [
+      "workload-4-parent",
+      "parent",
+      "recovery"
+    ],
+    [
+      "workload-5-parent",
+      "parent",
+      "recovery"
+    ],
+    [
+      "workload-5-head",
+      "head",
+      "recovery"
+    ]
+  ],
+  "input_hash": "21e810095b0f1306cdf7cf76429fc221a9ee6f9134169ff2c9ded20d2d0127af",
+  "inner": "durable_append + reopen_rebuild + recovery, unchanged source timers",
+  "validation": "all actual/expected matches; SQL event rows/remote unique operations; separate reopened state check outside timing",
+  "environment": "same Python 3.13.11 uv 0.11.31; clear PYTHONPATH VIRTUAL_ENV; offline locked dependency environments; no network models",
+  "first_failure": "formal/12-performance/report.md ISSUES retained; centisecond 0.06 -> 0.08 +33.3 percent, wrapper 19.03 percent, original cold RSS absent",
+  "exclusions": "only separately declared instrumentation; no discarded valid slow runs or repeats until green"
+}
+
+SCHEDULE_SHA256 c8b46ac694fe5ea5c6149586bef6c124cd5dd4381e05e905044112dbf4b7352e
+TIMER_SHA256 64349ee4f8d8959cb8a9cede296988d00e78941e38744a3b4805e99649f6b4b9
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-size-1000",
+  "expected": {
+    "remote_writes": 1000,
+    "confirmed_effects": 1000,
+    "unresolved_before_reopen": 1000,
+    "unresolved_attempts": 0,
+    "replay_equal": true
+  }
+}
+
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-complete",
+  "expected": {
+    "verified_registered": true,
+    "program_approved": true,
+    "session_actor": "operator",
+    "stale_rejected": true,
+    "confirmed_effects": 1,
+    "remote_writes": 1,
+    "replay_equal": true
+  }
+}
+
+
+STDERR
+sysctl: sysctl fmt -1 1024 1: Operation not permitted
+
+RESULT
+{"exit_status": 0, "wall_seconds": 0.06402762499055825, "finished_utc": "2026-10-22T17:30:28.922791+00:00"}

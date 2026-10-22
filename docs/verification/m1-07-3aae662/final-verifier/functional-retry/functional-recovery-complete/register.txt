@@ -1,0 +1,8 @@
+{"argv": ["/private/tmp/dex-m1-07-final-head/.venv/bin/dex", "workspace", "command", "/private/tmp/dex-m1-07-audit/final-verifier/functional-retry/functional-recovery-complete/catalog.db", "--command", "/private/tmp/dex-m1-07-audit/final-verifier/functional-retry/functional-recovery-complete/register.json"], "revision": "3aae66219121f96f604d213a90847881a457a9dd", "session": "/private/tmp/dex-m1-07-audit/final-verifier/functional-retry/functional-recovery-complete/session.json"}
+STDOUT
+{"actor": "operator", "failure": null, "format": "dex-workspace-result-1", "registrations": [{"approved": false, "artifact": {"format": "dex-typed-1", "value": {"$type": "ArtifactPin", "digest": "1659891cdf122c3fd8b8bda77de329561124b0c7af87fa0fb9074a2e2a8375c3", "program_id": "recovery", "revision": "pure-1"}}, "missing_checks": []}], "revision": 1, "status": "accepted"}
+
+STDERR
+
+RESULT
+{"exit_status": 0}

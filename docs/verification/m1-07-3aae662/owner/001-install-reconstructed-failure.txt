@@ -1,0 +1,17 @@
+RECONSTRUCTED FAILURE — not an original command transcript
+Original receipt: owner/001-install.txt (preserved empty)
+Working directory: /private/tmp/dex-m1-07-20261022
+Revision: 80e60aac6ab78017020e5fce4c625c5fcb169ac1
+
+Reconstructed intended invocation:
+python3 /private/tmp/dex-m1-07-audit/record.py --cwd /private/tmp/dex-m1-07-20261022 --out /private/tmp/dex-m1-07-audit/owner/001-install.txt -- uv sync --locked --python 3.13
+
+Available conversation context records that the receipt helper failed because
+datetime.UTC was unavailable in the default Python interpreter. It failed
+before running the uv child command and left the receipt empty.
+Exact original traceback, numeric exit status, timestamp, and interpreter
+version: unavailable in the retained context; not reconstructed as facts.
+
+The intended child arguments are corroborated by the successful replacement
+receipt 002-install.txt. That replacement used Python 3.13 for the helper.
+This note records the failed setup attempt; it is not a verification pass.

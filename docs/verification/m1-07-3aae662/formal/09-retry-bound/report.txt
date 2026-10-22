@@ -1,0 +1,45 @@
+PASS — M1-07 lane09 persisted retry bound
+Head: e7eabc89ac47e6abb870e4e4f4306dc891b53217
+Parent/base/frozen trunk: 80e60aac6ab78017020e5fce4c625c5fcb169ac1
+Stable patch ID: 98794acdc178e34957554428ff611fd4825b926d
+Detached worktree: /private/tmp/dex-m1-07-lane09
+Evidence directory: /private/tmp/dex-m1-07-audit/formal/09-retry-bound
+Python 3.13.11; uv 0.11.31; detect-secrets 1.5.0.
+No product edits, commits, pushes, fuzzing, or performance campaign.
+Final git status --porcelain is empty. All execution evidence is at the head above; no baseline run was requested for lane09.
+
+Input SHA256:
+tests/scenarios/recovery-retry-bound.json 1ab4539ba838c0cc0dc93fedceab98fed97a905d45d19f5f53766c60924fa14d
+src/dex/eval/recovery.py 0cc48810656fb16256a8ab4366687aaa1a4a80a0fbe4ec9b75a0d15dc3c5c774
+src/dex/eval/recovery_fixture.py c8c38f2671fe525f91a7eb897073235f227872c3297aae5b3935ef44cd046786
+src/dex/workspace.py 1de193f10887a0a5da851f78bc592e50ff025011749e1e0655b3e2830ac1ac88
+uv.lock 80663649dc0d95981af2122c4e86ec3b795313875263ea8bdc00dbb39d077950
+
+Principal command, exact argv in principal09-retry.txt:
+env UV_OFFLINE=1 UV_CACHE_DIR=/private/tmp/dex-m1-07-audit/formal/09-retry-bound/uv-cache uv run dex eval --scenario tests/scenarios/recovery-retry-bound.json --out /private/tmp/dex-m1-07-audit/formal/09-retry-bound/run01
+Exit 0. actual.json and expected.json inspected directly. All four matches true.
+Actual: reservations 3; retry_failure retry_exhausted; remote_writes 0; replay_equal true; unresolved_attempts 0; confirmed_effects 0; revision 39.
+Source inspection establishes that expected values do not drive attempts. The evaluator selects reject mode and invokes MAX_DISPATCHES+1 dispatches. It reopens afterward but does not dispatch after restart itself.
+
+Independent predicates and observations:
+13-independent-probe.txt reopens the CLI-produced workspace in a separate Python process. Five further dispatches each return Refused("retry_exhausted"). Adapter execute and reconcile raise on any contact; neither is called. State equality, exact event-row equality, and workspace database byte equality all hold.
+The CLI remote database has exactly three distinct fenced attempt rows under the same operation ID eaf1a76a0fb63761dcbdb3f50cef4b339a75ddf934e11923a9becfd4fe884d90. Durable reservations and attempts are exactly three.
+18-transition-order.txt verifies begin/reserve/fenced-reconcile transition triples at revisions 14/17/19, 23/26/28, and 32/35/37. No fourth intent exists.
+A separate fresh run02-probe fixture starts a delayed attempt, closes and reopens the workspace, and dispatches with execute guarded against contact. It reconciles the existing pending attempt with one reservation. After explicit remote fencing, dispatch reconciles without adding a reservation. Only a subsequent dispatch begins attempt two under the same operation ID. Durable fence revision 23 precedes new begin revision 27.
+15-focused-tests.txt: three focused tests passed, covering exhaustion across restart, old delayed commit fencing, and deterministic concurrent admission/reconciliation. No sleeps.
+Final workspace hashes and source hashes are in 18-transition-order.txt.
+
+Failures and interruptions, preserved:
+02-worktree.txt exit 128: sandbox denied Git worktree metadata creation. 05-worktree-escalated.txt succeeded.
+03-worktree-escalated was interrupted awaiting approval. No receipt or worktree was created, confirmed in 04-interrupted-state.txt; no partial action inferred.
+08-sync.txt exit 2: sandbox denied uv cache access. 09-sync-escalated.txt succeeded with frozen all-groups sync.
+10-recovery-source.txt exit 1: read command included nonexistent src/dex/workspace/recovery.py. Correct actual implementation read in 11-source.txt.
+14-event-order.txt exit 1: verifier incorrectly considered only WorkspaceTransitioned payloads.
+17-corrected-event-order.txt exit 1: verifier counted BatchStarted copies of commands too. 18-transition-order.txt correctly selects actual EffectTransitioned and WorkspaceTransitioned payloads and passes. These are verifier query failures, not product failures.
+The initial brief cat was outside the receipt helper; 01-brief-skill.txt repeats and preserves the full brief and required skills. Subsequent commands have unique receipts.
+
+Receipt map:
+01 brief/skills; 02 failed worktree; 04 interrupted state; 05 worktree success; 06 repository instructions and docs; 07 source locations; 08 failed sync; 09 sync success; 10 source read with wrong path; 11 actual workspace/adapter implementation; 12 environment/SHA/base/patch/input pins; principal09-retry live CLI; 13 independent process/SQLite probe; 14 failed query; 15 focused tests; 16 relevant contracts; 17 failed query; 18 passing transition order and clean worktree. Exact argv, cwd, revision, stdout/stderr, and exits are stored in each transcript.
+
+Limits:
+This verifies the evaluator-owned deterministic adapter protocol and local durable workspace behavior. Normal activation remains unavailable. It proves no production adapter, authentication, standing-authority dispatch, or live model integration. The selected evaluator path contains no model call and ran with uv offline; no model-network verification is claimed. Performance and broader PR gates belong to other lanes. Preserved M1-06 performance failure is not changed by this lane. No STACK-READY declaration.

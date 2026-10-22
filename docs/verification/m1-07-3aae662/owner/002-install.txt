@@ -1,0 +1,54 @@
+{
+  "argv": [
+    "uv",
+    "sync",
+    "--locked",
+    "--python",
+    "3.13"
+  ],
+  "command": "uv sync --locked --python 3.13",
+  "cwd": "/private/tmp/dex-m1-07-20261022",
+  "revision": "80e60aac6ab78017020e5fce4c625c5fcb169ac1",
+  "started_utc": "2026-10-22T16:11:15.488129+00:00"
+}
+
+STDOUT
+
+STDERR
+Using CPython 3.13.11 interpreter at: /opt/homebrew/opt/python@3.13/bin/python3.13
+Creating virtual environment at: .venv
+Resolved 28 packages in 8ms
+   Building dex @ file:///private/tmp/dex-m1-07-20261022
+      Built dex @ file:///private/tmp/dex-m1-07-20261022
+Prepared 2 packages in 597ms
+Installed 27 packages in 322ms
+ + certifi==2026.10.19
+ + charset-normalizer==3.5.2
+ + click==8.5.0
+ + detect-secrets==1.5.0
+ + dex==0.1.0 (from file:///private/tmp/dex-m1-07-20261022)
+ + grimp==3.17
+ + hypothesis==6.170.5
+ + idna==3.20
+ + import-linter==2.15
+ + iniconfig==2.3.1
+ + markdown-it-py==4.2.0
+ + mdurl==0.1.2
+ + nodeenv==1.11.0
+ + nodejs-wheel-binaries==24.19.0
+ + orjson==3.11.7
+ + packaging==26.3
+ + pluggy==1.7.0
+ + pygments==2.21.0
+ + pyright==1.1.414
+ + pytest==9.1.1
+ + pyyaml==6.0.3
+ + requests==2.34.2
+ + rich==15.0.0
+ + ruff==0.17.1
+ + sortedcontainers==2.4.0
+ + typing-extensions==4.16.0
+ + urllib3==2.8.0
+
+RESULT
+{"exit_status": 0, "wall_seconds": 1.8278826669848058, "finished_utc": "2026-10-22T16:11:17.316363+00:00"}

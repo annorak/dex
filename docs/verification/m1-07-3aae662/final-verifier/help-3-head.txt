@@ -1,0 +1,44 @@
+{
+  "argv": [
+    "/Users/varunvis/.pyenv/versions/3.11.6/bin/python3",
+    "/private/tmp/dex-m1-07-audit/final-verifier/measure.py",
+    "--",
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "-u",
+    "VIRTUAL_ENV",
+    "UV_OFFLINE=1",
+    "uv",
+    "run",
+    "--locked",
+    "dex",
+    "--help"
+  ],
+  "command": "/Users/varunvis/.pyenv/versions/3.11.6/bin/python3 /private/tmp/dex-m1-07-audit/final-verifier/measure.py -- env -u PYTHONPATH -u VIRTUAL_ENV UV_OFFLINE=1 uv run --locked dex --help",
+  "cwd": "/private/tmp/dex-m1-07-final-head",
+  "revision": "3aae66219121f96f604d213a90847881a457a9dd",
+  "working_tree_status": "",
+  "metadata_error": null,
+  "started_utc": "2026-10-22T17:30:36.829856+00:00"
+}
+
+STDOUT
+usage: dex [-h] {eval,workspace} ...
+
+dex engine command-line interface.
+
+positional arguments:
+  {eval,workspace}
+    eval            Verify a versioned evaluator scenario without activating
+                    it.
+    workspace       Persist typed local workspace commands.
+
+options:
+  -h, --help        show this help message and exit
+
+STDERR
+MEASUREMENT {"clock_drift_limit_seconds": 0.05, "clock_valid": true, "command": ["env", "-u", "PYTHONPATH", "-u", "VIRTUAL_ENV", "UV_OFFLINE=1", "uv", "run", "--locked", "dex", "--help"], "exit_status": 0, "max_rss_bytes": 30539776, "measurement_exit_status": 0, "platform": "darwin", "rss_source": "getrusage(RUSAGE_CHILDREN), one launched command", "system_seconds": 0.023143, "timer_version": 2, "user_seconds": 0.032829, "utc_elapsed_seconds": 0.076666, "utc_finished_ns": 1792690236985726000, "utc_minus_monotonic_seconds": 4.2910000000034865e-06, "utc_started_ns": 1792690236909060000, "wall_seconds": 0.076661709}
+
+RESULT
+{"exit_status": 0, "wall_seconds": 0.11685529199894518, "finished_utc": "2026-10-22T17:30:36.990519+00:00"}

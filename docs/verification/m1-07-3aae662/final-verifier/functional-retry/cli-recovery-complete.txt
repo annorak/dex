@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "-u",
+    "VIRTUAL_ENV",
+    "UV_OFFLINE=1",
+    "uv",
+    "run",
+    "--locked",
+    "dex",
+    "eval",
+    "--scenario",
+    "/private/tmp/dex-m1-07-final-head/tests/scenarios/recovery-complete.json",
+    "--out",
+    "/private/tmp/dex-m1-07-audit/final-verifier/functional-retry/functional-recovery-complete"
+  ],
+  "command": "env -u PYTHONPATH -u VIRTUAL_ENV UV_OFFLINE=1 uv run --locked dex eval --scenario /private/tmp/dex-m1-07-final-head/tests/scenarios/recovery-complete.json --out /private/tmp/dex-m1-07-audit/final-verifier/functional-retry/functional-recovery-complete",
+  "cwd": "/private/tmp/dex-m1-07-final-head",
+  "revision": "3aae66219121f96f604d213a90847881a457a9dd",
+  "working_tree_status": "",
+  "metadata_error": null,
+  "started_utc": "2026-10-22T17:29:55.294878+00:00"
+}
+
+STDOUT
+{"confirmed_effects": 1, "mode": "isolated_adapter_fixture", "program_approved": true, "remote_writes": 1, "replay_equal": true, "revision": 21, "scenario_id": "recovery-complete", "session_actor": "operator", "stale_rejected": true, "state_sha256": "0ff275185f15ce049a22d20c155bdd567760da57230b2703b38b746f5409c65a", "timing_seconds": {"durable_append": 0.007618915988132358, "recovery": 0.000456416979432106, "recovery_workload": 0.0112499579845462, "reopen_rebuild": 0.003174625016981736}, "unresolved_attempts": 0, "unresolved_before_reopen": 0, "verified_registered": true, "writes_before_reopen": 1}
+
+STDERR
+
+RESULT
+{"exit_status": 0, "wall_seconds": 0.6612361669831444, "finished_utc": "2026-10-22T17:29:56.006064+00:00"}

@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "-u",
+    "VIRTUAL_ENV",
+    "UV_OFFLINE=1",
+    "uv",
+    "run",
+    "--locked",
+    "dex",
+    "eval",
+    "--scenario",
+    "/private/tmp/dex-m1-07-final-head/tests/scenarios/recovery-invalid-import.json",
+    "--out",
+    "/private/tmp/dex-m1-07-audit/final-verifier/functional-retry/functional-recovery-invalid-import"
+  ],
+  "command": "env -u PYTHONPATH -u VIRTUAL_ENV UV_OFFLINE=1 uv run --locked dex eval --scenario /private/tmp/dex-m1-07-final-head/tests/scenarios/recovery-invalid-import.json --out /private/tmp/dex-m1-07-audit/final-verifier/functional-retry/functional-recovery-invalid-import",
+  "cwd": "/private/tmp/dex-m1-07-final-head",
+  "revision": "3aae66219121f96f604d213a90847881a457a9dd",
+  "working_tree_status": "",
+  "metadata_error": null,
+  "started_utc": "2026-10-22T17:29:56.655028+00:00"
+}
+
+STDOUT
+{"confirmed_effects": 0, "corrupt_bytes_unchanged": true, "invalid_rejected": true, "mode": "isolated_adapter_fixture", "remote_writes": 0, "replay_equal": true, "revision": 12, "scenario_id": "recovery-invalid-import", "state_sha256": "7263026161ae913eac410aaa78e86b162450ecf67011c40c4ee503ae3d58312f", "stored_corruptions_rejected": ["artifact_corrupt", "event_version", "workspace_version"], "timing_seconds": {"durable_append": 0.4826326659822371, "recovery": 0.0006920000014360994, "recovery_workload": 0.4868666249967646, "reopen_rebuild": 0.0035419590130914003}, "unknown_version_rejected": true, "unresolved_attempts": 0, "workspace_unchanged": true}
+
+STDERR
+
+RESULT
+{"exit_status": 0, "wall_seconds": 0.6707232499902602, "finished_utc": "2026-10-22T17:29:57.373395+00:00"}

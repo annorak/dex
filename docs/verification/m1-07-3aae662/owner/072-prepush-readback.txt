@@ -1,0 +1,24 @@
+{
+  "argv": [
+    ".venv/bin/python",
+    "-c",
+    "import json,subprocess; from pathlib import Path; saved=json.loads(Path(\"/private/tmp/dex-m1-07-audit/owner/070-prepush-inspect.json\").read_text())[\"record\"][\"revision\"]; cancelled=json.loads(Path(\"/private/tmp/dex-m1-07-audit/owner/071-prepush-cancel.txt\").read_text().split(\"\\nSTDOUT\\n\")[1].split(\"\\nSTDERR\\n\")[0]); assert cancelled[\"kind\"]==\"cancelled\" and cancelled[\"record\"][\"revision\"]==saved; query=\"query { repository(owner:\\\"annorak\\\",name:\\\"dex\\\") { pullRequest(number:6) { headRefOid baseRefName baseRefOid state autoMergeRequest { enabledAt } mergeQueueEntry { id } } } }\"; raw=subprocess.check_output([\"gh\",\"api\",\"graphql\",\"-f\",\"query=\"+query],text=True); print(raw); pr=json.loads(raw)[\"data\"][\"repository\"][\"pullRequest\"]; remote=subprocess.check_output([\"git\",\"ls-remote\",\"origin\",\"refs/heads/feat/m1-07-persistence-recovery\"],text=True); print(remote); assert pr[\"state\"]==\"OPEN\" and pr[\"autoMergeRequest\"] is None and pr[\"mergeQueueEntry\"] is None; assert all(pr[key]==saved[key] for key in [\"headRefOid\",\"baseRefName\",\"baseRefOid\"]); assert remote.split()[0]==saved[\"headRefOid\"]; assert subprocess.check_output([\"git\",\"rev-parse\",\"HEAD\"],text=True).strip()==\"3aae66219121f96f604d213a90847881a457a9dd\"; print(\"SAME_LANDING_REVISION_AND_REMOTE_HEAD_NO_PENDING_MERGE\")"
+  ],
+  "command": ".venv/bin/python -c 'import json,subprocess; from pathlib import Path; saved=json.loads(Path(\"/private/tmp/dex-m1-07-audit/owner/070-prepush-inspect.json\").read_text())[\"record\"][\"revision\"]; cancelled=json.loads(Path(\"/private/tmp/dex-m1-07-audit/owner/071-prepush-cancel.txt\").read_text().split(\"\\nSTDOUT\\n\")[1].split(\"\\nSTDERR\\n\")[0]); assert cancelled[\"kind\"]==\"cancelled\" and cancelled[\"record\"][\"revision\"]==saved; query=\"query { repository(owner:\\\"annorak\\\",name:\\\"dex\\\") { pullRequest(number:6) { headRefOid baseRefName baseRefOid state autoMergeRequest { enabledAt } mergeQueueEntry { id } } } }\"; raw=subprocess.check_output([\"gh\",\"api\",\"graphql\",\"-f\",\"query=\"+query],text=True); print(raw); pr=json.loads(raw)[\"data\"][\"repository\"][\"pullRequest\"]; remote=subprocess.check_output([\"git\",\"ls-remote\",\"origin\",\"refs/heads/feat/m1-07-persistence-recovery\"],text=True); print(remote); assert pr[\"state\"]==\"OPEN\" and pr[\"autoMergeRequest\"] is None and pr[\"mergeQueueEntry\"] is None; assert all(pr[key]==saved[key] for key in [\"headRefOid\",\"baseRefName\",\"baseRefOid\"]); assert remote.split()[0]==saved[\"headRefOid\"]; assert subprocess.check_output([\"git\",\"rev-parse\",\"HEAD\"],text=True).strip()==\"3aae66219121f96f604d213a90847881a457a9dd\"; print(\"SAME_LANDING_REVISION_AND_REMOTE_HEAD_NO_PENDING_MERGE\")'",
+  "cwd": "/private/tmp/dex-m1-07-20261022",
+  "revision": "3aae66219121f96f604d213a90847881a457a9dd",
+  "working_tree_status": "",
+  "metadata_error": null,
+  "started_utc": "2026-10-22T17:28:18.990071+00:00"
+}
+
+STDOUT
+{"data":{"repository":{"pullRequest":{"headRefOid":"e7eabc89ac47e6abb870e4e4f4306dc891b53217","baseRefName":"master","baseRefOid":"80e60aac6ab78017020e5fce4c625c5fcb169ac1","state":"OPEN","autoMergeRequest":null,"mergeQueueEntry":null}}}}
+e7eabc89ac47e6abb870e4e4f4306dc891b53217	refs/heads/feat/m1-07-persistence-recovery
+
+SAME_LANDING_REVISION_AND_REMOTE_HEAD_NO_PENDING_MERGE
+
+STDERR
+
+RESULT
+{"exit_status": 0, "wall_seconds": 1.1092149580072146, "finished_utc": "2026-10-22T17:28:20.152370+00:00"}
