@@ -1,4 +1,5 @@
 import argparse
+import sys
 from pathlib import Path
 
 
@@ -16,12 +17,13 @@ def main() -> None:
     workspace = commands.add_parser(
         "workspace", help="Persist typed local workspace commands."
     )
-    workspace_commands = workspace.add_subparsers(
-        dest="workspace_command", required=True
-    )
-    apply = workspace_commands.add_parser("command")
-    apply.add_argument("workspace", type=Path)
-    apply.add_argument("--command", required=True, type=Path, dest="command_file")
+    if sys.argv[1:2] == ["workspace"]:
+        workspace_commands = workspace.add_subparsers(
+            dest="workspace_command", required=True
+        )
+        apply = workspace_commands.add_parser("command")
+        apply.add_argument("workspace", type=Path)
+        apply.add_argument("--command", required=True, type=Path, dest="command_file")
     arguments = parser.parse_args()
     if arguments.command == "eval":
         from dex.eval.scenarios import run_scenario
