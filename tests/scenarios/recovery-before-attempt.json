@@ -1,0 +1,10 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-before-attempt",
+  "expected": {
+    "remote_writes": 0,
+    "unresolved_attempts": 0,
+    "interrupted": true,
+    "replay_equal": true
+  }
+}

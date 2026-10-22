@@ -1,0 +1,10 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-retry-bound",
+  "expected": {
+    "retry_failure": "retry_exhausted",
+    "reservations": 3,
+    "remote_writes": 0,
+    "replay_equal": true
+  }
+}

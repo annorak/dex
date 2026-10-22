@@ -1,0 +1,12 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-lookup-absent-inflight",
+  "expected": {
+    "remote_writes": 0,
+    "lookup_absent": true,
+    "uncertain_after_recovery": true,
+    "reservations": 1,
+    "unresolved_attempts": 1,
+    "replay_equal": true
+  }
+}

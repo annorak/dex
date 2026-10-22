@@ -9,6 +9,8 @@ from dex.core import events as e
 from dex.core import language as lang
 from dex.core import program as p
 
+MAX_DISPATCHES = 3
+
 
 class ReplayError(ValueError):
     def __init__(self, code: str) -> None:
@@ -168,6 +170,22 @@ class WorkspaceState:
     )
     revoked_approvals: frozenset[a.ActionKey] = field(
         default_factory=lambda: frozenset[a.ActionKey]()
+    )
+
+    workspace_commands: MappingProxyType[str, e.WorkspaceCommand] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    registrations: MappingProxyType[e.ArtifactPin, e.RegisterProgram] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    program_approvals: MappingProxyType[e.ArtifactPin, e.ApproveProgram] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    reservations: MappingProxyType[tuple[a.EffectKey, str], e.ReserveDispatch] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    dispatch_counts: MappingProxyType[a.EffectKey, int] = field(
+        default_factory=lambda: MappingProxyType({})
     )
 
 
@@ -517,6 +535,11 @@ class _Reducer:
         self.confirmed_effects = _StateMap(state.confirmed_effects)
         self.attempt_ids = _StateMap(state.attempt_ids)
         self.revoked_approvals = state.revoked_approvals
+        self.workspace_commands = _StateMap(state.workspace_commands)
+        self.registrations = _StateMap(state.registrations)
+        self.program_approvals = _StateMap(state.program_approvals)
+        self.reservations = _StateMap(state.reservations)
+        self.dispatch_counts = _StateMap(state.dispatch_counts)
         self.required_proposals: set[tuple[e.WorkRevision, str]] = set()
         self.refresh_effects: set[e.WorkAddress] = set()
         self.input_indexes: dict[
@@ -562,6 +585,11 @@ class _Reducer:
             self.confirmed_effects.freeze(),
             self.attempt_ids.freeze(),
             self.revoked_approvals,
+            self.workspace_commands.freeze(),
+            self.registrations.freeze(),
+            self.program_approvals.freeze(),
+            self.reservations.freeze(),
+            self.dispatch_counts.freeze(),
         )
 
     def node(self, address: e.WorkAddress) -> p.Node:
@@ -573,6 +601,14 @@ class _Reducer:
     def apply(self, event: e.RuntimeEvent) -> None:
         _require(event.format_version == 1, "event_version")
         payload = event.payload
+        if isinstance(payload, e.WorkspaceTransitioned):
+            _require(self.command is None and event.ordinal == 0, "batch_order")
+            _require(
+                event.command_id == payload.command.meta.command_id, "command_identity"
+            )
+            self.workspace_transition(payload.command)
+            self.revision += 1
+            return
         if isinstance(payload, e.BatchStarted):
             _require(self.command is None and event.ordinal == 0, "batch_order")
             command = payload.command
@@ -611,6 +647,103 @@ class _Reducer:
                 self.transition(payload)
         self.ordinal += 1
         self.revision += 1
+
+    def workspace_transition(self, command: e.WorkspaceCommand) -> None:
+        meta = command.meta
+        _require(meta.expected_revision == self.revision, "stale_revision")
+        _require(
+            bool(meta.command_id.strip()) and bool(meta.actor.strip()),
+            "command_identity",
+        )
+        _require(
+            meta.command_id not in self.workspace_commands
+            and meta.command_id not in self.commands,
+            "duplicate_command",
+        )
+        _require(
+            meta.occurred_at.utcoffset() is not None
+            and meta.observed_at.utcoffset() is not None,
+            "command_time",
+        )
+        if isinstance(command, e.ReserveDispatch):
+            effect = self.effects.get(command.effect)
+            _require(effect is not None, "unknown_effect")
+            assert effect is not None
+            self.dispatch_permission(command.effect, command.attempt_id, meta)
+            key = command.effect.key, command.attempt_id
+            _require(key not in self.reservations, "dispatch_reserved")
+            count = self.dispatch_counts.get(command.effect.key, 0)
+            _require(count < MAX_DISPATCHES, "retry_exhausted")
+            _require(bool(command.adapter_revision.strip()), "adapter_revision")
+            self.reservations[key] = command
+            self.dispatch_counts[command.effect.key] = count + 1
+        else:
+            _require(command.artifact in self.catalog.artifacts, "missing_artifact")
+            role = (
+                "program_registrar"
+                if isinstance(command, e.RegisterProgram)
+                else "program_approver"
+            )
+            _require(
+                a.has_role(command.company, meta.actor, role, (), meta.observed_at),
+                "program_authority",
+            )
+            if isinstance(command, e.RegisterProgram):
+                _require(
+                    command.artifact not in self.registrations, "program_registered"
+                )
+                _require(
+                    len(set(command.missing_checks)) == len(command.missing_checks),
+                    "verification_checks",
+                )
+                self.registrations[command.artifact] = command
+            else:
+                registration = self.registrations.get(command.artifact)
+                _require(registration is not None, "program_unregistered")
+                assert registration is not None
+                _require(
+                    registration.company.company_id == command.company.company_id,
+                    "company_mismatch",
+                )
+                _require(not registration.missing_checks, "verification_incomplete")
+                self.program_approvals[command.artifact] = command
+        self.workspace_commands[meta.command_id] = command
+
+    def dispatch_permission(
+        self, ref: a.EffectRef, attempt_id: str, meta: e.CommandMeta
+    ) -> None:
+        self.effect_observer(e.BeginEffectAttempt(meta, ref, attempt_id))
+        effect = self.effects[ref]
+        self.check_effect_current(effect.revision)
+        progress = effect.progress
+        _require(
+            isinstance(progress, (a.Attempted, a.Uncertain)), "effect_attempt_state"
+        )
+        assert isinstance(progress, (a.Attempted, a.Uncertain))
+        attempt = progress if isinstance(progress, a.Attempted) else progress.attempt
+        _require(attempt.attempt_id == attempt_id, "attempt_identity")
+        self.effect_permission(effect.revision, attempt.approval, meta.observed_at)
+
+    def effect_permission(
+        self, revision: a.EffectRevision, approval: a.ExactApproval, at: datetime
+    ) -> None:
+        _require(
+            all(
+                isinstance(item.value, p.BoolValue) and item.value.value
+                for item in revision.inputs
+                if len(item.name) == 4 and item.name[2] == "precondition"
+            ),
+            "effect_precondition",
+        )
+        allowed = a.validate_exact_approval(
+            revision,
+            approval,
+            self.company(revision.producer.address),
+            at,
+            action_key(approval.action) in self.revoked_approvals,
+        )
+        if isinstance(allowed, a.AuthorityRefused):
+            raise ReplayError(allowed.code)
 
     def start(self, command: e.RuntimeCommand) -> None:
         meta = command.meta
@@ -1322,23 +1455,7 @@ class _Reducer:
             _require(
                 revision.ref.key not in self.confirmed_effects, "amendment_required"
             )
-            _require(
-                all(
-                    isinstance(item.value, p.BoolValue) and item.value.value
-                    for item in revision.inputs
-                    if len(item.name) == 4 and item.name[2] == "precondition"
-                ),
-                "effect_precondition",
-            )
-            allowed = a.validate_exact_approval(
-                revision,
-                approval,
-                self.company(revision.producer.address),
-                command.meta.observed_at,
-                action_key(approval.action) in self.revoked_approvals,
-            )
-            if isinstance(allowed, a.AuthorityRefused):
-                raise ReplayError(allowed.code)
+            self.effect_permission(revision, approval, command.meta.observed_at)
             attempt_key = revision.ref.key, command.attempt_id
             _require(
                 bool(command.attempt_id.strip())
@@ -2648,6 +2765,25 @@ def decide(
         return Refused("missing_artifact")
     if isinstance(command, e.ActivateProgram):
         return Refused("unsupported_activation")
+    if isinstance(command, (e.RegisterProgram, e.ApproveProgram, e.ReserveDispatch)):
+        previous_workspace = state.workspace_commands.get(command.meta.command_id)
+        if previous_workspace is not None:
+            return (
+                Accepted((), state)
+                if previous_workspace == command
+                else Refused("command_conflict")
+            )
+        reducer = _Reducer(state, programs)
+        event = e.RuntimeEvent(
+            command.meta.command_id, 0, e.WorkspaceTransitioned(command)
+        )
+        try:
+            reducer.apply(event)
+            return Accepted((event,), reducer.freeze())
+        except ReplayError as error:
+            return Refused(error.code)
+    if command.meta.command_id in state.workspace_commands:
+        return Refused("command_conflict")
     previous = state.commands.get(command.meta.command_id)
     if previous is not None:
         return (
@@ -2830,3 +2966,140 @@ def decide(
     except (ReplayError, _Failure) as error:
         return Refused(error.code)
     return Accepted(tuple(decider.events), reducer.freeze())
+
+
+def authorize_dispatch(
+    state: WorkspaceState,
+    effect: a.EffectRef,
+    attempt_id: str,
+    meta: e.CommandMeta,
+    adapter_revision: str,
+    programs: ProgramCatalog,
+    company: e.CompanyContext,
+) -> a.EffectRevision | Refused:
+    if meta.expected_revision != state.revision:
+        return Refused("stale_revision")
+    reservation = state.reservations.get((effect.key, attempt_id))
+    if (
+        reservation is None
+        or reservation.effect != effect
+        or reservation.adapter_revision != adapter_revision
+    ):
+        return Refused("dispatch_reservation")
+    reducer = _Reducer(state, programs)
+    try:
+        reducer.dispatch_permission(effect, attempt_id, meta)
+        progress = state.effects[effect].progress
+        assert isinstance(progress, (a.Attempted, a.Uncertain))
+        attempt = progress if isinstance(progress, a.Attempted) else progress.attempt
+        authority = a.validate_exact_approval(
+            state.effects[effect].revision,
+            attempt.approval,
+            company,
+            meta.observed_at,
+            action_key(attempt.approval.action) in state.revoked_approvals,
+        )
+        if isinstance(authority, a.AuthorityRefused):
+            return Refused(authority.code)
+    except ReplayError as error:
+        return Refused(error.code)
+    return state.effects[effect].revision
+
+
+def authorize_program(state: WorkspaceState, artifact: e.ArtifactPin) -> Refused | None:
+    registration = state.registrations.get(artifact)
+    if registration is None or registration.missing_checks:
+        return Refused("verification_incomplete")
+    if artifact not in state.program_approvals:
+        return Refused("program_unapproved")
+    return None
+
+
+def authorize_session(
+    state: WorkspaceState, command: e.Command, company: e.CompanyContext
+) -> Refused | None:
+    if isinstance(command, (e.RegisterProgram, e.ApproveProgram)):
+        return None
+    if isinstance(command, (e.StartSandbox, e.ActivateProgram)):
+        role, scope = "workspace_operator", ()
+    else:
+        if isinstance(command, e.ReserveDispatch):
+            case_id = command.effect.key.case_id
+            effect = state.effects.get(command.effect)
+            if effect is None:
+                return Refused("unknown_effect")
+            address = effect.revision.producer.address
+            role = "effect_executor"
+        else:
+            case_id = command_case(command)
+            if isinstance(
+                command,
+                (
+                    e.ApproveEffect,
+                    e.RevokeEffectApproval,
+                    e.AmendEffect,
+                    e.BeginEffectAttempt,
+                    e.MarkEffectUncertain,
+                    e.ConfirmEffect,
+                    e.ReconcileEffect,
+                ),
+            ):
+                effect = state.effects.get(command.effect)
+                if effect is None:
+                    return Refused("unknown_effect")
+                address = effect.revision.producer.address
+                role = (
+                    command.action.role
+                    if isinstance(
+                        command,
+                        (e.ApproveEffect, e.RevokeEffectApproval, e.AmendEffect),
+                    )
+                    else "effect_executor"
+                )
+            else:
+                address = command_address(command)
+                role = (
+                    command.action.role
+                    if isinstance(
+                        command,
+                        (e.RespondTask, e.ReassignTask, e.CancelTask, e.CorrectResult),
+                    )
+                    else "workspace_operator"
+                )
+        case = state.cases.get(case_id)
+        if (
+            case is None
+            or case.start.company is None
+            or case.start.company.company_id != company.company_id
+        ):
+            return Refused("session_company")
+        scope = address.scope
+    if not a.has_role(
+        company, command.meta.actor, role, scope, command.meta.observed_at
+    ):
+        return Refused("session_authority")
+    return None
+
+
+def authorize_workspace_company(
+    state: WorkspaceState, company_id: str
+) -> Refused | None:
+    if any(
+        item.company.company_id != company_id for item in state.registrations.values()
+    ) or any(
+        case.start.company is not None and case.start.company.company_id != company_id
+        for case in state.cases.values()
+    ):
+        return Refused("session_company")
+    return None
+
+
+def authorize_catalog_read(
+    actor: str, company: e.CompanyContext, at: datetime
+) -> Refused | None:
+    if not any(
+        a.has_role(company, actor, role, (), at)
+        for role in ("workspace_operator", "program_registrar", "program_approver")
+    ):
+        return Refused("session_authority")
+    return None

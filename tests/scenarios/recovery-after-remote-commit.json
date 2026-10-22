@@ -1,0 +1,11 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-after-remote-commit",
+  "expected": {
+    "remote_writes": 1,
+    "confirmed_effects": 1,
+    "writes_before_reopen": 1,
+    "unresolved_before_reopen": 1,
+    "replay_equal": true
+  }
+}

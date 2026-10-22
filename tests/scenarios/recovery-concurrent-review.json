@@ -1,0 +1,12 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-concurrent-review",
+  "expected": {
+    "reviews": [
+      "accepted",
+      "stale_revision"
+    ],
+    "remote_writes": 0,
+    "replay_equal": true
+  }
+}

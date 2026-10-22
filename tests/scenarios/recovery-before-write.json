@@ -1,0 +1,10 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-before-write",
+  "expected": {
+    "remote_writes": 1,
+    "confirmed_effects": 1,
+    "operation_count": 1,
+    "replay_equal": true
+  }
+}

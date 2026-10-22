@@ -1,0 +1,12 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-rebuild",
+  "expected": {
+    "pending_tasks": 1,
+    "completed_work": 2,
+    "due_time": "2026-01-02T00:00:00+00:00",
+    "replay_equal": true,
+    "fresh_process_equal": true,
+    "business_decisions": 1
+  }
+}

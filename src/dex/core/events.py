@@ -278,7 +278,38 @@ type ActionCommand = HumanCommand | EffectReview
 type RuntimeCommand = (
     StartSandbox | SignalRepeat | HumanCommand | SupplyRecording | EffectCommand
 )
-type Command = RuntimeCommand | ActivateProgram
+
+
+@dataclass(frozen=True)
+class RegisterProgram:
+    meta: CommandMeta
+    artifact: ArtifactPin
+    missing_checks: tuple[p.MissingCheck, ...]
+    company: CompanyContext
+
+
+@dataclass(frozen=True)
+class ApproveProgram:
+    meta: CommandMeta
+    artifact: ArtifactPin
+    company: CompanyContext
+
+
+@dataclass(frozen=True)
+class ReserveDispatch:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    adapter_revision: str
+
+
+type WorkspaceCommand = RegisterProgram | ApproveProgram | ReserveDispatch
+type Command = RuntimeCommand | ActivateProgram | WorkspaceCommand
+
+
+@dataclass(frozen=True)
+class WorkspaceTransitioned:
+    command: WorkspaceCommand
 
 
 @dataclass(frozen=True)
@@ -447,6 +478,7 @@ class EffectTransitioned:
 
 type RuntimePayload = (
     BatchStarted
+    | WorkspaceTransitioned
     | WorkOpened
     | ControlSelected
     | InputBound

@@ -287,3 +287,14 @@ def test_rebuild_unknown_case_preserves_outputs(tmp_path: Path) -> None:
     assert "Traceback" not in result.stderr
     assert existing.read_text() == "preserve existing output"
     assert sorted(path.name for path in out.iterdir()) == ["actual.json"]
+
+
+def test_workspace_help_and_command_errors(tmp_path: Path) -> None:
+    root = run_cli("--help", cwd=tmp_path)
+    assert root.returncode == 0 and "workspace" in root.stdout
+    workspace = run_cli("workspace", "--help", cwd=tmp_path)
+    assert workspace.returncode == 0 and "command" in workspace.stdout
+    command = run_cli("workspace", "command", "--help", cwd=tmp_path)
+    assert command.returncode == 0 and "--command" in command.stdout
+    assert run_cli("workspace", cwd=tmp_path).returncode == 2
+    assert run_cli("workspace", "unknown", cwd=tmp_path).returncode == 2
