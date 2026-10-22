@@ -1,0 +1,15 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-twentieth-restart",
+  "expected": {
+    "ordinal": 20,
+    "sampled": true,
+    "first_failure": "sample_review_required",
+    "later_failure": "sample_review_required",
+    "company_ordinal": 20,
+    "already_required_ordinal": null,
+    "human_credit": 0,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}

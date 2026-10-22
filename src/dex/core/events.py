@@ -146,6 +146,7 @@ class StartSandbox:
     business_date: date
     bounds: ActivationBounds = ActivationBounds()
     company: CompanyContext | None = None
+    review_mode: Literal["review", "historical", "unattended"] = "review"
 
 
 @dataclass(frozen=True)
@@ -303,7 +304,35 @@ class ReserveDispatch:
     adapter_revision: str
 
 
-type WorkspaceCommand = RegisterProgram | ApproveProgram | ReserveDispatch
+@dataclass(frozen=True)
+class ReviewResults:
+    meta: CommandMeta
+    case_id: str
+    results: tuple[a.ReviewedResult, ...]
+    action: HumanAction
+
+
+@dataclass(frozen=True)
+class GrantStandingAuthority:
+    meta: CommandMeta
+    grant: a.StandingGrant
+    company: CompanyContext
+
+
+@dataclass(frozen=True)
+class RevokeStandingGrant:
+    meta: CommandMeta
+    grant_id: str
+    action: HumanAction
+    company: CompanyContext
+
+
+type TrustCommand = ReviewResults | GrantStandingAuthority | RevokeStandingGrant
+
+
+type WorkspaceCommand = (
+    RegisterProgram | ApproveProgram | ReserveDispatch | TrustCommand
+)
 type Command = RuntimeCommand | ActivateProgram | WorkspaceCommand
 
 

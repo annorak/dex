@@ -1,0 +1,11 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-credit-attribution",
+  "expected": {
+    "wrong_producer": 0,
+    "correct_producer": 2,
+    "reviewed_cases": 4,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}

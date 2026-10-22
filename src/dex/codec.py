@@ -126,6 +126,9 @@ def _decode(value: Any, depth: int = 0) -> Any:
     cls = _TYPES.get(value.get("$type", ""))
     if cls is None or not is_dataclass(cls):
         raise CodecError("unknown_type")
+    if cls is e.StartSandbox and "review_mode" not in keys:
+        value = {**value, "review_mode": "review"}
+        keys = set(value)
     if keys != {"$type", *(field.name for field in fields(cls))}:
         raise CodecError("typed_fields")
     hints = _HINTS.get(cls)

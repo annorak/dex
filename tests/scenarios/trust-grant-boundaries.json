@@ -1,0 +1,16 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-grant-boundaries",
+  "expected": {
+    "limit_failure": null,
+    "failures": {
+      "above": "exact_approval_required",
+      "hold": "exact_approval_required",
+      "untrusted": "exact_approval_required",
+      "foreign": "company_mismatch"
+    },
+    "writes": 301,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}

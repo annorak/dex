@@ -448,6 +448,13 @@ def run_scenario(path: Path, out: Path) -> int:
             header = None
         if (
             isinstance(header, dict)
+            and cast(dict[str, object], header).get("format") == "dex-trust-scenario-1"
+        ):
+            from dex.eval.trust import run_trust
+
+            return run_trust(source, out)
+        if (
+            isinstance(header, dict)
             and cast(dict[str, object], header).get("format")
             == "dex-recovery-scenario-1"
         ):

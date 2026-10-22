@@ -28,6 +28,9 @@ _COMMANDS: dict[str, type[Any]] = {
         e.AmendEffect,
         e.ApproveProgram,
         e.ActivateProgram,
+        e.ReviewResults,
+        e.GrantStandingAuthority,
+        e.RevokeStandingGrant,
     )
 }
 
@@ -103,10 +106,21 @@ def run_command(path: Path, command_file: Path) -> int:
                     e.ApproveEffect,
                     e.RevokeEffectApproval,
                     e.AmendEffect,
+                    e.ReviewResults,
+                    e.RevokeStandingGrant,
                 ),
             ):
                 command = replace(
                     command, action=replace(command.action, decided_at=now)
+                )
+            if isinstance(command, e.GrantStandingAuthority):
+                command = replace(
+                    command,
+                    grant=replace(
+                        command.grant,
+                        grantor=replace(command.grant.grantor, decided_at=now),
+                        valid_from=max(now, command.grant.valid_from),
+                    ),
                 )
         elif kind == "inspect" and set(request) == common:
             command = None

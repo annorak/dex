@@ -128,8 +128,30 @@ class Workspace:
 
     def _bind(self, command: e.Command) -> e.Command:
         command = replace(command, meta=replace(command.meta, actor=self.session.actor))
-        if isinstance(command, (e.RegisterProgram, e.ApproveProgram, e.StartSandbox)):
+        if isinstance(
+            command,
+            (
+                e.RegisterProgram,
+                e.ApproveProgram,
+                e.StartSandbox,
+                e.GrantStandingAuthority,
+                e.RevokeStandingGrant,
+            ),
+        ):
             command = replace(command, company=self.session.company)
+        if isinstance(command, e.GrantStandingAuthority):
+            command = replace(
+                command,
+                grant=replace(
+                    command.grant,
+                    grantor=replace(
+                        command.grant.grantor,
+                        actor=self.session.actor,
+                        company_id=self.session.company.company_id,
+                        origin="dex",
+                    ),
+                ),
+            )
         if isinstance(
             command,
             (
@@ -140,6 +162,8 @@ class Workspace:
                 e.ApproveEffect,
                 e.RevokeEffectApproval,
                 e.AmendEffect,
+                e.ReviewResults,
+                e.RevokeStandingGrant,
             ),
         ):
             command = replace(
