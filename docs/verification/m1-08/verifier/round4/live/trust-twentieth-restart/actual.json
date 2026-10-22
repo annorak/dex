@@ -1,0 +1,1 @@
+{"after_mistake_failure": "exact_approval_required", "already_required_ordinal": null, "company_ordinal": 20, "first_failure": "sample_review_required", "human_credit": 0, "later_failure": "sample_review_required", "normal_activation_failure": "verification_incomplete", "ordinal": 20, "reopen_equal": true, "revision": 15669, "sampled": true, "sampled_mistake_count": 0}

@@ -32,7 +32,7 @@ from dex.eval.recovery_fixture import (
 )
 
 
-def _cli(
+def run_workspace_cli(
     out: Path, name: str, request: dict[str, Any], session: Path, database: Path
 ) -> tuple[int, dict[str, Any]]:
     source = out / (name + ".json")
@@ -84,7 +84,7 @@ def registration_cli(out: Path) -> dict[str, Any]:
         "id": "register",
         "expected_revision": 0,
     }
-    status, registered = _cli(
+    status, registered = run_workspace_cli(
         out,
         "register",
         {
@@ -110,9 +110,11 @@ def registration_cli(out: Path) -> dict[str, Any]:
         "kind": "apply",
         "command": json.loads(codec.dumps(approved)),
     }
-    status, approval = _cli(out, "approve", request, session, out / "catalog.db")
+    status, approval = run_workspace_cli(
+        out, "approve", request, session, out / "catalog.db"
+    )
     assert status == 0, approval
-    rejected_status, rejection = _cli(
+    rejected_status, rejection = run_workspace_cli(
         out, "stale-approval", request, session, out / "catalog.db"
     )
     assert rejected_status == 1 and rejection["failure"] == "stale_revision", rejection
@@ -371,7 +373,7 @@ def run_recovery(source: bytes, out: Path) -> int:
             connection.commit()
             connection.close()
             before_bytes = damaged.read_bytes()
-            status, failure = _cli(
+            status, failure = run_workspace_cli(
                 out,
                 "reject-" + corruption,
                 {

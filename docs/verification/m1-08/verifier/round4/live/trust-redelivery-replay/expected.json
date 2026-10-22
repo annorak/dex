@@ -1,0 +1,1 @@
+{"expected": {"after_correction": 0, "excluded_modes_credit": 0, "normal_activation_failure": "verification_incomplete", "redelivery_events": 0, "reopen_equal": true}, "matches": {"after_correction": true, "excluded_modes_credit": true, "normal_activation_failure": true, "redelivery_events": true, "reopen_equal": true}}

@@ -1,0 +1,17 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-change-repair",
+  "expected": {
+    "repair_counts": [
+      3,
+      3
+    ],
+    "changed_behavior_counts": [
+      1,
+      3
+    ],
+    "unaffected_write": 3,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}

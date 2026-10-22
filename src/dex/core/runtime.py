@@ -84,6 +84,14 @@ class ProgramCatalog:
         self._entries = entries
         self._artifacts = MappingProxyType(artifacts)
         self._nodes = MappingProxyType(indexes)
+        self.behavior_signatures = MappingProxyType(
+            {
+                (pin, name): a.behavior_signature(artifacts[pin], node)
+                for pin, nodes in indexes.items()
+                for name, node in nodes.items()
+                if isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep))
+            }
+        )
 
     @property
     def entries(self) -> tuple[ArtifactEntry, ...]:
@@ -185,6 +193,39 @@ class WorkspaceState:
         default_factory=lambda: MappingProxyType({})
     )
     dispatch_counts: MappingProxyType[a.EffectKey, int] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    trust: MappingProxyType[a.BehaviorKey, a.TrustCount] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    reviews: MappingProxyType[a.ReviewKey, a.ReviewEvidence] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    behavior_work: MappingProxyType[a.ReviewKey, frozenset[e.WorkAddress]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    case_reviews: MappingProxyType[str, frozenset[a.ReviewKey]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    pending_reviews: MappingProxyType[a.EffectRef, frozenset[a.ReviewKey]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    grants: MappingProxyType[str, a.StandingGrant] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    revoked_grants: MappingProxyType[str, e.HumanAction] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    trust_actions: MappingProxyType[a.ActionKey, e.TrustCommand] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    case_effects: MappingProxyType[str, tuple[a.EffectRef, ...]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    case_samples: MappingProxyType[str, a.CaseSample] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    sampling_ordinals: MappingProxyType[str, int] = field(
         default_factory=lambda: MappingProxyType({})
     )
 
@@ -540,6 +581,17 @@ class _Reducer:
         self.program_approvals = _StateMap(state.program_approvals)
         self.reservations = _StateMap(state.reservations)
         self.dispatch_counts = _StateMap(state.dispatch_counts)
+        self.trust = _StateMap(state.trust)
+        self.reviews = _StateMap(state.reviews)
+        self.behavior_work = _StateMap(state.behavior_work)
+        self.case_reviews = _StateMap(state.case_reviews)
+        self.pending_reviews = _StateMap(state.pending_reviews)
+        self.grants = _StateMap(state.grants)
+        self.revoked_grants = _StateMap(state.revoked_grants)
+        self.trust_actions = _StateMap(state.trust_actions)
+        self.case_effects = _StateMap(state.case_effects)
+        self.case_samples = _StateMap(state.case_samples)
+        self.sampling_ordinals = _StateMap(state.sampling_ordinals)
         self.required_proposals: set[tuple[e.WorkRevision, str]] = set()
         self.refresh_effects: set[e.WorkAddress] = set()
         self.input_indexes: dict[
@@ -590,6 +642,17 @@ class _Reducer:
             self.program_approvals.freeze(),
             self.reservations.freeze(),
             self.dispatch_counts.freeze(),
+            self.trust.freeze(),
+            self.reviews.freeze(),
+            self.behavior_work.freeze(),
+            self.case_reviews.freeze(),
+            self.pending_reviews.freeze(),
+            self.grants.freeze(),
+            self.revoked_grants.freeze(),
+            self.trust_actions.freeze(),
+            self.case_effects.freeze(),
+            self.case_samples.freeze(),
+            self.sampling_ordinals.freeze(),
         )
 
     def node(self, address: e.WorkAddress) -> p.Node:
@@ -640,6 +703,9 @@ class _Reducer:
                     and payload.count == self.ordinal + 1,
                     "incomplete_batch",
                 )
+                self.select_sample(
+                    command_case(self.command), self.command.meta.observed_at
+                )
                 self.commands[event.command_id] = self.command
                 self.command = None
             else:
@@ -665,7 +731,11 @@ class _Reducer:
             and meta.observed_at.utcoffset() is not None,
             "command_time",
         )
-        if isinstance(command, e.ReserveDispatch):
+        if isinstance(
+            command, (e.ReviewResults, e.GrantStandingAuthority, e.RevokeStandingGrant)
+        ):
+            self.transition_trust(command)
+        elif isinstance(command, e.ReserveDispatch):
             effect = self.effects.get(command.effect)
             _require(effect is not None, "unknown_effect")
             assert effect is not None
@@ -725,7 +795,11 @@ class _Reducer:
         self.effect_permission(effect.revision, attempt.approval, meta.observed_at)
 
     def effect_permission(
-        self, revision: a.EffectRevision, approval: a.ExactApproval, at: datetime
+        self,
+        revision: a.EffectRevision,
+        approval: a.EffectAuthority,
+        at: datetime,
+        policy: e.CompanyContext | None = None,
     ) -> None:
         _require(
             all(
@@ -735,15 +809,343 @@ class _Reducer:
             ),
             "effect_precondition",
         )
-        allowed = a.validate_exact_approval(
-            revision,
-            approval,
-            self.company(revision.producer.address),
-            at,
-            action_key(approval.action) in self.revoked_approvals,
-        )
+        company = self.company(revision.producer.address) if policy is None else policy
+        if isinstance(approval, a.ExactApproval):
+            allowed = a.validate_exact_approval(
+                revision,
+                approval,
+                company,
+                at,
+                action_key(approval.action) in self.revoked_approvals,
+            )
+        else:
+            _require(
+                not self.case_samples[revision.ref.key.case_id].requires_review,
+                "sample_review_required",
+            )
+            allowed = self.standing_permission(revision, approval.grant_id, at, company)
         if isinstance(allowed, a.AuthorityRefused):
             raise ReplayError(allowed.code)
+
+    def behavior(self, ref: e.WorkRevision) -> a.BehaviorKey:
+        address = ref.address
+        case = self.cases[address.case_id]
+        node = self.node(address)
+        _require(
+            isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)), "review_producer"
+        )
+        assert isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep))
+        work = self.work.get(address)
+        if work is None or work.opened.revision != ref.revision:
+            work = self.history[ref]
+        rules = {
+            item.rule_id: item
+            for item in self.catalog.artifacts[case.start.artifact].draft.rules
+        }
+        applicability = tuple(
+            (
+                item.rule_scope,
+                tuple(replace(rules[name], citations=()) for name in item.rule_ids),
+            )
+            for item in work.inputs
+            if item.rule_ids
+        )
+        signature = self.catalog.behavior_signatures[
+            (case.start.artifact, address.node_id)
+        ]
+        return a.BehaviorKey(
+            self.company(address).company_id,
+            node.metadata.behavior_id,
+            sha256(repr((signature, applicability)).encode()).hexdigest(),
+        )
+
+    def effect_behaviors(self, revision: a.EffectRevision) -> tuple[a.BehaviorKey, ...]:
+        return tuple(
+            self.behavior(ref)
+            for ref in revision.dependencies
+            if isinstance(self.node(ref.address), (p.CodeStep, p.AiStep))
+        )
+
+    def standing_permission(
+        self,
+        revision: a.EffectRevision,
+        grant_id: str,
+        at: datetime,
+        company: e.CompanyContext,
+    ) -> a.AuthorityAllowed | a.AuthorityRefused:
+        grant = self.grants.get(grant_id)
+        if grant is None:
+            return a.AuthorityRefused("grant_required")
+        node = self.node(revision.producer.address)
+        if isinstance(node, p.HumanStep) and node.never_automate:
+            return a.AuthorityRefused("human_authority_required")
+        behaviors = self.effect_behaviors(revision)
+        if not behaviors or any(
+            self.trust.get(key, a.TrustCount()).clean < a.TRUST_THRESHOLD
+            for key in behaviors
+        ):
+            return a.AuthorityRefused("trust_required")
+        if any(
+            not isinstance(item.value, p.BoolValue) or not item.value.value
+            for item in revision.inputs
+            if len(item.name) == 4 and item.name[2] == "precondition"
+        ):
+            return a.AuthorityRefused("effect_precondition")
+        return a.validate_grant(
+            revision, grant, company, at, behaviors, grant_id in self.revoked_grants
+        )
+
+    def standing_authority(
+        self, revision: a.EffectRevision, at: datetime
+    ) -> a.GrantAuthority | None:
+        for grant_id in self.grants:
+            allowed = self.standing_permission(
+                revision, grant_id, at, self.company(revision.producer.address)
+            )
+            if isinstance(allowed, a.AuthorityAllowed):
+                return a.GrantAuthority(grant_id)
+        return None
+
+    def select_sample(self, case_id: str, at: datetime) -> None:
+        if case_id in self.case_samples or case_id not in self.case_effects:
+            return
+        effects = tuple(
+            self.effects[ref].revision
+            for ref in self.case_effects[case_id]
+            if self.current_effects[ref.key] == ref
+        )
+        case = self.cases[case_id]
+        if case.start.review_mode == "historical" or any(
+            self.standing_authority(revision, at) is None for revision in effects
+        ):
+            self.case_samples[case_id] = a.CaseSample(None, True)
+            return
+        assert case.start.company is not None
+        company_id = case.start.company.company_id
+        ordinal = self.sampling_ordinals.get(company_id, 0) + 1
+        self.sampling_ordinals[company_id] = ordinal
+        self.case_samples[case_id] = a.CaseSample(
+            ordinal, ordinal % a.SAMPLE_INTERVAL == 0
+        )
+
+    def review_result(self, item: a.ReviewedResult) -> None:
+        ref = item.work
+        _require(ref.address in self.work, "unknown_work")
+        work = self.work[ref.address]
+        _require(work.opened.revision == ref.revision, "stale_review")
+        node = self.node(ref.address)
+        _require(
+            isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep)), "review_producer"
+        )
+        assert isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep))
+        case = self.cases[ref.address.case_id]
+        if (
+            case.start.review_mode == "historical"
+            or work.completed is None
+            or isinstance(node, p.HumanStep)
+            and node.never_automate
+        ):
+            return
+        behavior = self.behavior(ref)
+        key = a.ReviewKey(
+            behavior.company_id, ref.address.case_id, behavior.behavior_id
+        )
+        previous = self.reviews.get(key)
+        count = self.trust.get(behavior, a.TrustCount())
+        if item.outcome == "mistake":
+            if previous is not None and behavior in previous.mistakes:
+                return
+            self.trust[behavior] = a.TrustCount(0, count.generation + 1)
+            self.reviews[key] = a.ReviewEvidence(
+                behavior,
+                count.generation + 1,
+                (),
+                "mistake",
+                frozenset({ref}),
+                (frozenset[a.BehaviorKey]() if previous is None else previous.mistakes)
+                | {behavior},
+            )
+            return
+        if (
+            case.start.review_mode != "review"
+            or item.outcome == "unresolved"
+            or not records_resolve(work.completed.value, self.company(ref.address))
+        ):
+            return
+        if isinstance(node, p.AiStep):
+            value = work.completed.value
+            if (
+                not isinstance(value, p.RecordValue)
+                or p.NamedValue("valid", p.BoolValue(True)) not in value.fields
+            ):
+                return
+        if previous is not None and (
+            previous.outcome != "pending" or ref in previous.work
+        ):
+            return
+        effects = tuple(
+            self.work_effects[(ref, change.change_id)]
+            for change in node.metadata.changes
+        )
+        if previous is None:
+            self.reviews[key] = a.ReviewEvidence(
+                behavior,
+                count.generation,
+                effects,
+                "pending",
+                frozenset({ref}),
+                frozenset(),
+            )
+        else:
+            self.reviews[key] = replace(
+                previous,
+                effects=(*previous.effects, *effects),
+                work=previous.work | {ref},
+            )
+        self.case_reviews[key.case_id] = self.case_reviews.get(
+            key.case_id, frozenset()
+        ) | {key}
+        for effect in effects:
+            self.pending_reviews[effect] = self.pending_reviews.get(
+                effect, frozenset()
+            ) | {key}
+        self.complete_review(key)
+
+    def complete_review(self, key: a.ReviewKey) -> None:
+        review = self.reviews[key]
+        if review.outcome != "pending" or self.cases[key.case_id].status != "succeeded":
+            return
+        current = frozenset(
+            e.WorkRevision(address, self.work[address].opened.revision)
+            for address in self.behavior_work[key]
+            if address in self.work
+        )
+        if (
+            not current
+            or not current <= review.work
+            or any(self.behavior(ref) != review.behavior for ref in current)
+            or not all(
+                self.confirmed_effects.get(effect.key) == effect
+                for effect in review.effects
+            )
+        ):
+            return
+        count = self.trust.get(review.behavior, a.TrustCount())
+        if count.generation == review.generation:
+            self.trust[review.behavior] = replace(count, clean=count.clean + 1)
+        self.reviews[key] = replace(review, outcome="clean")
+        self.case_reviews[key.case_id] = self.case_reviews[key.case_id] - {key}
+
+    def confirm_reviews(self, ref: a.EffectRef) -> None:
+        for key in self.pending_reviews.get(ref, ()):
+            self.complete_review(key)
+        self.pending_reviews.pop(ref, None)
+
+    def transition_trust(self, command: e.TrustCommand) -> None:
+        action = (
+            command.grant.grantor
+            if isinstance(command, e.GrantStandingAuthority)
+            else command.action
+        )
+        meta = command.meta
+        _require(
+            action.origin == "dex"
+            and action.actor == meta.actor
+            and bool(action.action_id.strip())
+            and action.decided_at.utcoffset() is not None
+            and action.decided_at <= meta.observed_at,
+            "trust_actor",
+        )
+        key = action_key(action)
+        _require(
+            key not in self.trust_actions and key not in self.actions, "action_conflict"
+        )
+        if isinstance(command, e.ReviewResults):
+            _require(command.case_id in self.cases, "unknown_case")
+            _require(bool(command.results), "review_results")
+            _require(action.role == "reviewer", "review_authority")
+            _require(
+                len({item.work for item in command.results}) == len(command.results),
+                "duplicate_review",
+            )
+            for item in command.results:
+                _require(item.work.address.case_id == command.case_id, "review_case")
+                self.observer(item.work.address, action, meta)
+                _require(
+                    all(
+                        self.member(item.work.address, action.actor, "reviewer", at)
+                        for at in (action.decided_at, meta.observed_at)
+                    ),
+                    "review_authority",
+                )
+                self.review_result(item)
+        else:
+            company = command.company
+            _require(action.company_id == company.company_id, "company_mismatch")
+            _require(
+                action.role == "controller"
+                and all(
+                    a.has_role(company, action.actor, "controller", (), at)
+                    for at in (action.decided_at, meta.observed_at)
+                ),
+                "grant_authority",
+            )
+            if isinstance(command, e.RevokeStandingGrant):
+                _require(command.grant_id in self.grants, "unknown_grant")
+                _require(
+                    self.grants[command.grant_id].grantor.company_id
+                    == company.company_id,
+                    "company_mismatch",
+                )
+                _require(command.grant_id not in self.revoked_grants, "grant_revoked")
+                self.revoked_grants[command.grant_id] = action
+            else:
+                grant = command.grant
+                _require(
+                    bool(grant.grant_id.strip()) and grant.grant_id not in self.grants,
+                    "grant_identity",
+                )
+                _require(
+                    bool(grant.operations)
+                    and len(set(grant.operations)) == len(grant.operations)
+                    and all(item.strip() for item in grant.operations)
+                    and bool(grant.behaviors)
+                    and len(set(grant.behaviors)) == len(grant.behaviors)
+                    and grant.amount_limit_cents >= 0
+                    and len({item.name for item in grant.scope.parts})
+                    == len(grant.scope.parts)
+                    and len({item.name for item in grant.conditions})
+                    == len(grant.conditions),
+                    "grant_bounds",
+                )
+                _require(
+                    grant.valid_from.utcoffset() is not None
+                    and grant.valid_from >= action.decided_at
+                    and (
+                        grant.valid_until is None
+                        or (
+                            grant.valid_until.utcoffset() is not None
+                            and grant.valid_until > grant.valid_from
+                        )
+                    ),
+                    "grant_time",
+                )
+                _require(
+                    all(
+                        item.company_id == company.company_id
+                        for item in grant.behaviors
+                    ),
+                    "company_mismatch",
+                )
+                _require(
+                    all(
+                        self.trust.get(item, a.TrustCount()).clean >= a.TRUST_THRESHOLD
+                        for item in grant.behaviors
+                    ),
+                    "trust_required",
+                )
+                self.grants[grant.grant_id] = grant
+        self.trust_actions[key] = command
 
     def start(self, command: e.RuntimeCommand) -> None:
         meta = command.meta
@@ -989,6 +1391,8 @@ class _Reducer:
             self.cases[payload.case_id] = replace(
                 case, status=payload.status, failure=payload.failure
             )
+            for key in self.case_reviews.get(payload.case_id, ()):
+                self.complete_review(key)
             self.settled = True
             return
         address = payload.address
@@ -1043,6 +1447,17 @@ class _Reducer:
             _require(self.instances < self.command.bounds.instances, "instance_limit")
             self.instances += 1
             self.work[address] = Work(payload)
+            node = self.node(address)
+            company = self.cases[address.case_id].start.company
+            if company is not None and isinstance(
+                node, (p.CodeStep, p.AiStep, p.HumanStep)
+            ):
+                key = a.ReviewKey(
+                    company.company_id, address.case_id, node.metadata.behavior_id
+                )
+                self.behavior_work[key] = self.behavior_work.get(key, frozenset()) | {
+                    address
+                }
             for ref in payload.context.controls:
                 self.consumers[ref] = self.consumers.get(ref, frozenset()) | {address}
             return
@@ -1309,6 +1724,8 @@ class _Reducer:
                 self.effects[previous], superseded_by=revision.ref
             )
         self.effects[revision.ref] = a.Effect(revision, a.Proposed())
+        case_id = revision.ref.key.case_id
+        self.case_effects[case_id] = (*self.case_effects.get(case_id, ()), revision.ref)
         self.current_effects[revision.ref.key] = revision.ref
         if revision.amendment_of is None:
             self.operation_keys[(revision.producer.address, revision.change_id)] = (
@@ -1399,6 +1816,11 @@ class _Reducer:
             self.effects[command.effect] = replace(
                 effect, progress=a.Approved(approval)
             )
+            for dependency in revision.dependencies:
+                if isinstance(
+                    self.node(dependency.address), (p.CodeStep, p.AiStep, p.HumanStep)
+                ):
+                    self.review_result(a.ReviewedResult(dependency, "clean"))
             return
         if isinstance(command, e.AmendEffect):
             self.check_effect_current(revision)
@@ -1422,27 +1844,37 @@ class _Reducer:
                 )
             )
             return
+        authority: a.EffectAuthority
         if isinstance(progress, a.Proposed):
-            raise ReplayError("exact_approval_required")
-        approval = (
-            progress.approval
-            if isinstance(progress, (a.Approved, a.Attempted))
-            else progress.attempt.approval
-        )
-        if isinstance(command, e.RevokeEffectApproval):
-            _require(command.approval == action_key(approval.action), "stale_approval")
             _require(
-                action_key(approval.action) not in self.revoked_approvals,
+                isinstance(command, e.BeginEffectAttempt), "exact_approval_required"
+            )
+            standing = self.standing_authority(revision, command.meta.observed_at)
+            _require(standing is not None, "exact_approval_required")
+            assert standing is not None
+            authority = standing
+        else:
+            authority = (
+                progress.approval
+                if isinstance(progress, (a.Approved, a.Attempted))
+                else progress.attempt.approval
+            )
+        if isinstance(command, e.RevokeEffectApproval):
+            _require(isinstance(authority, a.ExactApproval), "stale_approval")
+            assert isinstance(authority, a.ExactApproval)
+            _require(command.approval == action_key(authority.action), "stale_approval")
+            _require(
+                action_key(authority.action) not in self.revoked_approvals,
                 "approval_revoked",
             )
             self.revoked_approvals = self.revoked_approvals | {
-                action_key(approval.action)
+                action_key(authority.action)
             }
             return
         if isinstance(command, e.BeginEffectAttempt):
             self.check_effect_current(revision)
             _require(
-                isinstance(progress, a.Approved)
+                isinstance(progress, (a.Approved, a.Proposed))
                 or (
                     isinstance(progress, a.Reconciled)
                     and isinstance(progress.conclusion, a.FencedNotApplied)
@@ -1455,7 +1887,7 @@ class _Reducer:
             _require(
                 revision.ref.key not in self.confirmed_effects, "amendment_required"
             )
-            self.effect_permission(revision, approval, command.meta.observed_at)
+            self.effect_permission(revision, authority, command.meta.observed_at)
             attempt_key = revision.ref.key, command.attempt_id
             _require(
                 bool(command.attempt_id.strip())
@@ -1465,7 +1897,7 @@ class _Reducer:
             self.attempt_ids[attempt_key] = command.effect
             self.unresolved_attempts[revision.ref.key] = command.effect
             self.effects[command.effect] = replace(
-                effect, progress=a.Attempted(approval, command.attempt_id)
+                effect, progress=a.Attempted(authority, command.attempt_id)
             )
             return
         _require(
@@ -1509,6 +1941,8 @@ class _Reducer:
         )
         del self.unresolved_attempts[revision.ref.key]
         self.effects[command.effect] = replace(effect, progress=result)
+        if receipt is not None:
+            self.confirm_reviews(command.effect)
 
     def next_revision(self, address: e.WorkAddress) -> int:
         return 1 + max(
@@ -1839,6 +2273,8 @@ class _Reducer:
 
     def correct(self, command: e.CorrectResult) -> None:
         target = command.work.address
+        if self.cases[target.case_id].start.company is not None:
+            self.review_result(a.ReviewedResult(command.work, "mistake"))
         retained: set[e.WorkAddress] = set()
         ancestor: e.WorkAddress | None = target
         while ancestor is not None:
@@ -2765,7 +3201,17 @@ def decide(
         return Refused("missing_artifact")
     if isinstance(command, e.ActivateProgram):
         return Refused("unsupported_activation")
-    if isinstance(command, (e.RegisterProgram, e.ApproveProgram, e.ReserveDispatch)):
+    if isinstance(
+        command,
+        (
+            e.RegisterProgram,
+            e.ApproveProgram,
+            e.ReserveDispatch,
+            e.ReviewResults,
+            e.GrantStandingAuthority,
+            e.RevokeStandingGrant,
+        ),
+    ):
         previous_workspace = state.workspace_commands.get(command.meta.command_id)
         if previous_workspace is not None:
             return (
@@ -2773,6 +3219,22 @@ def decide(
                 if previous_workspace == command
                 else Refused("command_conflict")
             )
+        if isinstance(
+            command, (e.ReviewResults, e.GrantStandingAuthority, e.RevokeStandingGrant)
+        ):
+            action = (
+                command.grant.grantor
+                if isinstance(command, e.GrantStandingAuthority)
+                else command.action
+            )
+            recorded_trust = state.trust_actions.get(action_key(action))
+            if recorded_trust is not None:
+                return (
+                    Accepted((), state)
+                    if action.actor == command.meta.actor
+                    and replace(recorded_trust, meta=command.meta) == command
+                    else Refused("action_conflict")
+                )
         reducer = _Reducer(state, programs)
         event = e.RuntimeEvent(
             command.meta.command_id, 0, e.WorkspaceTransitioned(command)
@@ -2814,6 +3276,8 @@ def decide(
             reducer.observer(address, command.action, command.meta)
         except ReplayError as error:
             return Refused(error.code)
+        if action_key(command.action) in state.trust_actions:
+            return Refused("action_conflict")
         recorded = state.actions.get(action_key(command.action))
         if recorded is not None:
             return (
@@ -2992,15 +3456,12 @@ def authorize_dispatch(
         progress = state.effects[effect].progress
         assert isinstance(progress, (a.Attempted, a.Uncertain))
         attempt = progress if isinstance(progress, a.Attempted) else progress.attempt
-        authority = a.validate_exact_approval(
+        reducer.effect_permission(
             state.effects[effect].revision,
             attempt.approval,
-            company,
             meta.observed_at,
-            action_key(attempt.approval.action) in state.revoked_approvals,
+            company,
         )
-        if isinstance(authority, a.AuthorityRefused):
-            return Refused(authority.code)
     except ReplayError as error:
         return Refused(error.code)
     return state.effects[effect].revision
@@ -3019,6 +3480,35 @@ def authorize_session(
     state: WorkspaceState, command: e.Command, company: e.CompanyContext
 ) -> Refused | None:
     if isinstance(command, (e.RegisterProgram, e.ApproveProgram)):
+        return None
+    if isinstance(command, (e.GrantStandingAuthority, e.RevokeStandingGrant)):
+        if command.company.company_id != company.company_id:
+            return Refused("session_company")
+        if not a.has_role(
+            company, command.meta.actor, "controller", (), command.meta.observed_at
+        ):
+            return Refused("session_authority")
+        return None
+    if isinstance(command, e.ReviewResults):
+        case = state.cases.get(command.case_id)
+        if (
+            case is None
+            or case.start.company is None
+            or case.start.company.company_id != company.company_id
+        ):
+            return Refused("session_company")
+        if not command.results or any(
+            item.work.address.case_id != command.case_id
+            or not a.has_role(
+                company,
+                command.meta.actor,
+                "reviewer",
+                item.work.address.scope,
+                command.meta.observed_at,
+            )
+            for item in command.results
+        ):
+            return Refused("session_authority")
         return None
     if isinstance(command, (e.StartSandbox, e.ActivateProgram)):
         role, scope = "workspace_operator", ()

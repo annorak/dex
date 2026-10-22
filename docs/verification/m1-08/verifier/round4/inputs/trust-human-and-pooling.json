@@ -1,0 +1,13 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-human-and-pooling",
+  "expected": {
+    "human_open": true,
+    "later_uncompleted": true,
+    "human_credit": 0,
+    "foreign_failure": "company_mismatch",
+    "foreign_trust_entries": 0,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}

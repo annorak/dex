@@ -1,0 +1,13 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-revocation",
+  "expected": {
+    "prior_reconciled": true,
+    "new_dispatch_failure": "exact_approval_required",
+    "grant_revoked": true,
+    "writes": 301,
+    "unattended_credit": 300,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}

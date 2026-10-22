@@ -107,6 +107,7 @@ def test_delayed_completion_after_revocation_is_reconciled(tmp_path: Path) -> No
         progress = workspace.state.effects[ref].progress
         assert isinstance(progress, a.Uncertain)
         assert adapter.lookup(ref.key) is None
+        assert isinstance(progress.attempt.approval, a.ExactApproval)
         assert isinstance(
             workspace.execute(
                 e.RevokeEffectApproval(

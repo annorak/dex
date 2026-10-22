@@ -1,0 +1,12 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-pending-write",
+  "expected": {
+    "pending_credit": 0,
+    "uncertain_credit": 0,
+    "confirmed_credit": 1,
+    "writes": 1,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}
