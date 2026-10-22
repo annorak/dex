@@ -1,0 +1,22 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-299-300",
+  "expected": {
+    "before": [
+      299,
+      299
+    ],
+    "pending": [
+      300,
+      299
+    ],
+    "qualified": [
+      300,
+      300
+    ],
+    "no_grant_failure": "exact_approval_required",
+    "no_grant_unchanged": true,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}

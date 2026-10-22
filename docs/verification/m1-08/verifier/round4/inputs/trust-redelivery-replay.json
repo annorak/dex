@@ -1,0 +1,11 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-redelivery-replay",
+  "expected": {
+    "redelivery_events": 0,
+    "after_correction": 0,
+    "excluded_modes_credit": 0,
+    "reopen_equal": true,
+    "normal_activation_failure": "verification_incomplete"
+  }
+}

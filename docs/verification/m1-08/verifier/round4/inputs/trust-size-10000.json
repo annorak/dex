@@ -1,0 +1,16 @@
+{
+  "format": "dex-trust-scenario-1",
+  "scenario_id": "trust-size-10000",
+  "expected": {
+    "review_events": 10000,
+    "calculation_count": 10000,
+    "writing_count": 300,
+    "ordinal": 20,
+    "sampled_case": "eligible-20",
+    "grant_checks": true,
+    "revocation_preserved": true,
+    "reopen_equal": true,
+    "writes": 301,
+    "cases": 10021
+  }
+}

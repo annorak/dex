@@ -1,0 +1,1 @@
+{"before": [299, 299], "cli_approval": true, "cli_stale_rejected": true, "no_grant_failure": "exact_approval_required", "no_grant_unchanged": true, "normal_activation_failure": "verification_incomplete", "pending": [300, 299], "qualified": [300, 300], "reopen_equal": true, "revision": 8119, "session_actor_bound": true}

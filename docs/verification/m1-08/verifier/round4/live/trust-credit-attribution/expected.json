@@ -1,0 +1,1 @@
+{"expected": {"correct_producer": 2, "normal_activation_failure": "verification_incomplete", "reopen_equal": true, "reviewed_cases": 4, "wrong_producer": 0}, "matches": {"correct_producer": true, "normal_activation_failure": true, "reopen_equal": true, "reviewed_cases": true, "wrong_producer": true}}

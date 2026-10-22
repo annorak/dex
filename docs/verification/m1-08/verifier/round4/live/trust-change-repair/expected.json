@@ -1,0 +1,1 @@
+{"expected": {"changed_behavior_counts": [1, 3], "normal_activation_failure": "verification_incomplete", "reopen_equal": true, "repair_counts": [3, 3], "unaffected_write": 3}, "matches": {"changed_behavior_counts": true, "normal_activation_failure": true, "reopen_equal": true, "repair_counts": true, "unaffected_write": true}}

@@ -1,0 +1,1 @@
+{"expected": {"confirmed_credit": 1, "normal_activation_failure": "verification_incomplete", "pending_credit": 0, "reopen_equal": true, "uncertain_credit": 0, "writes": 1}, "matches": {"confirmed_credit": true, "normal_activation_failure": true, "pending_credit": true, "reopen_equal": true, "uncertain_credit": true, "writes": true}}
