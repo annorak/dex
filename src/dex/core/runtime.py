@@ -640,6 +640,11 @@ class _Reducer:
             and command.recording.value is not None
         ):
             meter.value(command.recording.value)
+        elif (
+            isinstance(command, e.SupplyRecording)
+            and command.recording.failure is not None
+        ):
+            meter.value(p.TextValue(command.recording.failure))
         self.usage = meter.usage()
         if isinstance(command, e.StartSandbox):
             _require(command.artifact in self.catalog.artifacts, "missing_artifact")
@@ -1717,6 +1722,11 @@ class _Reducer:
 
     def correct(self, command: e.CorrectResult) -> None:
         target = command.work.address
+        retained: set[e.WorkAddress] = set()
+        ancestor: e.WorkAddress | None = target
+        while ancestor is not None:
+            retained.add(ancestor)
+            ancestor = self.work[ancestor].opened.parent
         self.business_decisions.clear()
         affected: set[e.WorkAddress] = set()
         reselect: set[e.WorkAddress] = set()
@@ -1758,7 +1768,11 @@ class _Reducer:
             ):
                 reselect.add(address)
                 for child in work.selected.dependencies:
-                    if child != target and child in self.work and child not in retired:
+                    if (
+                        child not in retained
+                        and child in self.work
+                        and child not in retired
+                    ):
                         retired.add(child)
                         affected.add(child)
                         queue.append(child)

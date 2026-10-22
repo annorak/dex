@@ -868,3 +868,133 @@ def test_supplied_recording_allocation_is_aggregate_and_replay_enforced() -> Non
         r.rebuild(opened.events + damaged, programs)
     assert accept(accepted.state, command, programs).events == ()
     assert r.rebuild(opened.events + accepted.events, programs) == accepted.state
+
+
+@pytest.mark.parametrize("bound", ["work", "allocations"])
+def test_recorded_failure_budget_refuses_and_retries_exactly_once(bound: str) -> None:
+    import json
+
+    from dex.recordings import parse_recording, request_digest
+
+    programs = catalog(ai_program())
+    opened = accept(
+        r.rebuild((), programs), replace(start(programs), company=COMPANY), programs
+    )
+    request = opened.state.work[e.WorkAddress("case", "ai")].request
+    assert request is not None
+    document = {
+        "format": "dex-recording-1",
+        "request_digest": request_digest(request),
+        "recording_id": "failure",
+        "model": "recorded",
+        "input_tokens": 1,
+        "output_tokens": 1,
+        "value": None,
+        "failure": "x" * 1000,
+    }
+    recording = parse_recording(json.dumps(document), request)
+    command = e.SupplyRecording(meta(opened.state, "failure"), recording)
+    bounds = (
+        e.ActivationBounds(work=1000)
+        if bound == "work"
+        else e.ActivationBounds(allocations=1000)
+    )
+    assert r.decide(
+        opened.state, replace(command, bounds=bounds), programs
+    ) == r.Refused("work_limit" if bound == "work" else "allocation_limit")
+    assert r.rebuild(opened.events, programs) == opened.state
+    accepted = accept(opened.state, command, programs)
+    assert accepted.state.cases["case"].status == "waiting"
+    assert accepted.state.recordings[request.work] == recording
+    assert accept(accepted.state, command, programs).events == ()
+    settled = next(
+        event.payload
+        for event in accepted.events
+        if isinstance(event.payload, e.CaseSettled)
+    )
+    assert settled.usage.work >= 1001 and settled.usage.allocations >= 4001
+    shorter = replace(command, recording=replace(recording, failure="x"))
+    baseline = accept(opened.state, shorter, programs)
+    baseline_usage = next(
+        event.payload.usage
+        for event in baseline.events
+        if isinstance(event.payload, e.CaseSettled)
+    )
+    assert settled.usage.work - baseline_usage.work == 999
+    assert settled.usage.allocations - baseline_usage.allocations == 3996
+    damaged = tuple(
+        replace(event, payload=replace(event.payload, usage=lang.Usage(24, 7)))
+        if isinstance(event.payload, e.CaseSettled)
+        else event
+        for event in accepted.events
+    )
+    with pytest.raises(r.ReplayError, match="usage_bounds"):
+        r.rebuild(opened.events + damaged, programs)
+    assert r.rebuild(opened.events + accepted.events, programs) == accepted.state
+
+
+@pytest.mark.parametrize(
+    "failure", ["x" * 65537, "\u00e9" * 32769], ids=["ascii", "utf8"]
+)
+def test_recorded_failure_obeys_typed_string_byte_limit(failure: str) -> None:
+    import json
+
+    from dex.recordings import parse_recording, request_digest
+
+    programs = catalog(ai_program())
+    opened = accept(
+        r.rebuild((), programs), replace(start(programs), company=COMPANY), programs
+    )
+    request = opened.state.work[e.WorkAddress("case", "ai")].request
+    assert request is not None
+    recording = parse_recording(
+        json.dumps(
+            {
+                "format": "dex-recording-1",
+                "request_digest": request_digest(request),
+                "recording_id": "failure",
+                "model": "recorded",
+                "input_tokens": 1,
+                "output_tokens": 1,
+                "value": None,
+                "failure": failure,
+            }
+        ),
+        request,
+    )
+    command = e.SupplyRecording(meta(opened.state, "failure"), recording)
+    assert r.decide(opened.state, command, programs) == r.Refused("string_limit")
+    assert r.rebuild(opened.events, programs) == opened.state
+    assert not opened.state.recordings
+
+
+@pytest.mark.parametrize("escaped", [False, True])
+@pytest.mark.parametrize("field", ["failure", "model", "value", "key"])
+def test_recording_rejects_invalid_utf8(field: str, escaped: bool) -> None:
+    import json
+
+    from dex.recordings import RecordingError, parse_recording, request_digest
+
+    programs = catalog(ai_program())
+    opened = accept(
+        r.rebuild((), programs), replace(start(programs), company=COMPANY), programs
+    )
+    request = opened.state.work[e.WorkAddress("case", "ai")].request
+    assert request is not None
+    document: dict[str, object] = {
+        "format": "dex-recording-1",
+        "request_digest": request_digest(request),
+        "recording_id": "one",
+        "model": "model",
+        "input_tokens": 1,
+        "output_tokens": 1,
+        "value": None,
+        "failure": None,
+    }
+    if field == "key":
+        document["value"] = {"\ud800": "value"}
+    else:
+        document[field] = "\ud800"
+    with pytest.raises(RecordingError, match="^recording_encoding$"):
+        parse_recording(json.dumps(document, ensure_ascii=escaped), request)
+    assert r.rebuild(opened.events, programs) == opened.state

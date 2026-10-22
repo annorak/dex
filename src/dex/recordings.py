@@ -109,14 +109,26 @@ def _constant(value: str) -> None:
 
 
 def parse_recording(text: str, request: e.RecordingRequest) -> e.Recording:
-    if len(text.encode()) > MAX_RECORDING_BYTES:
-        raise RecordingError("recording_size")
     try:
+        if len(text.encode("utf-8")) > MAX_RECORDING_BYTES:
+            raise RecordingError("recording_size")
         raw = cast(
             Json, json.loads(text, object_pairs_hook=_unique, parse_constant=_constant)
         )
+        pending = [raw]
+        while pending:
+            item = pending.pop()
+            if isinstance(item, dict):
+                pending.extend(item.keys())
+                pending.extend(item.values())
+            elif isinstance(item, list):
+                pending.extend(item)
+            elif isinstance(item, str):
+                item.encode("utf-8")
     except RecordingError:
         raise
+    except UnicodeError as error:
+        raise RecordingError("recording_encoding") from error
     except (ValueError, RecursionError) as error:
         raise RecordingError("recording_json") from error
     obj = _object(

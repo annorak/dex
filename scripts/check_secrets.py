@@ -133,7 +133,7 @@ def scan_files(paths: Sequence[Path]) -> tuple[Finding, ...]:
         ],
         cwd=ROOT,
         capture_output=True,
-        timeout=60,
+        timeout=120,
         check=False,
     )
     if result.stderr or result.returncode not in (0, 1):

@@ -3,7 +3,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
-from test_continuations import COMPANY, accept, action, human, meta
+from test_continuations import COMPANY, accept, action, human, meta, response
 from test_runtime import (
     COUNTER,
     INTEGER,
@@ -14,6 +14,7 @@ from test_runtime import (
     draft,
     identity,
     repeat_program,
+    root_value,
     start,
 )
 
@@ -830,3 +831,163 @@ def test_business_correction_preserves_an_independent_parallel_branch() -> None:
         r.Refused,
     )
     run.replay()
+
+
+@pytest.mark.parametrize("iteration", ["0", "2"])
+@pytest.mark.parametrize("progress", ["proposed", "approved", "uncertain", "confirmed"])
+def test_composite_repeat_correction_preserves_antecedent_decisions(
+    iteration: str, progress: str
+) -> None:
+    program = repeat_program(3)
+    repeat = program.root
+    assert isinstance(repeat, p.Repeat)
+    advance = repeat.body.body
+    assert isinstance(advance, p.CodeStep)
+    change = p.ChangeDeclaration(
+        "change",
+        "publish",
+        p.Export(COUNTER, p.ResultRef("advance")),
+        (
+            p.Binding(
+                "iteration_input",
+                p.Scalar.INTEGER,
+                p.LocalRef("repeat", "state", ("count",)),
+            ),
+        ),
+        p.Literal(p.TextValue("once")),
+    )
+    advance = replace(advance, metadata=replace(advance.metadata, changes=(change,)))
+    body = p.Sequence(
+        "iteration",
+        (human("review"), advance),
+        p.Export(COUNTER, p.ResultRef("advance")),
+    )
+    programs = catalog(
+        replace(
+            program,
+            root=replace(
+                repeat,
+                body=p.Branch(body, p.Export(COUNTER, p.ResultRef("iteration"))),
+                until=p.ResultRef("iteration", ("ready",)),
+            ),
+        )
+    )
+    opened = accept(
+        r.rebuild((), programs), replace(start(programs), company=POLICY), programs
+    )
+    state, history = opened.state, opened.events
+    for index in range(3):
+        answered = accept(state, response(state, f"answer-{index}"), programs)
+        state, history = answered.state, history + answered.events
+    target = next(
+        address
+        for address in state.work
+        if address.node_id == "advance" and address.scope[-1].key == iteration
+    )
+    review = next(
+        address
+        for address in state.work
+        if address.node_id == "review" and address.scope[-1].key == iteration
+    )
+    original_action = next(
+        command
+        for command in state.actions.values()
+        if isinstance(command, e.RespondTask) and command.task.work.address == review
+    )
+    ref = next(
+        ref
+        for ref, effect in state.effects.items()
+        if effect.revision.producer.address == target
+    )
+    if progress != "proposed":
+        approved = accept(
+            state,
+            e.ApproveEffect(
+                meta(state, "approve"), ref, action("approve", role="effect_approver")
+            ),
+            programs,
+        )
+        state, history = approved.state, history + approved.events
+    if progress in {"uncertain", "confirmed"}:
+        attempted = accept(
+            state,
+            e.BeginEffectAttempt(meta(state, "attempt", "executor"), ref, "attempt"),
+            programs,
+        )
+        state, history = attempted.state, history + attempted.events
+        command = (
+            e.MarkEffectUncertain(
+                meta(state, "outcome", "executor"), ref, "attempt", "lost"
+            )
+            if progress == "uncertain"
+            else e.ConfirmEffect(
+                meta(state, "outcome", "executor"), ref, "attempt", RECEIPT
+            )
+        )
+        completed = accept(state, command, programs)
+        state, history = completed.state, history + completed.events
+    before = state
+    corrected = accept(
+        state,
+        e.CorrectResult(
+            meta(state, "correct", "admin"),
+            e.WorkRevision(target, 1),
+            action("correct", "admin", "corrector"),
+            counter(10, True),
+        ),
+        programs,
+    )
+    state, history = corrected.state, history + corrected.events
+    assert state.cases["case"].status == "succeeded"
+    assert root_value(state) == counter(10, True)
+    assert state.work[review] == before.work[review]
+    assert state.actions[r.action_key(original_action.action)] == original_action
+    assert state.tasks[original_action.task].status == "answered"
+    assert r.decide(
+        state, replace(original_action, meta=meta(state, "redelivery")), programs
+    ) == r.Accepted((), state)
+    assert state.effects[ref].revision == before.effects[ref].revision
+    assert state.effects[ref].progress == before.effects[ref].progress
+    desired = state.current_effects[ref.key]
+    assert desired.revision > ref.revision
+    assert original_action.task.work in state.effects[desired].revision.dependencies
+    assert (
+        r.action_key(original_action.action)
+        in state.effects[desired].revision.decisions
+    )
+    reviewed = accept(
+        state,
+        e.ApproveEffect(
+            meta(state, "fresh-approval"),
+            desired,
+            action("fresh-approval", role="effect_approver"),
+        ),
+        programs,
+    )
+    assert isinstance(reviewed.state.effects[desired].progress, a.Approved)
+    if progress in {"uncertain", "confirmed"}:
+        assert r.decide(
+            reviewed.state,
+            e.BeginEffectAttempt(
+                meta(reviewed.state, "retry-effect", "executor"),
+                desired,
+                "retry-effect",
+            ),
+            programs,
+        ) == r.Refused(
+            "unresolved_attempt" if progress == "uncertain" else "amendment_required"
+        )
+    assert r.rebuild(history + reviewed.events, programs) == reviewed.state
+    assert r.rebuild(opened.events, programs) == opened.state
+    if iteration == "0":
+        assert all(
+            address.scope[-1].key == "0"
+            for address in state.work
+            if address.node_id == "review"
+        )
+    else:
+        assert all(
+            state.work[address] == work
+            for address, work in before.work.items()
+            if address.node_id == "review"
+        )

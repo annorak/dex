@@ -95,3 +95,30 @@ def test_response_series_matches_explicit_commands_including_stale_middle() -> N
     middle = expanded.observations[3].runtime
     assert middle is not None and isinstance(middle.submitted, e.RespondTask)
     assert middle.failure == "stale_task" and not middle.events and not middle.work
+
+
+def test_recording_encoding_refusal_preserves_open_request() -> None:
+    document = json.loads((FIXTURES / "continuation-invalid-ai.json").read_bytes())
+    document["commands"] = document["commands"][:2]
+    recording = json.loads(document["commands"][1]["recording"])
+    recording.update(value=None, failure="\ud800")
+    document["commands"][1]["recording"] = json.dumps(recording)
+    document["expected"] = document["expected"][:2]
+    document["expected"][1].update(
+        status="runtime_refused", failure="recording_encoding"
+    )
+    scenario = parse_scenario(json.dumps(document).encode())
+    baseline = evaluate(
+        replace(
+            scenario, commands=scenario.commands[:1], expected=scenario.expected[:1]
+        )
+    )
+    refused = evaluate(scenario)
+    assert all(refused.matches)
+    assert refused.final_runtime == baseline.final_runtime
+    assert refused.final_runtime.replay_equal is True
+    observation = refused.observations[1].runtime
+    assert observation is not None
+    assert (
+        not observation.events and not observation.work and not observation.recordings
+    )
