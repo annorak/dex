@@ -236,11 +236,15 @@ class TrustFixture:
             case = "training-" + str(index)
             self.start(case)
             ref = self.ref(case)
+            assert self.state.effects[ref].revision.payload == p.MoneyValue(1)
+            result = self.state.work[e.WorkAddress(case, "calculate")].completed
+            assert result is not None and result.value == p.MoneyValue(1)
             self.approve(ref)
             assert isinstance(self.dispatch(ref), r.Accepted)
             if later:
                 self.answer(case)
                 ref = self.ref(case, "later")
+                assert self.state.effects[ref].revision.payload == p.MoneyValue(1)
                 self.approve(ref)
                 assert isinstance(self.dispatch(ref), r.Accepted)
 

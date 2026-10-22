@@ -4,7 +4,7 @@ from typing import Literal
 from unittest.mock import patch
 
 import pytest
-from test_runtime import NOW, catalog, code, draft, identity
+from test_runtime import ENTRY, NOW, catalog, code, draft, each_program, entry, identity
 
 from dex import codec
 from dex.core import authority as a
@@ -443,3 +443,91 @@ def test_legacy_case_start_decodes_without_review_mode() -> None:
     encoded = json.loads(codec.dumps(command))
     del encoded["value"]["review_mode"]
     assert codec.loads(json.dumps(encoded), e.StartSandbox) == command
+
+
+def test_sampled_unattended_mistake_resets_trust_and_blocks_next_dispatch() -> None:
+    run = TrustRun()
+    run.train()
+    run.grant()
+    for index in range(1, 21):
+        run.start("unattended-" + str(index), mode="unattended")
+    assert run.state.case_samples["unattended-20"] == a.CaseSample(20, True)
+    run.review("unattended-20", "mistake")
+    assert run.count("calculate") == 0
+    assert run.count("write") == 300
+    run.state = r.rebuild(run.events, run.catalog)
+    ref = run.start("after-mistake", mode="unattended")
+    assert r.decide(
+        run.state,
+        e.BeginEffectAttempt(run.meta("blocked"), ref, "blocked"),
+        run.catalog,
+    ) == r.Refused("exact_approval_required")
+    run.replay()
+
+
+@pytest.mark.parametrize("second_outcome", ["clean", "mistake"])
+def test_each_writing_instance_requires_review_and_confirmation(
+    second_outcome: Literal["clean", "mistake"],
+) -> None:
+    source = each_program()
+    assert isinstance(source.root, p.Each)
+    body = source.root.body.body
+    assert isinstance(body, p.CodeStep)
+    change = p.ChangeDeclaration(
+        "publish",
+        "publish",
+        p.Export(ENTRY, p.ResultRef("copy")),
+        (p.Binding("record", p.Scalar.TEXT, p.ResultRef("copy", ("key",))),),
+        p.Literal(p.TextValue("once")),
+        (),
+    )
+    body = replace(body, metadata=replace(body.metadata, changes=(change,)))
+    source = replace(
+        source, root=replace(source.root, body=replace(source.root.body, body=body))
+    )
+    run = TrustRun(source)
+    values = p.KeyedValue(
+        (p.KeyedEntry("a", entry("a", 1)), p.KeyedEntry("b", entry("b", 2)))
+    )
+    run.apply(
+        e.StartSandbox(
+            run.meta("start"),
+            "case",
+            run.catalog.entries[0].pin,
+            (p.NamedValue("entries", values),),
+            NOW.date(),
+            company=POLICY,
+        )
+    )
+    first, second = run.state.current_effects.values()
+    assert run.state.effects[first].revision.payload == entry("a", 1)
+    assert run.state.effects[second].revision.payload == entry("b", 2)
+    run.approve(first)
+    run.confirm(first)
+    assert run.count("copy") == 0
+    run.state = r.rebuild(run.events, run.catalog)
+    producer = run.state.effects[second].revision.producer
+    run.apply(
+        e.ReviewResults(
+            run.meta("second-review"),
+            "case",
+            (a.ReviewedResult(producer, second_outcome),),
+            run.action("second-review"),
+        )
+    )
+    assert run.count("copy") == 0
+    run.apply(
+        e.ApproveEffect(
+            run.meta("second-approval"),
+            second,
+            run.action("second-approval", "effect_approver"),
+        )
+    )
+    run.apply(
+        e.BeginEffectAttempt(run.meta("second-attempt"), second, "second-attempt")
+    )
+    run.apply(
+        e.ConfirmEffect(run.meta("second-confirm"), second, "second-attempt", RECEIPT)
+    )
+    assert run.count("copy") == (1 if second_outcome == "clean" else 0)
+    run.replay()

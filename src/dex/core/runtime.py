@@ -201,6 +201,12 @@ class WorkspaceState:
     reviews: MappingProxyType[a.ReviewKey, a.ReviewEvidence] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    behavior_work: MappingProxyType[a.ReviewKey, frozenset[e.WorkAddress]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    case_reviews: MappingProxyType[str, frozenset[a.ReviewKey]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     pending_reviews: MappingProxyType[a.EffectRef, frozenset[a.ReviewKey]] = field(
         default_factory=lambda: MappingProxyType({})
     )
@@ -577,6 +583,8 @@ class _Reducer:
         self.dispatch_counts = _StateMap(state.dispatch_counts)
         self.trust = _StateMap(state.trust)
         self.reviews = _StateMap(state.reviews)
+        self.behavior_work = _StateMap(state.behavior_work)
+        self.case_reviews = _StateMap(state.case_reviews)
         self.pending_reviews = _StateMap(state.pending_reviews)
         self.grants = _StateMap(state.grants)
         self.revoked_grants = _StateMap(state.revoked_grants)
@@ -636,6 +644,8 @@ class _Reducer:
             self.dispatch_counts.freeze(),
             self.trust.freeze(),
             self.reviews.freeze(),
+            self.behavior_work.freeze(),
+            self.case_reviews.freeze(),
             self.pending_reviews.freeze(),
             self.grants.freeze(),
             self.revoked_grants.freeze(),
@@ -930,21 +940,12 @@ class _Reducer:
         assert isinstance(node, (p.CodeStep, p.AiStep, p.HumanStep))
         case = self.cases[ref.address.case_id]
         if (
-            case.start.review_mode != "review"
-            or item.outcome == "unresolved"
+            case.start.review_mode == "historical"
             or work.completed is None
             or isinstance(node, p.HumanStep)
             and node.never_automate
-            or not records_resolve(work.completed.value, self.company(ref.address))
         ):
             return
-        if isinstance(node, p.AiStep):
-            value = work.completed.value
-            if (
-                not isinstance(value, p.RecordValue)
-                or p.NamedValue("valid", p.BoolValue(True)) not in value.fields
-            ):
-                return
         behavior = self.behavior(ref)
         key = a.ReviewKey(
             behavior.company_id, ref.address.case_id, behavior.behavior_id
@@ -956,41 +957,77 @@ class _Reducer:
                 return
             self.trust[behavior] = a.TrustCount(0, count.generation + 1)
             self.reviews[key] = a.ReviewEvidence(
-                behavior, count.generation + 1, (), "mistake"
+                behavior, count.generation + 1, (), "mistake", frozenset({ref})
             )
             return
-        if previous is not None:
+        if (
+            case.start.review_mode != "review"
+            or item.outcome == "unresolved"
+            or not records_resolve(work.completed.value, self.company(ref.address))
+        ):
+            return
+        if isinstance(node, p.AiStep):
+            value = work.completed.value
+            if (
+                not isinstance(value, p.RecordValue)
+                or p.NamedValue("valid", p.BoolValue(True)) not in value.fields
+            ):
+                return
+        if previous is not None and (
+            previous.outcome != "pending" or ref in previous.work
+        ):
             return
         effects = tuple(
             self.work_effects[(ref, change.change_id)]
             for change in node.metadata.changes
         )
-        confirmed = all(
-            self.confirmed_effects.get(effect.key) == effect for effect in effects
-        )
-        self.reviews[key] = a.ReviewEvidence(
-            behavior, count.generation, effects, "clean" if confirmed else "pending"
-        )
-        if confirmed:
-            self.trust[behavior] = replace(count, clean=count.clean + 1)
+        if previous is None:
+            self.reviews[key] = a.ReviewEvidence(
+                behavior, count.generation, effects, "pending", frozenset({ref})
+            )
         else:
-            for effect in effects:
-                self.pending_reviews[effect] = self.pending_reviews.get(
-                    effect, frozenset()
-                ) | {key}
+            self.reviews[key] = replace(
+                previous,
+                effects=(*previous.effects, *effects),
+                work=previous.work | {ref},
+            )
+        self.case_reviews[key.case_id] = self.case_reviews.get(
+            key.case_id, frozenset()
+        ) | {key}
+        for effect in effects:
+            self.pending_reviews[effect] = self.pending_reviews.get(
+                effect, frozenset()
+            ) | {key}
+        self.complete_review(key)
+
+    def complete_review(self, key: a.ReviewKey) -> None:
+        review = self.reviews[key]
+        if review.outcome != "pending" or self.cases[key.case_id].status != "succeeded":
+            return
+        current = frozenset(
+            e.WorkRevision(address, self.work[address].opened.revision)
+            for address in self.behavior_work[key]
+            if address in self.work
+        )
+        if (
+            not current
+            or not current <= review.work
+            or any(self.behavior(ref) != review.behavior for ref in current)
+            or not all(
+                self.confirmed_effects.get(effect.key) == effect
+                for effect in review.effects
+            )
+        ):
+            return
+        count = self.trust.get(review.behavior, a.TrustCount())
+        if count.generation == review.generation:
+            self.trust[review.behavior] = replace(count, clean=count.clean + 1)
+        self.reviews[key] = replace(review, outcome="clean")
+        self.case_reviews[key.case_id] = self.case_reviews[key.case_id] - {key}
 
     def confirm_reviews(self, ref: a.EffectRef) -> None:
         for key in self.pending_reviews.get(ref, ()):
-            review = self.reviews[key]
-            if review.outcome != "pending" or not all(
-                self.confirmed_effects.get(effect.key) == effect
-                for effect in review.effects
-            ):
-                continue
-            count = self.trust.get(review.behavior, a.TrustCount())
-            if count.generation == review.generation:
-                self.trust[review.behavior] = replace(count, clean=count.clean + 1)
-            self.reviews[key] = replace(review, outcome="clean")
+            self.complete_review(key)
         self.pending_reviews.pop(ref, None)
 
     def transition_trust(self, command: e.TrustCommand) -> None:
@@ -1343,6 +1380,8 @@ class _Reducer:
             self.cases[payload.case_id] = replace(
                 case, status=payload.status, failure=payload.failure
             )
+            for key in self.case_reviews.get(payload.case_id, ()):
+                self.complete_review(key)
             self.settled = True
             return
         address = payload.address
@@ -1397,6 +1436,17 @@ class _Reducer:
             _require(self.instances < self.command.bounds.instances, "instance_limit")
             self.instances += 1
             self.work[address] = Work(payload)
+            node = self.node(address)
+            company = self.cases[address.case_id].start.company
+            if company is not None and isinstance(
+                node, (p.CodeStep, p.AiStep, p.HumanStep)
+            ):
+                key = a.ReviewKey(
+                    company.company_id, address.case_id, node.metadata.behavior_id
+                )
+                self.behavior_work[key] = self.behavior_work.get(key, frozenset()) | {
+                    address
+                }
             for ref in payload.context.controls:
                 self.consumers[ref] = self.consumers.get(ref, frozenset()) | {address}
             return

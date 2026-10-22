@@ -252,10 +252,10 @@ def _sampling(fixture: TrustFixture) -> dict[str, Any]:
     fixture.train(later=True)
     fixture.grant()
     for index in range(1, 20):
-        fixture.start("eligible-" + str(index))
+        fixture.start("eligible-" + str(index), mode="unattended")
     fixture.start("already-review-required", 500_001)
     assert fixture.reopen()
-    fixture.start("twentieth")
+    fixture.start("twentieth", mode="unattended")
     first = fixture.ref("twentieth")
     first_failure = _failure(fixture.dispatch(first))
     fixture.approve(first)
@@ -267,6 +267,9 @@ def _sampling(fixture: TrustFixture) -> dict[str, Any]:
     fixture.approve(later)
     assert isinstance(fixture.dispatch(later), r.Accepted)
     sample = fixture.state.case_samples["twentieth"]
+    fixture.review("twentieth", outcome="mistake")
+    assert fixture.reopen()
+    fixture.start("after-sampled-mistake", mode="unattended")
     return {
         "ordinal": sample.ordinal,
         "sampled": sample.requires_review,
@@ -277,6 +280,10 @@ def _sampling(fixture: TrustFixture) -> dict[str, Any]:
             "already-review-required"
         ].ordinal,
         "human_credit": fixture.count("decision"),
+        "sampled_mistake_count": fixture.count("calculate"),
+        "after_mistake_failure": _failure(
+            fixture.dispatch(fixture.ref("after-sampled-mistake"))
+        ),
     }
 
 

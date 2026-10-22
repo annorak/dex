@@ -9,6 +9,8 @@
     "company_ordinal": 20,
     "already_required_ordinal": null,
     "human_credit": 0,
+    "sampled_mistake_count": 0,
+    "after_mistake_failure": "exact_approval_required",
     "reopen_equal": true,
     "normal_activation_failure": "verification_incomplete"
   }

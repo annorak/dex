@@ -49,6 +49,7 @@ class ReviewEvidence:
     generation: int
     effects: tuple[EffectRef, ...]
     outcome: Literal["clean", "mistake", "pending"]
+    work: frozenset[e.WorkRevision]
 
 
 @dataclass(frozen=True)

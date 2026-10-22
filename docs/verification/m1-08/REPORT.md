@@ -6,6 +6,8 @@ Current local session membership, grant scope, amount, holds, trust and revocati
 
 Independent repository, scenario, review and performance gates are pending on the frozen commit. No STACK-READY claim is made yet.
 
+The first independent correctness review found two blockers at 6f5d883. A sampled unattended mistake did not reset trust, and a repeated writing behavior received credit after only its first instance was reviewed and confirmed. Regressions reproduced both mismatches before the fix. Credit now waits for the case to finish, all current instances of the behavior to receive clean review, and all their writes to be confirmed. Sampled mistakes reset trust in unattended mode without awarding positive credit. Root's 63 focused tests and updated live sampling scenario passed; independent fix validation is pending.
+
 The size workload contains 10,000 review events. It trains 300 writing cases through ordinary workspace commands, then batches 9,700 evaluator-owned checked case traces and review events for reduction. A final ordinary reopen validates saved events, counts, sampling and grants. This measures event reduction and persistence, not 10,000 ordinary transaction admissions.
 
 Raw receipts and complete proposed diffs are retained at /Users/varunvis/workspace/dev/dex/docs/verification/m1-08. The first size development attempt took 18.716883416 seconds and failed the unchanged 15-second command limit. Removing a redundant middle reopen, while keeping the final full reopen, produced a valid development sample of 11.857747209 seconds. This is a probe correction, not a product speedup claim. Formal cold-start and five-sample evidence is still required.
