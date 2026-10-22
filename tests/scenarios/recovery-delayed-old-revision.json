@@ -1,0 +1,11 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-delayed-old-revision",
+  "expected": {
+    "remote_writes": 1,
+    "confirmed_effects": 1,
+    "replacement_waited": true,
+    "replacement_failure": "amendment_required",
+    "replay_equal": true
+  }
+}

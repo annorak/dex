@@ -1,0 +1,13 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-complete",
+  "expected": {
+    "verified_registered": true,
+    "program_approved": true,
+    "session_actor": "operator",
+    "stale_rejected": true,
+    "confirmed_effects": 1,
+    "remote_writes": 1,
+    "replay_equal": true
+  }
+}

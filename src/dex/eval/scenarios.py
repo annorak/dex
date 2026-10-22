@@ -2,6 +2,7 @@ import json
 import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import cast
 
 from dex.core import authority as a
 from dex.core import events as e
@@ -441,6 +442,18 @@ def run_scenario(path: Path, out: Path) -> int:
     try:
         with path.open("rb") as handle:
             source = handle.read(MAX_BYTES + 1)
+        try:
+            header: object = json.loads(source) if len(source) <= MAX_BYTES else None
+        except ValueError:
+            header = None
+        if (
+            isinstance(header, dict)
+            and cast(dict[str, object], header).get("format")
+            == "dex-recovery-scenario-1"
+        ):
+            from dex.eval.recovery import run_recovery
+
+            return run_recovery(source, out)
         scenario = parse_scenario(source)
         evaluation = evaluate(scenario)
         actual = {

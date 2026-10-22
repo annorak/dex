@@ -1,0 +1,11 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-size-1000",
+  "expected": {
+    "remote_writes": 1000,
+    "confirmed_effects": 1000,
+    "unresolved_before_reopen": 1000,
+    "unresolved_attempts": 0,
+    "replay_equal": true
+  }
+}

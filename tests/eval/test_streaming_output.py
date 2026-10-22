@@ -134,7 +134,12 @@ def test_streaming_preserves_nested_schema_tags_dates_and_sorted_sets() -> None:
 
 @pytest.mark.parametrize(
     "path",
-    sorted(path for path in SCENARIOS.glob("*.json") if "-size-" not in path.name),
+    sorted(
+        path
+        for path in SCENARIOS.glob("*.json")
+        if "-size-" not in path.name
+        and json.loads(path.read_bytes())["format"] == "dex-eval-scenario-2"
+    ),
     ids=lambda path: path.name,
 )
 def test_streaming_matches_full_encoding_for_every_small_scenario(path: Path) -> None:

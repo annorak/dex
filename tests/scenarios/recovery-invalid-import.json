@@ -1,0 +1,16 @@
+{
+  "format": "dex-recovery-scenario-1",
+  "scenario_id": "recovery-invalid-import",
+  "expected": {
+    "invalid_rejected": true,
+    "workspace_unchanged": true,
+    "unknown_version_rejected": true,
+    "replay_equal": true,
+    "stored_corruptions_rejected": [
+      "artifact_corrupt",
+      "event_version",
+      "workspace_version"
+    ],
+    "corrupt_bytes_unchanged": true
+  }
+}
