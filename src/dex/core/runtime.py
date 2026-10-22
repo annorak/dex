@@ -953,11 +953,16 @@ class _Reducer:
         previous = self.reviews.get(key)
         count = self.trust.get(behavior, a.TrustCount())
         if item.outcome == "mistake":
-            if previous is not None and previous.outcome == "mistake":
+            if previous is not None and behavior in previous.mistakes:
                 return
             self.trust[behavior] = a.TrustCount(0, count.generation + 1)
             self.reviews[key] = a.ReviewEvidence(
-                behavior, count.generation + 1, (), "mistake", frozenset({ref})
+                behavior,
+                count.generation + 1,
+                (),
+                "mistake",
+                frozenset({ref}),
+                (frozenset() if previous is None else previous.mistakes) | {behavior},
             )
             return
         if (
@@ -983,7 +988,12 @@ class _Reducer:
         )
         if previous is None:
             self.reviews[key] = a.ReviewEvidence(
-                behavior, count.generation, effects, "pending", frozenset({ref})
+                behavior,
+                count.generation,
+                effects,
+                "pending",
+                frozenset({ref}),
+                frozenset(),
             )
         else:
             self.reviews[key] = replace(

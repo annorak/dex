@@ -50,6 +50,7 @@ class ReviewEvidence:
     effects: tuple[EffectRef, ...]
     outcome: Literal["clean", "mistake", "pending"]
     work: frozenset[e.WorkRevision]
+    mistakes: frozenset[BehaviorKey]
 
 
 @dataclass(frozen=True)

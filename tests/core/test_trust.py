@@ -465,6 +465,60 @@ def test_sampled_unattended_mistake_resets_trust_and_blocks_next_dispatch() -> N
     run.replay()
 
 
+def test_mixed_applicability_mistakes_reset_each_class_once() -> None:
+    first = code("first", p.ProgramInputRef("amount"), p.Scalar.MONEY)
+    second = code("second", p.ProgramInputRef("amount"), p.Scalar.MONEY)
+    first = replace(first, metadata=replace(first.metadata, behavior_id="shared"))
+    second = replace(second, metadata=replace(second.metadata, behavior_id="shared"))
+    functions = (identity(p.Scalar.MONEY, p.MoneyValue(1)),)
+    inputs = (p.Field("amount", p.Scalar.MONEY),)
+    source = draft(first, functions, inputs, revision="first")
+    other = draft(second, functions, inputs, revision="second")
+    mixed = draft(
+        p.Sequence(
+            "sequence", (first, second), p.Export(p.Scalar.MONEY, p.ResultRef("second"))
+        ),
+        functions,
+        inputs,
+        revision="mixed",
+    )
+    run = TrustRun(source)
+    other_catalog, mixed_catalog = catalog(other), catalog(mixed)
+    run.catalog = r.ProgramCatalog(
+        (*run.catalog.entries, *other_catalog.entries, *mixed_catalog.entries)
+    )
+
+    def start(name: str, pin: e.ArtifactPin) -> None:
+        run.apply(
+            e.StartSandbox(
+                run.meta("start/" + name),
+                name,
+                pin,
+                (p.NamedValue("amount", p.MoneyValue(1)),),
+                NOW.date(),
+                company=POLICY,
+            )
+        )
+
+    start("first-clean", run.catalog.entries[0].pin)
+    run.review("first-clean", node="first")
+    start("second-clean", other_catalog.entries[0].pin)
+    run.review("second-clean", node="second")
+    assert sorted(count.clean for count in run.state.trust.values()) == [1, 1]
+    start("both-wrong", mixed_catalog.entries[0].pin)
+    run.review("both-wrong", "mistake", "first")
+    run.review("both-wrong", "mistake", "second")
+    assert sorted(count.clean for count in run.state.trust.values()) == [0, 0]
+    start("first-new", run.catalog.entries[0].pin)
+    run.review("first-new", node="first")
+    start("second-new", other_catalog.entries[0].pin)
+    run.review("second-new", node="second")
+    run.review("both-wrong", "mistake", "first")
+    run.review("both-wrong", "mistake", "second")
+    assert sorted(count.clean for count in run.state.trust.values()) == [1, 1]
+    run.replay()
+
+
 @pytest.mark.parametrize("second_outcome", ["clean", "mistake"])
 def test_each_writing_instance_requires_review_and_confirmation(
     second_outcome: Literal["clean", "mistake"],
