@@ -25,14 +25,14 @@ No standing-authority dispatch, production authentication, live adapter integrat
 
 | Check | Revision and result | Evidence |
 | --- | --- | --- |
-| Full repository gates | Initial committed head `e7eabc8`: 671 tests; current product head `3aae662`: 672 tests, Ruff, strict Pyright, import contracts, core checks, secret scanning and CLI help pass | [Initial committed check](owner/053-committed-check.txt), [current committed check](owner/069-committed-startup-check.txt), [independent gate lane](formal/11-gates/report.md) |
+| Full repository gates | Initial committed head `e7eabc8`: 671 tests; current product head `3aae662`: 672 tests, Ruff, strict Pyright, import contracts, core checks, secret scanning and CLI help pass | Initial committed check (`local: owner/053-committed-check.txt`), current committed check (`local: owner/069-committed-startup-check.txt`), [independent gate lane](formal/11-gates/report.md) |
 | Ten independent live CLI lanes | All passed at `e7eabc8`; all ten reran successfully at `3aae662` | [Final verifier](final-verifier/report.md), formal reports below |
 | Independent correctness | No introduced finding in assigned scope; 77 focused tests and deterministic probes passed | [Correctness](formal/13-correctness/report.md) |
 | Independent isolation | 211 focused tests, import contracts and normal CLI authority/codec probes passed | [Isolation](formal/14-isolation/report.md) |
 | Changed CLI behavior | 47 focused CLI/recovery tests passed at `3aae662` | [Final verifier](final-verifier/report.md) |
 | Recovery-size-1000 | All absolute and supported-comparison gates passed at `3aae662` | [Samples](final-verifier/measurements.json), [method and results](final-verifier/report.md) |
 
-The initial full independent round used `e7eabc89ac47e6abb870e4e4f4306dc891b53217`. Fix-forward 1 changed only CLI parser construction and its regression test. All other production sources, scenario inputs, engine tests, lockfile and check configuration are unchanged. The fresh verifier checked this diff, compared source hashes, reran the changed CLI and all ten live scenarios, and performed fresh performance verification. Earlier correctness, isolation and detailed barrier/replay probes therefore remain applicable to unchanged subjects; they are not represented as executions on the newer head. See [source hashes](final-verifier/source-hashes.json) and [carry-forward receipt](final-verifier/carry-forward.txt).
+The initial full independent round used `e7eabc89ac47e6abb870e4e4f4306dc891b53217`. Fix-forward 1 changed only CLI parser construction and its regression test. All other production sources, scenario inputs, engine tests, lockfile and check configuration are unchanged. The fresh verifier checked this diff, compared source hashes, reran the changed CLI and all ten live scenarios, and performed fresh performance verification. Earlier correctness, isolation and detailed barrier/replay probes therefore remain applicable to unchanged subjects; they are not represented as executions on the newer head. See source hashes (`local: final-verifier/source-hashes.json`) and carry-forward receipt (`local: final-verifier/carry-forward.txt`).
 
 The final evidence-only commit changes documentation and saved receipts. Product evidence carries forward only after confirming that its source, tests, configuration and dependencies equal `3aae662`; the final head receives a new full check and CI result.
 
@@ -55,7 +55,7 @@ Concurrency and delayed-completion probes use deterministic barriers, not timing
 
 ## Performance
 
-The final run used the unchanged historical shared Timer V2: monotonic nanosecond wall time, adjacent UTC drift validation, and per-command child RSS. Its SHA-256 is `64349ee4f8d8959cb8a9cede296988d00e78941e38744a3b4805e99649f6b4b9`. The [schedule](final-verifier/schedule.json) was frozen before measurement. Samples ran serially after other CPU-heavy verification, using fresh databases, pinned environments and identical input bytes.
+The final run used the unchanged historical shared Timer V2: monotonic nanosecond wall time, adjacent UTC drift validation, and per-command child RSS. Its SHA-256 is `64349ee4f8d8959cb8a9cede296988d00e78941e38744a3b4805e99649f6b4b9`. The schedule (`local: final-verifier/schedule.json`) was frozen before measurement. Samples ran serially after other CPU-heavy verification, using fresh databases, pinned environments and identical input bytes.
 
 There was one complete first trunk invocation, five alternating trunk/head startup pairs, and five alternating supported-parent/head recovery pairs. Trunk lacks recovery and workspace commands: its actual exit-2 refusals are unsupported comparisons, never passes. Immediate parent `e7eabc8` supports recovery and was measured in all five pairs.
 
@@ -73,15 +73,17 @@ The [first M1-07 performance round](formal/12-performance/report.md) remains **I
 
 ## Success and rejection for operator review
 
-- [Register a verified program](cli/register.txt): exit 0, local actor `operator`, revision 1, no missing checks.
-- [Approve that program](cli/approve.txt): exit 0, actor `operator`, revision 2, approved.
-- [Reject stale approval](cli/stale-approval.txt): exit 1, `stale_revision`, revision remains 2.
+- Register a verified program (`local: cli/register.txt`): exit 0, local actor `operator`, revision 1, no missing checks.
+- Approve that program (`local: cli/approve.txt`): exit 0, actor `operator`, revision 2, approved.
+- Reject stale approval (`local: cli/stale-approval.txt`): exit 1, `stale_revision`, revision remains 2.
 
-These are exact normal CLI transcripts at `3aae662`, including arguments, revision, stdout, stderr and exit status.
+These exact normal CLI transcripts at `3aae662` include arguments, revision, stdout, stderr and exit status. They remain in the local evidence directory, not in the Git-tracked package.
 
 ## Audit trail and limits
 
-The complete command receipts, earlier revisions, failed attempts, proposed diffs, probes and generated databases are preserved locally under `docs/verification/m1-07-3aae662/full-audit/`, with a SHA-256 manifest. The PR contains a selected portable text evidence set; paths in exact transcripts intentionally retain their original execution locations. The full local set resolves report references without depending on temporary worktrees.
+The complete command receipts, earlier revisions, failed attempts, proposed diffs, probes and generated databases are preserved locally under `/Users/varunvis/workspace/dev/dex/docs/verification/m1-07-3aae662/full-audit/`, with a SHA-256 manifest. The original 80-file evidence package also remains under `/Users/varunvis/workspace/dev/dex/docs/verification/m1-07-3aae662/`. References marked `local:` resolve beneath that original directory. Historical report paths resolve in the full audit archive.
+
+The PR commits summaries and scanner-clean evidence only. The first documentation head `aea685a` failed `make check` because the unchanged entropy scanner flagged Git and artifact hashes inside 59 evidence files. Those exact files were removed from the tracked package, without editing their durable local originals, escaping their contents, adding exemptions, or changing the scanner. Receipt `owner/083-final-committed-check.txt` in the full audit archive preserves that failure. This packaging repair does not change product sources or product verification.
 
 The first install recorder failed before launching its child and left an empty receipt. [Its reconstruction](owner/001-install-reconstructed-failure.txt) explicitly leaves unavailable original stderr, status and time unknown. Some early bootstrap/read commands predated the recorder. These are documented audit gaps, not passing checks. Substantive final functional, performance, database and source-integrity checks have separate receipts. Setup denials, verifier-script errors and corrected assertions remain preserved.
 
