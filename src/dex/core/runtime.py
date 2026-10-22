@@ -962,7 +962,8 @@ class _Reducer:
                 (),
                 "mistake",
                 frozenset({ref}),
-                (frozenset() if previous is None else previous.mistakes) | {behavior},
+                (frozenset[a.BehaviorKey]() if previous is None else previous.mistakes)
+                | {behavior},
             )
             return
         if (
