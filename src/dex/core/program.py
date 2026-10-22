@@ -249,6 +249,9 @@ class ChangeDeclaration:
     change_id: str
     operation: str
     payload: Export
+    scope: tuple[Binding, ...] | None = None
+    occurrence: Input | None = None
+    preconditions: tuple[Binding, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -294,6 +297,18 @@ class CodeStep:
 class AiStep:
     metadata: StepMetadata
     prompt_revision: str
+    result_schema: Schema | None = None
+
+
+def ai_outcome_schema(schema: Schema) -> RecordSchema:
+    return RecordSchema(
+        "AiOutcome",
+        (
+            Field("valid", Scalar.BOOLEAN),
+            Field("value", OptionalSchema(schema)),
+            Field("failure", OptionalSchema(Scalar.TEXT)),
+        ),
+    )
 
 
 @dataclass(frozen=True)
@@ -511,6 +526,7 @@ class _Verifier:
         self.bindings: dict[tuple[str, str], Schema] = {}
         self.undo: list[tuple[str, str]] = []
         self.change_ids: set[str] = set()
+        self.ai_fallbacks: set[str] = set()
 
     def fail(self, code: str, path: str, message: str) -> None:
         self.errors.append(Diagnostic(code, path, message))
@@ -853,6 +869,20 @@ class _Verifier:
                 )
         elif isinstance(node, AiStep):
             self.names((node.prompt_revision,), path)
+            if node.result_schema is not None:
+                if path not in self.ai_fallbacks:
+                    self.fail(
+                        "ai_human_fallback",
+                        path,
+                        "AI needs a following checked human fallback.",
+                    )
+                self.schema(node.result_schema, path + ".result")
+                if metadata.output != ai_outcome_schema(node.result_schema):
+                    self.fail(
+                        "ai_outcome_schema",
+                        path,
+                        "AI output needs its checked outcome envelope.",
+                    )
         else:
             self.names((node.eligible_role,), path)
             if node.due_at.tzinfo is None or node.due_at.utcoffset() is None:
@@ -868,6 +898,25 @@ class _Verifier:
                 self.fail("duplicate_identity", path, change.change_id)
             self.change_ids.add(change.change_id)
             self.export(change.payload, path + ".changes." + change.change_id)
+            if (change.scope is None) != (change.occurrence is None):
+                self.fail(
+                    "effect_identity",
+                    path,
+                    "Scope and occurrence must be declared together.",
+                )
+            if change.scope is not None and change.occurrence is not None:
+                self.names(tuple(item.name for item in change.scope), path)
+                for item in change.scope:
+                    self.schema(item.schema, path)
+                    self.input(item.value, item.schema, path)
+                self.input(change.occurrence, Scalar.TEXT, path)
+            self.names(tuple(item.name for item in change.preconditions), path)
+            for item in change.preconditions:
+                if item.schema != Scalar.BOOLEAN:
+                    self.fail(
+                        "effect_precondition", path, "A precondition must be boolean."
+                    )
+                self.input(item.value, Scalar.BOOLEAN, path)
 
     def walk(self, node: Node) -> None:
         name = node_identity(node)
@@ -878,7 +927,23 @@ class _Verifier:
             return
         mark = len(self.undo)
         if isinstance(node, Sequence):
-            for child in node.children:
+            for index, child in enumerate(node.children):
+                if isinstance(child, AiStep) and child.result_schema is not None:
+                    following = node.children[index + 1 : index + 2]
+                    if not (
+                        following
+                        and isinstance(following[0], Choose)
+                        and following[0].condition
+                        == ResultRef(child.metadata.step_id, ("valid",))
+                        and isinstance(following[0].when_false.body, HumanStep)
+                    ):
+                        self.fail(
+                            "ai_human_fallback",
+                            name,
+                            "AI failure must select an explicit human step.",
+                        )
+                    else:
+                        self.ai_fallbacks.add(child.metadata.step_id)
                 self.walk(child)
             self.export(node.result, name)
         elif isinstance(node, Choose):

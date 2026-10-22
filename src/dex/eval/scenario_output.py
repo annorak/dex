@@ -1,36 +1,49 @@
+import json
 from dataclasses import fields as dataclass_fields
 from dataclasses import is_dataclass
 from datetime import date
-from typing import cast
+from json.encoder import encode_basestring_ascii
+from typing import TextIO, cast
+
+import orjson
 
 from dex.core import language as language
 from dex.core import program as p
 from dex.eval.scenario_format import Json
 
+_generic_fields: dict[type[object], tuple[str, ...]] = {}
 
-def encode_core(value: object) -> Json:
+
+def output_shape(value: object) -> object:
+    names = _generic_fields.get(type(value))
+    if names is not None:
+        return {
+            "kind": type(value).__name__,
+            **{name: getattr(value, name) for name in names},
+        }
+    if isinstance(value, p.NamedValue):
+        return {"name": value.name, "value": value.value}
+    if isinstance(value, p.TextValue):
+        return {"kind": "text", "value": value.value}
+    if isinstance(value, p.IntValue):
+        return {"kind": "integer", "value": value.value}
+    if isinstance(value, p.RecordValue):
+        return {"kind": "record", "record": value.record, "fields": value.fields}
+    if isinstance(value, p.KeyedEntry):
+        return {"key": value.key, "value": value.value}
     if isinstance(value, p.Scalar):
         return {"kind": value.value}
     if value is None or isinstance(value, (str, bool, int)):
         return value
     if isinstance(value, date):
         return value.isoformat()
-    if isinstance(value, tuple):
-        return [encode_core(item) for item in cast(tuple[object, ...], value)]
-    if isinstance(value, list):
-        return [encode_core(item) for item in cast(list[object], value)]
-    if isinstance(value, dict):
-        return {
-            name: encode_core(item)
-            for name, item in cast(dict[str, object], value).items()
-        }
+    if isinstance(value, (tuple, list, dict)):
+        return cast(tuple[object, ...] | list[object] | dict[str, object], value)
+    if isinstance(value, frozenset):
+        return sorted(cast(frozenset[object], value), key=repr)
     fields: dict[str, object]
     if isinstance(value, p.BoolValue):
         fields = {"kind": "boolean", "value": value.value}
-    elif isinstance(value, p.IntValue):
-        fields = {"kind": "integer", "value": value.value}
-    elif isinstance(value, p.TextValue):
-        fields = {"kind": "text", "value": value.value}
     elif isinstance(value, p.DateValue):
         fields = {"kind": "date", "value": value.value}
     elif isinstance(value, p.MoneyValue):
@@ -41,8 +54,13 @@ def encode_core(value: object) -> Json:
         fields = {"kind": "present", "value": value.value}
     elif isinstance(value, p.TaggedValue):
         fields = {"kind": "tagged", "tag": value.tag, "value": value.value}
-    elif isinstance(value, p.RecordValue):
-        fields = {"kind": "record", "record": value.record, "fields": value.fields}
+    elif isinstance(value, p.LocalRef):
+        fields = {
+            "kind": "local",
+            "owner": value.owner,
+            "name": value.name,
+            "path": value.path,
+        }
     elif isinstance(value, p.KeyedValue):
         fields = {"kind": "keyed", "entries": value.entries}
     elif isinstance(value, p.ResolvedRefValue):
@@ -76,13 +94,6 @@ def encode_core(value: object) -> Json:
         fields = {"kind": "program_input", "name": value.name, "path": value.path}
     elif isinstance(value, p.ResultRef):
         fields = {"kind": "result", "node": value.node, "path": value.path}
-    elif isinstance(value, p.LocalRef):
-        fields = {
-            "kind": "local",
-            "owner": value.owner,
-            "name": value.name,
-            "path": value.path,
-        }
     elif isinstance(value, p.RuleInputRef):
         fields = {
             "kind": "rule",
@@ -101,6 +112,11 @@ def encode_core(value: object) -> Json:
             "kind": "ai",
             "metadata": value.metadata,
             "prompt_revision": value.prompt_revision,
+            **(
+                {"result_schema": value.result_schema}
+                if value.result_schema is not None
+                else {}
+            ),
         }
     elif isinstance(value, p.HumanStep):
         fields = {
@@ -158,10 +174,6 @@ def encode_core(value: object) -> Json:
         fields = {"kind": "event", "event": value.event}
     elif isinstance(value, p.Field):
         fields = {"name": value.name, "schema": value.schema}
-    elif isinstance(value, p.NamedValue):
-        fields = {"name": value.name, "value": value.value}
-    elif isinstance(value, p.KeyedEntry):
-        fields = {"key": value.key, "value": value.value}
     elif isinstance(value, p.Binding):
         fields = {"name": value.name, "schema": value.schema, "value": value.value}
     elif isinstance(value, p.Export):
@@ -199,6 +211,15 @@ def encode_core(value: object) -> Json:
             "change_id": value.change_id,
             "operation": value.operation,
             "payload": value.payload,
+            **(
+                {
+                    "scope": value.scope,
+                    "occurrence": value.occurrence,
+                    "preconditions": value.preconditions,
+                }
+                if value.scope is not None
+                else {}
+            ),
         }
     elif isinstance(value, p.StepMetadata):
         fields = {
@@ -285,12 +306,133 @@ def encode_core(value: object) -> Json:
     elif isinstance(value, p.Diagnostic):
         fields = {"code": value.code, "path": value.path, "message": value.message}
     elif is_dataclass(value) and not isinstance(value, type):
+        names = tuple(item.name for item in dataclass_fields(value))
+        _generic_fields[type(value)] = names
         fields = {
             "kind": type(value).__name__,
-            **{
-                item.name: getattr(value, item.name) for item in dataclass_fields(value)
-            },
+            **{name: getattr(value, name) for name in names},
         }
     else:
         raise TypeError("Unsupported core output type: " + type(value).__name__)
-    return {name: encode_core(item) for name, item in fields.items()}
+    return fields
+
+
+def encode_core(value: object) -> Json:
+    shaped = output_shape(value)
+    if isinstance(shaped, dict):
+        return {
+            name: encode_core(item)
+            for name, item in cast(dict[str, object], shaped).items()
+        }
+    if isinstance(shaped, (tuple, list)):
+        return [
+            encode_core(item)
+            for item in cast(tuple[object, ...] | list[object], shaped)
+        ]
+    return cast(Json, shaped)
+
+
+def write_json(value: object, outputs: tuple[TextIO, ...]) -> None:
+    chunks: list[str] = []
+    size = 0
+
+    def append(chunk: str) -> None:
+        nonlocal size
+        chunks.append(chunk)
+        size += len(chunk)
+        if size >= 64 * 1024:
+            text = "".join(chunks)
+            for output in outputs:
+                output.write(text)
+            chunks.clear()
+            size = 0
+
+    def prepare(item: object) -> object:
+        if isinstance(item, p.Scalar):
+            return output_shape(item)
+        if isinstance(item, dict):
+            return {
+                name: prepare(child)
+                for name, child in cast(dict[str, object], item).items()
+            }
+        if isinstance(item, (tuple, list)):
+            return [
+                prepare(child)
+                for child in cast(tuple[object, ...] | list[object], item)
+            ]
+        return item
+
+    def encoded_shape(item: object) -> object:
+        shaped = output_shape(item)
+        if not isinstance(shaped, dict):
+            return prepare(shaped)
+        fields = cast(dict[str, object], shaped)
+        for name, child in fields.items():
+            if isinstance(child, p.Scalar):
+                fields[name] = {"kind": child.value}
+            elif isinstance(child, (dict, tuple, list)):
+                fields[name] = prepare(cast(object, child))
+        return fields
+
+    def write(item: object, is_element: bool = False) -> None:
+        if (
+            is_element
+            and is_dataclass(item)
+            and not isinstance(item, type)
+            and type(item).__module__.startswith("dex.core.")
+        ):
+            try:
+                text = orjson.dumps(
+                    item,
+                    default=encoded_shape,
+                    option=orjson.OPT_SORT_KEYS
+                    | orjson.OPT_PASSTHROUGH_DATACLASS
+                    | orjson.OPT_PASSTHROUGH_DATETIME,
+                ).decode("ascii")
+            except (orjson.JSONEncodeError, UnicodeDecodeError):
+                text = json.dumps(
+                    encode_core(item), sort_keys=True, separators=(",", ":")
+                )
+            append(text)
+            return
+        if isinstance(item, str) and not isinstance(item, p.Scalar):
+            append(encode_basestring_ascii(item))
+            return
+        if item is None or isinstance(item, (bool, int)):
+            append(
+                "null"
+                if item is None
+                else "true"
+                if item is True
+                else "false"
+                if item is False
+                else str(item)
+            )
+            return
+        shaped = output_shape(item)
+        if isinstance(shaped, dict):
+            fields = cast(dict[str, object], shaped)
+            append("{")
+            for index, name in enumerate(sorted(fields)):
+                if index:
+                    append(",")
+                append(encode_basestring_ascii(name))
+                append(":")
+                write(fields[name])
+            append("}")
+        elif isinstance(shaped, (tuple, list)):
+            append("[")
+            for index, child in enumerate(
+                cast(tuple[object, ...] | list[object], shaped)
+            ):
+                if index:
+                    append(",")
+                write(child, True)
+            append("]")
+        else:
+            write(shaped)
+
+    write(value)
+    text = "".join(chunks) + "\n"
+    for output in outputs:
+        output.write(text)

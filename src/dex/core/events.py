@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Literal
 
+from dex.core import authority as a
 from dex.core import program as p
 from dex.core.language import Usage
 from dex.core.program import ExecutionPending, ProgramDraft, VerificationResult
@@ -86,6 +88,56 @@ class WorkAddress:
 
 
 @dataclass(frozen=True)
+class WorkRevision:
+    address: WorkAddress
+    revision: int
+
+
+@dataclass(frozen=True)
+class RoleMembership:
+    actor: str
+    role: str
+    scope: tuple[ScopePart, ...]
+    valid_from: datetime
+    valid_until: datetime | None
+
+
+@dataclass(frozen=True)
+class ObservationPermission:
+    observer: str
+    origin: str
+    scope: tuple[ScopePart, ...]
+    valid_from: datetime
+    valid_until: datetime | None
+
+
+@dataclass(frozen=True)
+class CompanyContext:
+    company_id: str
+    policy_revision: str
+    memberships: tuple[RoleMembership, ...]
+    observers: tuple[ObservationPermission, ...]
+    record_revision: str
+    records: frozenset[p.ResolvedRefValue]
+
+
+@dataclass(frozen=True)
+class HumanAction:
+    company_id: str
+    origin: str
+    action_id: str
+    actor: str
+    role: str
+    decided_at: datetime
+
+
+@dataclass(frozen=True)
+class TaskRef:
+    work: WorkRevision
+    request_revision: int
+
+
+@dataclass(frozen=True)
 class StartSandbox:
     meta: CommandMeta
     case_id: str
@@ -93,6 +145,7 @@ class StartSandbox:
     facts: tuple[p.NamedValue, ...]
     business_date: date
     bounds: ActivationBounds = ActivationBounds()
+    company: CompanyContext | None = None
 
 
 @dataclass(frozen=True)
@@ -110,7 +163,122 @@ class ActivateProgram:
     artifact: ArtifactPin
 
 
-type Command = StartSandbox | SignalRepeat | ActivateProgram
+@dataclass(frozen=True)
+class RespondTask:
+    meta: CommandMeta
+    task: TaskRef
+    reviewed: tuple[WorkRevision, ...]
+    action: HumanAction
+    value: p.Value
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class ReassignTask:
+    meta: CommandMeta
+    task: TaskRef
+    action: HumanAction
+    assignee: str | None
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class CancelTask:
+    meta: CommandMeta
+    task: TaskRef
+    action: HumanAction
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class CorrectResult:
+    meta: CommandMeta
+    work: WorkRevision
+    action: HumanAction
+    value: p.Value
+    bounds: ActivationBounds = ActivationBounds()
+
+
+type HumanCommand = RespondTask | ReassignTask | CancelTask | CorrectResult
+
+
+@dataclass(frozen=True)
+class ApproveEffect:
+    meta: CommandMeta
+    effect: a.EffectRef
+    action: HumanAction
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class RevokeEffectApproval:
+    meta: CommandMeta
+    effect: a.EffectRef
+    approval: a.ActionKey
+    action: HumanAction
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class AmendEffect:
+    meta: CommandMeta
+    effect: a.EffectRef
+    original: a.EffectRef
+    occurrence: str
+    action: HumanAction
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class BeginEffectAttempt:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class MarkEffectUncertain:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    reason: str
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class ConfirmEffect:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    receipt: a.ExecutionReceipt
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class ReconcileEffect:
+    meta: CommandMeta
+    effect: a.EffectRef
+    attempt_id: str
+    conclusion: a.Reconciliation
+    bounds: ActivationBounds = ActivationBounds()
+
+
+type EffectReview = ApproveEffect | RevokeEffectApproval | AmendEffect
+type EffectCommand = (
+    EffectReview
+    | BeginEffectAttempt
+    | MarkEffectUncertain
+    | ConfirmEffect
+    | ReconcileEffect
+)
+type ActionCommand = HumanCommand | EffectReview
+
+
+type RuntimeCommand = (
+    StartSandbox | SignalRepeat | HumanCommand | SupplyRecording | EffectCommand
+)
+type Command = RuntimeCommand | ActivateProgram
 
 
 @dataclass(frozen=True)
@@ -130,6 +298,7 @@ class LocalBinding:
 class Context:
     results: tuple[ResultBinding, ...] = ()
     locals: tuple[LocalBinding, ...] = ()
+    controls: tuple[WorkRevision, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -140,11 +309,12 @@ class ConsumedInput:
     producer: WorkAddress | None
     rule_ids: tuple[str, ...] = ()
     rule_scope: tuple[p.NamedValue, ...] = ()
+    producer_revision: int | None = None
 
 
 @dataclass(frozen=True)
 class BatchStarted:
-    command: StartSandbox | SignalRepeat
+    command: RuntimeCommand
 
 
 @dataclass(frozen=True)
@@ -152,6 +322,7 @@ class WorkOpened:
     address: WorkAddress
     parent: WorkAddress | None
     context: Context
+    revision: int = 1
 
 
 @dataclass(frozen=True)
@@ -197,6 +368,83 @@ class BatchCompleted:
     count: int
 
 
+@dataclass(frozen=True)
+class Task:
+    ref: TaskRef
+    company_id: str
+    reviewed: tuple[WorkRevision, ...]
+    eligible_role: str
+    assignee: str | None
+    due_at: datetime
+    schema: p.Schema
+    request: p.Value
+    status: Literal["open", "answered", "cancelled", "superseded"] = "open"
+
+
+@dataclass(frozen=True)
+class RecordingRequest:
+    work: WorkRevision
+    company_id: str
+    artifact: ArtifactPin
+    inputs: tuple[ConsumedInput, ...]
+    prompt_revision: str
+    schema: p.Schema
+    record_revision: str
+
+
+@dataclass(frozen=True)
+class Recording:
+    request: RecordingRequest
+    recording_id: str
+    model: str
+    input_tokens: int
+    output_tokens: int
+    value: p.Value | None
+    failure: str | None
+
+
+@dataclass(frozen=True)
+class SupplyRecording:
+    meta: CommandMeta
+    recording: Recording
+    bounds: ActivationBounds = ActivationBounds()
+
+
+@dataclass(frozen=True)
+class TaskOpened:
+    address: WorkAddress
+    task: Task
+
+
+@dataclass(frozen=True)
+class HumanActed:
+    address: WorkAddress
+    command: HumanCommand
+
+
+@dataclass(frozen=True)
+class RecordingRequested:
+    address: WorkAddress
+    request: RecordingRequest
+
+
+@dataclass(frozen=True)
+class RecordingConsumed:
+    address: WorkAddress
+    recording: Recording
+    outcome: p.Value
+
+
+@dataclass(frozen=True)
+class EffectProposed:
+    revision: a.EffectRevision
+
+
+@dataclass(frozen=True)
+class EffectTransitioned:
+    command: EffectCommand
+
+
 type RuntimePayload = (
     BatchStarted
     | WorkOpened
@@ -206,6 +454,12 @@ type RuntimePayload = (
     | RepeatWaiting
     | CaseSettled
     | BatchCompleted
+    | TaskOpened
+    | HumanActed
+    | RecordingRequested
+    | RecordingConsumed
+    | EffectProposed
+    | EffectTransitioned
 )
 
 

@@ -3,15 +3,19 @@ import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from dex.core import authority as a
 from dex.core import events as e
 from dex.core import language as language
 from dex.core import program as p
 from dex.core import runtime as r
 from dex.eval.scenario_format import (
     MAX_BYTES,
+    ContinuationCommand,
+    EffectCommand,
     FunctionCommand,
     FunctionExpected,
     RebuildCommand,
+    RecordingCommand,
     RuntimeExpected,
     SandboxCommand,
     Scenario,
@@ -19,7 +23,8 @@ from dex.eval.scenario_format import (
     SignalCommand,
     parse_scenario,
 )
-from dex.eval.scenario_output import encode_core
+from dex.eval.scenario_output import write_json
+from dex.recordings import RecordingError, parse_recording
 
 
 @dataclass(frozen=True)
@@ -29,7 +34,14 @@ class RuntimeObservation:
     events: tuple[e.RuntimeEvent, ...]
     work: tuple[r.Work, ...]
     revision: int
-    replay_equal: bool
+    replay_equal: bool | None
+    tasks: tuple[e.Task, ...] = ()
+    actions: tuple[e.ActionCommand, ...] = ()
+    recordings: tuple[e.Recording, ...] = ()
+    history: tuple[r.Work, ...] = ()
+    submitted: e.RuntimeCommand | None = None
+    effects: tuple[a.Effect, ...] = ()
+    revoked_approvals: tuple[a.ActionKey, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -48,14 +60,17 @@ class Observation:
 class Evaluation:
     observations: tuple[Observation, ...]
     matches: tuple[bool, ...]
+    final_runtime: RuntimeObservation
 
 
 def evaluate(scenario: Scenario) -> Evaluation:
     programs = {item.name: item for item in scenario.programs}
     observations: list[Observation] = []
-    runtime_history: tuple[e.RuntimeEvent, ...] = ()
+    runtime_history: list[e.RuntimeEvent] = []
     runtime_state = r.rebuild((), r.ProgramCatalog(()))
     runtime_entries: dict[str, r.ArtifactEntry] = {}
+    catalog = r.ProgramCatalog(())
+    verified: dict[tuple[str, language.Limits], p.VerificationResult] = {}
     for command in scenario.commands:
         program = programs[command.program]
         limits = (
@@ -63,7 +78,10 @@ def evaluate(scenario: Scenario) -> Evaluation:
             if isinstance(command, FunctionCommand)
             else language.DEFAULT_LIMITS
         )
-        result = p.verify_program(program.draft, program.sources, limits)
+        key = command.program, limits
+        if key not in verified:
+            verified[key] = p.verify_program(program.draft, program.sources, limits)
+        result = verified[key]
         function: language.FunctionResult | language.LanguageFailure | None = None
         if isinstance(result, p.StructuralFailure):
             status = "structural_failure"
@@ -75,7 +93,17 @@ def evaluate(scenario: Scenario) -> Evaluation:
             diagnostics = ()
             missing = result.missing_checks
             artifact = result.artifact
-        if isinstance(command, (SandboxCommand, SignalCommand, RebuildCommand)):
+        if isinstance(
+            command,
+            (
+                SandboxCommand,
+                SignalCommand,
+                RebuildCommand,
+                ContinuationCommand,
+                RecordingCommand,
+                EffectCommand,
+            ),
+        ):
             if isinstance(result, p.StructuralFailure):
                 observations.append(
                     Observation(
@@ -89,21 +117,30 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     )
                 )
                 continue
-            runtime_entries[command.program] = r.ArtifactEntry(
-                r.artifact_pin(result.artifact), result.artifact
-            )
-            catalog = r.ProgramCatalog(tuple(runtime_entries.values()))
+            if command.program not in runtime_entries:
+                runtime_entries[command.program] = r.ArtifactEntry(
+                    r.artifact_pin(result.artifact), result.artifact
+                )
+                catalog = r.ProgramCatalog(tuple(runtime_entries.values()))
+            submitted: e.RuntimeCommand | None = None
+            before = runtime_state
+            replay_equal: bool | None = None
             batch: tuple[e.RuntimeEvent, ...] = ()
             failure: str | None = None
-            case_id = (
-                command.signal.address.case_id
-                if isinstance(command, SignalCommand)
-                else command.case_id
-            )
+            if isinstance(command, (ContinuationCommand, EffectCommand)):
+                case_id = r.command_case(command.command)
+            elif isinstance(command, RecordingCommand):
+                case_id = command.work.address.case_id
+            elif isinstance(command, SignalCommand):
+                case_id = command.signal.address.case_id
+            else:
+                case_id = command.case_id
             if isinstance(command, RebuildCommand):
                 if case_id not in runtime_state.cases:
-                    raise ScenarioError("Rebuild references an unknown case: " + case_id)
-                replay_events = runtime_history
+                    raise ScenarioError(
+                        "Rebuild references an unknown case: " + case_id
+                    )
+                replay_events = tuple(runtime_history)
                 replay_catalog = catalog
                 if command.corruption == "event_version" and replay_events:
                     replay_events = (
@@ -115,7 +152,8 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     replay_events = replay_events[:-1]
                 try:
                     restored = r.rebuild(replay_events, replay_catalog)
-                    if restored != runtime_state:
+                    replay_equal = restored == runtime_state
+                    if not replay_equal:
                         raise ScenarioError("Replay differs from live state.")
                 except r.ReplayError as error:
                     failure = error.code
@@ -125,47 +163,170 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     else "runtime_" + runtime_state.cases[case_id].status
                 )
             else:
-                core_command = (
-                    command.signal
-                    if isinstance(command, SignalCommand)
-                    else e.StartSandbox(
-                        command.meta,
-                        command.case_id,
-                        runtime_entries[command.program].pin,
-                        command.facts,
-                        command.business_date,
-                        command.bounds,
-                    )
-                )
-                decision = r.decide(runtime_state, core_command, catalog)
+                core_command: e.RuntimeCommand
+                decision: r.Accepted | r.Refused
+                if isinstance(command, RecordingCommand):
+                    work = runtime_state.work.get(command.work.address)
+                    request = None if work is None else work.request
+                    if request is None:
+                        previous = runtime_state.recordings.get(command.work)
+                        request = None if previous is None else previous.request
+                    try:
+                        if request is None or request.work != command.work:
+                            raise RecordingError("recording_request")
+                        recording = parse_recording(command.recording, request)
+                        submitted = e.SupplyRecording(
+                            command.meta, recording, command.bounds
+                        )
+                        decision = r.decide(runtime_state, submitted, catalog)
+                    except RecordingError as error:
+                        decision = r.Refused(str(error))
+                else:
+                    if isinstance(command, (ContinuationCommand, EffectCommand)):
+                        core_command = command.command
+                        if command.advance_revision:
+                            core_command = replace(
+                                core_command,
+                                meta=replace(
+                                    core_command.meta,
+                                    expected_revision=runtime_state.revision,
+                                ),
+                            )
+                    elif isinstance(command, SignalCommand):
+                        core_command = command.signal
+                    else:
+                        core_command = e.StartSandbox(
+                            command.meta,
+                            command.case_id,
+                            runtime_entries[command.program].pin,
+                            command.facts,
+                            command.business_date,
+                            command.bounds,
+                            command.company,
+                        )
+                    submitted = core_command
+                    decision = r.decide(runtime_state, core_command, catalog)
                 if isinstance(decision, r.Refused):
                     status, failure = "runtime_refused", decision.code
                 else:
                     batch = decision.events
-                    runtime_history += batch
-                    runtime_state = r.rebuild(runtime_history, catalog)
+                    runtime_history.extend(batch)
+                    runtime_state = decision.state
                     status = "runtime_" + runtime_state.cases[case_id].status
                     failure = runtime_state.cases[case_id].failure
-            case_work = tuple(
-                work
-                for address, work in runtime_state.work.items()
-                if address.case_id == case_id
+            is_effect_delta = (
+                isinstance(command, EffectCommand) and scenario.detail == "changes"
+            )
+            case_work = (
+                ()
+                if is_effect_delta
+                else tuple(
+                    work
+                    for address, work in runtime_state.work.items()
+                    if address.case_id == case_id
+                )
             )
             root_work = next(
                 (work for work in case_work if work.opened.parent is None), None
             )
             value = (
                 root_work.completed.value
-                if root_work is not None and root_work.completed is not None
+                if not isinstance(command, EffectCommand)
+                and root_work is not None
+                and root_work.completed is not None
                 else None
             )
+            changed_effects: set[a.EffectRef] = set()
+            changed_actions: set[a.ActionKey] = set()
+            for event in batch:
+                payload = event.payload
+                if isinstance(payload, e.EffectProposed):
+                    changed_effects.add(payload.revision.ref)
+                    previous = before.current_effects.get(payload.revision.ref.key)
+                    if previous is not None:
+                        changed_effects.add(previous)
+                elif isinstance(payload, e.EffectTransitioned):
+                    effect_command = payload.command
+                    changed_effects.add(effect_command.effect)
+                    if isinstance(
+                        effect_command,
+                        (e.ApproveEffect, e.RevokeEffectApproval, e.AmendEffect),
+                    ):
+                        changed_actions.add(r.action_key(effect_command.action))
+                    if isinstance(effect_command, e.AmendEffect):
+                        changed_effects.add(
+                            a.EffectRef(
+                                replace(
+                                    effect_command.effect.key,
+                                    occurrence=effect_command.occurrence,
+                                ),
+                                1,
+                            )
+                        )
             runtime = RuntimeObservation(
                 value,
                 failure,
                 batch,
-                case_work,
+                case_work
+                if scenario.detail == "full"
+                else tuple(
+                    work
+                    for work in case_work
+                    if before.work.get(work.opened.address) != work
+                ),
                 runtime_state.revision,
-                r.rebuild(runtime_history, catalog) == runtime_state,
+                replay_equal,
+                ()
+                if is_effect_delta
+                else tuple(
+                    task
+                    for ref, task in runtime_state.tasks.items()
+                    if ref.work.address.case_id == case_id
+                    and (scenario.detail == "full" or before.tasks.get(ref) != task)
+                ),
+                tuple(runtime_state.actions[key] for key in sorted(changed_actions))
+                if is_effect_delta
+                else tuple(
+                    action
+                    for key, action in runtime_state.actions.items()
+                    if r.command_case(action) == case_id
+                    and (scenario.detail == "full" or key not in before.actions)
+                ),
+                ()
+                if is_effect_delta
+                else tuple(
+                    recording
+                    for ref, recording in runtime_state.recordings.items()
+                    if ref.address.case_id == case_id
+                    and (scenario.detail == "full" or ref not in before.recordings)
+                ),
+                ()
+                if is_effect_delta
+                else tuple(
+                    work
+                    for ref, work in runtime_state.history.items()
+                    if ref.address.case_id == case_id
+                    and (scenario.detail == "full" or ref not in before.history)
+                ),
+                submitted,
+                tuple(
+                    runtime_state.effects[ref]
+                    for ref in sorted(changed_effects, key=repr)
+                    if before.effects.get(ref) != runtime_state.effects[ref]
+                )
+                if scenario.detail == "changes"
+                else tuple(
+                    effect
+                    for ref, effect in runtime_state.effects.items()
+                    if ref.key.case_id == case_id
+                ),
+                tuple(
+                    sorted(
+                        runtime_state.revoked_approvals
+                        if scenario.detail == "full"
+                        else runtime_state.revoked_approvals - before.revoked_approvals
+                    )
+                ),
             )
             observations.append(
                 Observation(
@@ -221,6 +382,21 @@ def evaluate(scenario: Scenario) -> Evaluation:
                 function,
             )
         )
+    final_replay_equal = r.rebuild(tuple(runtime_history), catalog) == runtime_state
+    final_runtime = RuntimeObservation(
+        None,
+        None,
+        (),
+        tuple(runtime_state.work.values()),
+        runtime_state.revision,
+        final_replay_equal,
+        tuple(runtime_state.tasks.values()),
+        tuple(runtime_state.actions.values()),
+        tuple(runtime_state.recordings.values()),
+        tuple(runtime_state.history.values()),
+        effects=tuple(runtime_state.effects.values()),
+        revoked_approvals=tuple(sorted(runtime_state.revoked_approvals)),
+    )
     matches = tuple(
         (
             actual.status == expected.status
@@ -228,7 +404,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
             and actual.runtime.value
             == (None if expected.value is None else p.normalized_value(expected.value))
             and actual.runtime.failure == expected.failure
-            and actual.runtime.replay_equal
+            and final_replay_equal
             and (
                 expected.work_nodes is None
                 or tuple(
@@ -258,11 +434,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
         )
         for actual, expected in zip(observations, scenario.expected, strict=True)
     )
-    return Evaluation(tuple(observations), matches)
-
-
-def serialize_json(value: object) -> str:
-    return json.dumps(encode_core(value), sort_keys=True, indent=2) + "\n"
+    return Evaluation(tuple(observations), matches, final_runtime)
 
 
 def run_scenario(path: Path, out: Path) -> int:
@@ -271,52 +443,54 @@ def run_scenario(path: Path, out: Path) -> int:
             source = handle.read(MAX_BYTES + 1)
         scenario = parse_scenario(source)
         evaluation = evaluate(scenario)
-        actual = serialize_json(
-            {
-                "format": "dex-eval-actual-2",
-                "scenario_id": scenario.scenario_id,
-                "observations": [
-                    {
-                        "command": item.command,
-                        "program": item.program,
-                        "status": item.status,
-                        "diagnostics": item.diagnostics,
-                        "missing_checks": item.missing_checks,
-                        "artifact": item.artifact,
-                        "function": item.function,
-                        "runtime": item.runtime,
-                    }
-                    for item in evaluation.observations
-                ],
-            }
-        )
-        evidence = serialize_json(
-            {
-                "format": "dex-eval-expected-2",
-                "scenario_id": scenario.scenario_id,
-                "expected": [
-                    {
-                        "status": item.status,
-                        "value": item.value,
-                        "failure": item.failure,
-                        **({"work_nodes": item.work_nodes} if isinstance(item, RuntimeExpected) else {}),
-                    }
-                    if isinstance(item, (FunctionExpected, RuntimeExpected))
-                    else {
-                        "status": item.status,
-                        "diagnostic_codes": item.diagnostic_codes,
-                        "missing_checks": item.missing_checks,
-                    }
-                    for item in scenario.expected
-                ],
-                "matches": evaluation.matches,
-            }
-        )
+        actual = {
+            "format": "dex-eval-actual-2",
+            "scenario_id": scenario.scenario_id,
+            "detail": scenario.detail,
+            "final_runtime": evaluation.final_runtime,
+            "observations": [
+                {
+                    "command": item.command,
+                    "program": item.program,
+                    "status": item.status,
+                    "diagnostics": item.diagnostics,
+                    "missing_checks": item.missing_checks,
+                    "artifact": item.artifact,
+                    "function": item.function,
+                    "runtime": item.runtime,
+                }
+                for item in evaluation.observations
+            ],
+        }
+        evidence = {
+            "format": "dex-eval-expected-2",
+            "scenario_id": scenario.scenario_id,
+            "expected": [
+                {
+                    "status": item.status,
+                    "value": item.value,
+                    "failure": item.failure,
+                    **(
+                        {"work_nodes": item.work_nodes}
+                        if isinstance(item, RuntimeExpected)
+                        else {}
+                    ),
+                }
+                if isinstance(item, (FunctionExpected, RuntimeExpected))
+                else {
+                    "status": item.status,
+                    "diagnostic_codes": item.diagnostic_codes,
+                    "missing_checks": item.missing_checks,
+                }
+                for item in scenario.expected
+            ],
+            "matches": evaluation.matches,
+        }
         out.mkdir(parents=True, exist_ok=False)
         with (out / "expected.json").open("x", encoding="utf-8") as handle:
-            handle.write(evidence)
+            write_json(evidence, (handle,))
         with (out / "actual.json").open("x", encoding="utf-8") as handle:
-            handle.write(actual)
+            write_json(actual, (handle, sys.stdout))
     except (OSError, ScenarioError) as error:
         print(
             json.dumps(
@@ -330,7 +504,6 @@ def run_scenario(path: Path, out: Path) -> int:
             file=sys.stderr,
         )
         return 2
-    print(actual, end="")
     if not all(evaluation.matches):
         print(
             json.dumps(
