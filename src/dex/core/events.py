@@ -150,6 +150,23 @@ class StartSandbox:
 
 
 @dataclass(frozen=True)
+class StartCase:
+    meta: CommandMeta
+    case_id: str
+    artifact: ArtifactPin
+    facts: tuple[p.NamedValue, ...]
+    business_date: date
+    delivery_id: str
+    evidence_sha256: str
+    delivery_sha256: str
+    admission_key: str
+    sources: tuple[p.SourcePin, ...]
+    company: CompanyContext
+    bounds: ActivationBounds = ActivationBounds()
+    review_mode: Literal["review", "historical", "unattended"] = "review"
+
+
+@dataclass(frozen=True)
 class SignalRepeat:
     meta: CommandMeta
     address: WorkAddress
@@ -277,7 +294,12 @@ type ActionCommand = HumanCommand | EffectReview
 
 
 type RuntimeCommand = (
-    StartSandbox | SignalRepeat | HumanCommand | SupplyRecording | EffectCommand
+    StartSandbox
+    | StartCase
+    | SignalRepeat
+    | HumanCommand
+    | SupplyRecording
+    | EffectCommand
 )
 
 

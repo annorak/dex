@@ -1,0 +1,11 @@
+{
+  "format": "dex-bundle-scenario-1",
+  "scenario_id": "bundle-chronology",
+  "case": "bundle-chronology",
+  "expected": {
+    "late_preserved": true,
+    "arrival_unchanged": true,
+    "future_fact_rejected": true,
+    "workspace_unchanged": true
+  }
+}

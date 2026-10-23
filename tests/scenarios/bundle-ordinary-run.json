@@ -1,0 +1,16 @@
+{
+  "format": "dex-bundle-scenario-1",
+  "scenario_id": "bundle-ordinary-run",
+  "case": "bundle-ordinary-run",
+  "expected": {
+    "normal_registration": true,
+    "missing_checks": [],
+    "persisted_approval": true,
+    "approved_run": true,
+    "unapproved_refused": true,
+    "tampered_refused": true,
+    "result": 7,
+    "duplicate_unchanged": true,
+    "replay_equal": true
+  }
+}

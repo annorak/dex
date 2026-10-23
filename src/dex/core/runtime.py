@@ -119,7 +119,7 @@ class Work:
 
 @dataclass(frozen=True)
 class Case:
-    start: e.StartSandbox
+    start: e.StartSandbox | e.StartCase
     status: str
     failure: str | None = None
 
@@ -226,6 +226,16 @@ class WorkspaceState:
         default_factory=lambda: MappingProxyType({})
     )
     sampling_ordinals: MappingProxyType[str, int] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+
+    deliveries: MappingProxyType[tuple[str, str], str] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    arrivals: MappingProxyType[tuple[str, str, str], str] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    sources: MappingProxyType[tuple[str, str, str], p.SourcePin] = field(
         default_factory=lambda: MappingProxyType({})
     )
 
@@ -466,7 +476,7 @@ def command_case(command: e.RuntimeCommand) -> str:
         return command.effect.key.case_id
     return (
         command.case_id
-        if isinstance(command, e.StartSandbox)
+        if isinstance(command, (e.StartSandbox, e.StartCase))
         else command_address(command).case_id
     )
 
@@ -556,6 +566,9 @@ class _Reducer:
     def __init__(self, state: WorkspaceState, catalog: ProgramCatalog) -> None:
         self.revision = state.revision
         self.cases = _StateMap(state.cases)
+        self.deliveries = _StateMap(state.deliveries)
+        self.arrivals = _StateMap(state.arrivals)
+        self.sources = _StateMap(state.sources)
         self.work = _StateMap(state.work)
         self.commands = _StateMap(state.commands)
         self.tasks = _StateMap(state.tasks)
@@ -653,6 +666,9 @@ class _Reducer:
             self.case_effects.freeze(),
             self.case_samples.freeze(),
             self.sampling_ordinals.freeze(),
+            self.deliveries.freeze(),
+            self.arrivals.freeze(),
+            self.sources.freeze(),
         )
 
     def node(self, address: e.WorkAddress) -> p.Node:
@@ -683,7 +699,9 @@ class _Reducer:
             self.command = command
             self.ordinal = 0
             self.settled = False
-            self.action_applied = isinstance(command, (e.StartSandbox, e.SignalRepeat))
+            self.action_applied = isinstance(
+                command, (e.StartSandbox, e.StartCase, e.SignalRepeat)
+            )
             self.required_proposals.clear()
             self.refresh_effects.clear()
             self.instances = 0
@@ -1181,7 +1199,53 @@ class _Reducer:
         ):
             meter.value(p.TextValue(command.recording.failure))
         self.usage = meter.usage()
-        if isinstance(command, e.StartSandbox):
+        if isinstance(command, (e.StartSandbox, e.StartCase)):
+            if isinstance(command, e.StartCase):
+                registration = self.registrations.get(command.artifact)
+                _require(
+                    registration is not None and not registration.missing_checks,
+                    "verification_incomplete",
+                )
+                _require(
+                    command.artifact in self.program_approvals, "program_unapproved"
+                )
+                assert registration is not None
+                _require(
+                    registration.company.company_id == command.company.company_id,
+                    "session_company",
+                )
+                _require(
+                    bool(command.delivery_id)
+                    and bool(command.sources)
+                    and all(
+                        len(value) == 64
+                        for value in (
+                            command.evidence_sha256,
+                            command.delivery_sha256,
+                            command.admission_key,
+                        )
+                    ),
+                    "case_evidence",
+                )
+                company_id = command.company.company_id
+                delivery = company_id, command.delivery_id
+                _require(
+                    delivery not in self.deliveries
+                    or self.deliveries[delivery] == command.delivery_sha256,
+                    "delivery_identity_conflict",
+                )
+                arrival = *delivery, command.admission_key
+                _require(arrival not in self.arrivals, "delivery_case_conflict")
+                for source in command.sources:
+                    identity = company_id, source.source, source.revision
+                    _require(
+                        identity not in self.sources
+                        or self.sources[identity] == source,
+                        "source_identity_conflict",
+                    )
+                    self.sources[identity] = source
+                self.deliveries[delivery] = command.delivery_sha256
+                self.arrivals[arrival] = command.case_id
             _require(command.artifact in self.catalog.artifacts, "missing_artifact")
             _require(
                 bool(command.case_id.strip()) and command.case_id not in self.cases,
@@ -3201,6 +3265,22 @@ def decide(
         return Refused("missing_artifact")
     if isinstance(command, e.ActivateProgram):
         return Refused("unsupported_activation")
+    if isinstance(command, e.StartCase):
+        if command.meta.expected_revision != state.revision:
+            return Refused("stale_revision")
+        refusal = authorize_program(state, command.artifact)
+        if refusal is not None:
+            return refusal
+        previous_case = state.cases.get(command.case_id)
+        if previous_case is not None:
+            previous_start = previous_case.start
+            return (
+                Accepted((), state)
+                if isinstance(previous_start, e.StartCase)
+                and replace(previous_start, meta=command.meta, company=command.company)
+                == command
+                else Refused("case_identity_conflict")
+            )
     if isinstance(
         command,
         (
@@ -3379,7 +3459,7 @@ def decide(
                     recording_outcome(command.recording, reducer.company(address)),
                 )
             )
-        if isinstance(command, e.StartSandbox):
+        if isinstance(command, (e.StartSandbox, e.StartCase)):
             for item in case.start.facts:
                 decider.meter.value(item.value)
             result = decider.run(
@@ -3415,7 +3495,7 @@ def decide(
         return Refused(error.code)
     except _Failure as error:
         if reducer.required_proposals or (
-            not isinstance(command, (e.StartSandbox, e.SignalRepeat))
+            not isinstance(command, (e.StartSandbox, e.StartCase, e.SignalRepeat))
             and error.code
             in {"work_limit", "allocation_limit", "event_limit", "instance_limit"}
         ):
@@ -3510,7 +3590,7 @@ def authorize_session(
         ):
             return Refused("session_authority")
         return None
-    if isinstance(command, (e.StartSandbox, e.ActivateProgram)):
+    if isinstance(command, (e.StartSandbox, e.StartCase, e.ActivateProgram)):
         role, scope = "workspace_operator", ()
     else:
         if isinstance(command, e.ReserveDispatch):
