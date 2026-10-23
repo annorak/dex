@@ -1,0 +1,90 @@
+{
+  "head": "0d15752",
+  "base": "9d66353",
+  "outcomes": [
+    {
+      "index": 1,
+      "outcome": "bundle-roundtrip",
+      "verdict": "PASS",
+      "receipt": "lane-01-bundle-roundtrip.txt"
+    },
+    {
+      "index": 2,
+      "outcome": "bundle-money-dates",
+      "verdict": "PASS",
+      "receipt": "lane-02-bundle-money-dates.txt"
+    },
+    {
+      "index": 3,
+      "outcome": "bundle-fractional-invalid",
+      "verdict": "PASS",
+      "receipt": "lane-03-bundle-fractional-invalid.txt"
+    },
+    {
+      "index": 4,
+      "outcome": "bundle-email-attachments",
+      "verdict": "PASS",
+      "receipt": "lane-04-bundle-email-attachments.txt"
+    },
+    {
+      "index": 5,
+      "outcome": "bundle-xlsx-sheets",
+      "verdict": "PASS",
+      "receipt": "lane-05-bundle-xlsx-sheets.txt"
+    },
+    {
+      "index": 6,
+      "outcome": "bundle-path-hash",
+      "verdict": "PASS",
+      "receipt": "lane-06-bundle-path-hash.txt"
+    },
+    {
+      "index": 7,
+      "outcome": "bundle-delivery-identities",
+      "verdict": "PASS",
+      "receipt": "lane-07-bundle-delivery-identities.txt"
+    },
+    {
+      "index": 8,
+      "outcome": "bundle-chronology",
+      "verdict": "PASS",
+      "receipt": "lane-08-bundle-chronology.txt"
+    },
+    {
+      "index": 9,
+      "outcome": "bundle-eval-unreadable",
+      "verdict": "PASS",
+      "receipt": "lane-09-bundle-eval-unreadable.txt"
+    },
+    {
+      "index": 10,
+      "outcome": "bundle-ordinary-run",
+      "verdict": "PASS",
+      "receipt": "lane-10-bundle-ordinary-run.txt"
+    },
+    {
+      "index": 11,
+      "outcome": "repository-gates",
+      "verdict": "PASS",
+      "receipt": "repository-gates.txt"
+    },
+    {
+      "index": 12,
+      "outcome": "performance",
+      "verdict": "PASS",
+      "receipt": "performance-run.txt"
+    },
+    {
+      "index": 13,
+      "outcome": "correctness",
+      "verdict": "PASS within assigned reviewer scope",
+      "receipt": "../../correctness/final-validation.md"
+    },
+    {
+      "index": 14,
+      "outcome": "isolation",
+      "verdict": "PASS within assigned reviewer scope",
+      "receipt": "../../isolation/final-validation.md"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "head": "0d15752",
+  "base": "9d66353",
+  "source": "validated-results.json and measurements.json; unchanged raw files remain local",
+  "head_samples": [
+    {
+      "sample": 1,
+      "processing_seconds": 1.213906417018734,
+      "wall_seconds": 1.48132275,
+      "max_rss_bytes": 244432896
+    },
+    {
+      "sample": 2,
+      "processing_seconds": 1.199410583009012,
+      "wall_seconds": 1.461512,
+      "max_rss_bytes": 245923840
+    },
+    {
+      "sample": 3,
+      "processing_seconds": 1.217870375025086,
+      "wall_seconds": 1.493649917,
+      "max_rss_bytes": 246480896
+    },
+    {
+      "sample": 4,
+      "processing_seconds": 1.1918386250035837,
+      "wall_seconds": 1.45869925,
+      "max_rss_bytes": 246333440
+    },
+    {
+      "sample": 5,
+      "processing_seconds": 1.1831767500261776,
+      "wall_seconds": 1.452599125,
+      "max_rss_bytes": 244170752
+    }
+  ],
+  "startup": {
+    "trunk": {
+      "wall_seconds": {
+        "baseline_median": 0.085279208,
+        "head_median": 0.089322667,
+        "ratio": 1.0474143591952683,
+        "baseline_range": [
+          0.084827541,
+          0.087205833
+        ],
+        "head_range": [
+          0.086562208,
+          0.098999291
+        ]
+      },
+      "max_rss_bytes": {
+        "baseline_median": 30343168,
+        "head_median": 30375936,
+        "ratio": 1.0010799136069115,
+        "baseline_range": [
+          30343168,
+          30343168
+        ],
+        "head_range": [
+          30343168,
+          30392320
+        ]
+      }
+    },
+    "parent": {
+      "wall_seconds": {
+        "baseline_median": 0.084499,
+        "head_median": 0.093924,
+        "ratio": 1.111539781535876,
+        "baseline_range": [
+          0.081470375,
+          0.522232
+        ],
+        "head_range": [
+          0.089135792,
+          0.106561625
+        ]
+      },
+      "max_rss_bytes": {
+        "baseline_median": 30326784,
+        "head_median": 30359552,
+        "ratio": 1.001080497028633,
+        "baseline_range": [
+          30294016,
+          30523392
+        ],
+        "head_range": [
+          30359552,
+          30392320
+        ]
+      }
+    }
+  },
+  "processing_median": 1.199410583009012,
+  "limits": {
+    "processing_seconds": 10,
+    "wall_seconds": 20,
+    "max_rss_bytes": 536870912,
+    "supported_median_ratio": 1.2
+  }
+}
