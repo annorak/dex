@@ -164,6 +164,7 @@ def admit_bundle(
             digest,
             observed,
             available,
+            extracted.version,
             extraction,
             extracted.unresolved,
             extracted.records,

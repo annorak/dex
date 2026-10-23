@@ -70,7 +70,7 @@ def prepare(path: Path) -> tuple[Path, LocalSession, e.StartCase]:
             case.delivery_id,
             case.evidence_sha256,
             case.delivery_sha256,
-            case.admission_key,
+            case.admission_keys,
             tuple(entry.pin for entry in catalog.entries),
             session.company,
         )
@@ -332,3 +332,183 @@ def test_immutable_extraction_rejects_quote_rewrite(tmp_path: Path) -> None:
     save_manifest(tmp_path / "written", manifest)
     with pytest.raises(BundleError, match="immutable extraction mismatch"):
         load_bundle(tmp_path / "written")
+
+
+def test_multiple_text_sources_have_distinct_extraction_identities(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "bundle"
+    manifest = make_bundle(path)
+    add_source(path, manifest, "second.txt", b"Second document.", "text/plain")
+    draft, sources = supported_program(path)
+    from dex.verification import VerifiedProgram, verify_registration
+
+    assert len({entry.pin.extraction for entry in sources.entries}) == 2
+    assert isinstance(
+        verify_registration(draft, sources, datetime.now(UTC)), VerifiedProgram
+    )
+
+
+def test_reordered_inputs_cannot_admit_delivery_twice(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from dex.bundle.commands import run_bundle
+
+    database, session, _ = prepare(tmp_path)
+    path = tmp_path / "bundle"
+    manifest = json.loads((path / "bundle.json").read_bytes())
+    ref = add_source(
+        path,
+        manifest,
+        "table.csv",
+        b"Amount,Date,Status\n100,2026-01-01,P\n",
+        "text/csv",
+        mapping=mapping(),
+    )
+    manifest["cases"][0]["inputs"].append(ref)
+    save_manifest(path, manifest)
+    with Workspace(database, session, {}) as workspace:
+        artifact = next(iter(workspace.catalog.artifacts.values()))
+    program = tmp_path / "program.json"
+    program.write_text(codec.dumps(artifact))
+    monkeypatch.setenv("DEX_SESSION", str(tmp_path / "session.json"))
+    assert run_bundle(path, program, database, tmp_path / "first") == 0
+    before = database.read_bytes()
+    manifest["cases"][0]["case_id"] = "reordered"
+    manifest["cases"][0]["inputs"].reverse()
+    save_manifest(path, manifest)
+    assert run_bundle(path, program, database, tmp_path / "second") == 1
+    assert database.read_bytes() == before
+
+
+def test_fact_alias_cannot_duplicate_record_membership(tmp_path: Path) -> None:
+    from copy import deepcopy
+
+    path = tmp_path / "bundle"
+    manifest = make_bundle(path)
+    ref = add_source(
+        path,
+        manifest,
+        "table.csv",
+        b"Amount,Date,Status\n100,2026-01-01,P\n",
+        "text/csv",
+        mapping=mapping(),
+    )
+    case = manifest["cases"][0]
+    case["inputs"] = [ref]
+    case["facts"] = [
+        {"name": "amount", "source": ref, "record": "record:2", "column": "amount"}
+    ]
+    duplicate = deepcopy(case)
+    duplicate["case_id"] = "alias"
+    duplicate["facts"][0]["name"] = "renamed"
+    manifest["cases"].append(duplicate)
+    save_manifest(path, manifest)
+    with pytest.raises(BundleError, match="delivery already belongs"):
+        load_bundle(path)
+
+
+def test_future_delivery_cannot_execute_now(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from dex.bundle.commands import run_bundle
+
+    database, session, _ = prepare(tmp_path)
+    path = tmp_path / "bundle"
+    manifest = json.loads((path / "bundle.json").read_bytes())
+    future = "2099-01-01T00:00:00+00:00"
+    manifest["deliveries"][0].update(received_at=future, available_at=future)
+    manifest["cases"][0]["opened_at"] = future
+    save_manifest(path, manifest)
+    with Workspace(database, session, {}) as workspace:
+        artifact = next(iter(workspace.catalog.artifacts.values()))
+    program = tmp_path / "program.json"
+    program.write_text(codec.dumps(artifact))
+    monkeypatch.setenv("DEX_SESSION", str(tmp_path / "session.json"))
+    before = database.read_bytes()
+    assert run_bundle(path, program, database, tmp_path / "run") == 2
+    assert "not yet available" in capsys.readouterr().err
+    assert database.read_bytes() == before
+
+
+@pytest.mark.parametrize(("field", "value"), [("kind", []), ("encoding", {})])
+def test_malformed_mapping_has_named_boundary_failure(
+    tmp_path: Path, field: str, value: object
+) -> None:
+    path = tmp_path / "bundle"
+    manifest = make_bundle(path)
+    columns = mapping()
+    columns["columns"][0][field] = value
+    add_source(
+        path,
+        manifest,
+        "table.csv",
+        b"Amount,Date,Status\n100,2026-01-01,P\n",
+        "text/csv",
+        mapping=columns,
+    )
+    with pytest.raises(BundleError, match="mapping"):
+        load_bundle(path)
+
+
+def test_grouping_an_admitted_record_with_another_cannot_duplicate_it(
+    tmp_path: Path,
+) -> None:
+    database, session, command = prepare(tmp_path)
+    with Workspace(database, session, {}) as workspace:
+        assert isinstance(
+            workspace.start_cases(workspace.state.revision, (command,)), r.Accepted
+        )
+        grouped = replace(
+            command,
+            meta=replace(command.meta, command_id="grouped"),
+            case_id="grouped",
+            admission_keys=(*command.admission_keys, "a" * 64),
+        )
+        assert workspace.start_cases(workspace.state.revision, (grouped,)) == r.Refused(
+            "delivery_case_conflict"
+        )
+        distinct = replace(
+            grouped,
+            meta=replace(command.meta, command_id="distinct"),
+            case_id="distinct",
+            admission_keys=("a" * 64,),
+        )
+        assert isinstance(
+            workspace.start_cases(workspace.state.revision, (distinct,)), r.Accepted
+        )
+        assert len(workspace.state.cases) == 2
+
+
+def test_disjoint_records_share_delivery_but_overlapping_records_do_not(
+    tmp_path: Path,
+) -> None:
+    from copy import deepcopy
+
+    path = tmp_path / "bundle"
+    manifest = make_bundle(path)
+    ref = add_source(
+        path,
+        manifest,
+        "table.csv",
+        b"Amount,Date,Status\n100,2026-01-01,P\n200,2026-01-01,P\n",
+        "text/csv",
+        mapping=mapping(),
+    )
+    first = manifest["cases"][0]
+    first["inputs"] = [ref]
+    first["facts"] = [
+        {"name": "amount", "source": ref, "record": "record:2", "column": "amount"}
+    ]
+    second = deepcopy(first)
+    second["case_id"] = "second"
+    second["facts"][0]["record"] = "record:3"
+    manifest["cases"].append(second)
+    save_manifest(path, manifest)
+    assert len(load_bundle(path).cases) == 2
+    overlap = deepcopy(first["facts"][0])
+    overlap["name"] = "additional"
+    second["facts"].append(overlap)
+    save_manifest(path, manifest)
+    with pytest.raises(BundleError, match="delivery already belongs"):
+        load_bundle(path)

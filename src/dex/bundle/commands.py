@@ -83,7 +83,7 @@ def run_bundle(path: Path, program_path: Path, workspace_path: Path, out: Path) 
             if (source.source_id, source.revision_id) in required_sources
         ):
             raise BundleError("unresolved_case_evidence")
-        if out.exists():
+        if out.exists() or out.is_symlink():
             raise BundleError("output_exists")
         if not workspace_path.is_file():
             raise BundleError(
@@ -92,6 +92,10 @@ def run_bundle(path: Path, program_path: Path, workspace_path: Path, out: Path) 
         now = datetime.now(UTC)
         if any(source.available_at > now for source in bundle.sources):
             raise BundleError("source evidence not yet available")
+        if any(delivery.available_at > now for delivery in bundle.deliveries) or any(
+            case.opened_at > now for case in cases
+        ):
+            raise BundleError("delivery or case not yet available")
         with Workspace(workspace_path, session, {}) as workspace:
             if workspace.catalog.artifacts.get(pin) != artifact:
                 raise BundleError("verified_artifact_hash_mismatch")
@@ -111,7 +115,7 @@ def run_bundle(path: Path, program_path: Path, workspace_path: Path, out: Path) 
                     case.delivery_id,
                     case.evidence_sha256,
                     case.delivery_sha256,
-                    case.admission_key,
+                    case.admission_keys,
                     tuple(
                         source.extraction.pin
                         for source in bundle.sources

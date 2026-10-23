@@ -1217,12 +1217,13 @@ class _Reducer:
                 _require(
                     bool(command.delivery_id)
                     and bool(command.sources)
+                    and bool(command.admission_keys)
                     and all(
                         len(value) == 64
                         for value in (
                             command.evidence_sha256,
                             command.delivery_sha256,
-                            command.admission_key,
+                            *command.admission_keys,
                         )
                     ),
                     "case_evidence",
@@ -1234,8 +1235,10 @@ class _Reducer:
                     or self.deliveries[delivery] == command.delivery_sha256,
                     "delivery_identity_conflict",
                 )
-                arrival = *delivery, command.admission_key
-                _require(arrival not in self.arrivals, "delivery_case_conflict")
+                for key in command.admission_keys:
+                    arrival = *delivery, key
+                    _require(arrival not in self.arrivals, "delivery_case_conflict")
+                    self.arrivals[arrival] = command.case_id
                 for source in command.sources:
                     identity = company_id, source.source, source.revision
                     _require(
@@ -1245,7 +1248,6 @@ class _Reducer:
                     )
                     self.sources[identity] = source
                 self.deliveries[delivery] = command.delivery_sha256
-                self.arrivals[arrival] = command.case_id
             _require(command.artifact in self.catalog.artifacts, "missing_artifact")
             _require(
                 bool(command.case_id.strip()) and command.case_id not in self.cases,

@@ -178,7 +178,14 @@ def cli(
 
 def ordinary_run(out: Path) -> dict[str, object]:
     bundle_path = out / "bundle"
-    make_bundle(bundle_path)
+    manifest = make_bundle(bundle_path)
+    add_source(
+        bundle_path,
+        manifest,
+        "policy.txt",
+        b"Supporting company policy.\n",
+        "text/plain",
+    )
     draft, sources = supported_program(bundle_path)
     session_path = out / "session.json"
     session = session_file(session_path)
@@ -411,13 +418,21 @@ def workbook() -> bytes:
     return output.getvalue()
 
 
-def pdf(*, blank: bool = False) -> bytes:
+def pdf(*, image_only: bool = False) -> bytes:
     from pypdf import PdfWriter
     from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
     writer = PdfWriter()
     page = writer.add_blank_page(width=300, height=200)
-    if not blank:
+    if image_only:
+        stream = DecodedStreamObject()
+        stream.set_data(
+            b"q 100 0 0 100 10 10 cm BI /W 1 /H 1 /CS /RGB /BPC 8 ID "
+            + bytes((255, 0, 0))
+            + b"\nEI Q"
+        )
+        page[NameObject("/Contents")] = stream
+    else:
         font = DictionaryObject(
             {
                 NameObject("/Type"): NameObject("/Font"),

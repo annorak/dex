@@ -16,6 +16,7 @@ from xml.etree import ElementTree as ET
 from dex.bundle.model import BundleError, Record
 from dex.bundle.validation import (
     business_date,
+    canonical,
     fields,
     items,
     object_value,
@@ -88,7 +89,7 @@ def _pdf(raw: bytes) -> list[tuple[str, str]]:
                 "image-only or unreadable PDF page; supply text, OCR is unavailable"
             )
         return result
-    except (PyPdfError, ValueError, KeyError, TypeError) as error:
+    except (PyPdfError, ValueError, KeyError, TypeError, RuntimeError) as error:
         raise Unreadable(f"PDF extraction unresolved: {error}") from None
 
 
@@ -240,6 +241,7 @@ def _xlsx(
         IndexError,
         ValueError,
         OSError,
+        RuntimeError,
     ) as error:
         if isinstance(error, BundleError):
             raise
@@ -379,6 +381,30 @@ def _table(
                 {"encoding", "meanings"},
                 label + ".mapping.column",
             )
+            kind = text(column["kind"], label + ".mapping.kind")
+            if kind not in {"text", "status", "integer", "money", "date"}:
+                raise BundleError(f"{label}.mapping.kind: unknown kind")
+            required = {"source", "target", "kind"}
+            if kind in {"money", "date"}:
+                required.add("encoding")
+                encoding = text(column.get("encoding"), label + ".mapping.encoding")
+                allowed = (
+                    {"cents", "decimal-dollars"}
+                    if kind == "money"
+                    else {"iso", "us", "excel-1900", "excel-1904"}
+                )
+                if encoding not in allowed:
+                    raise BundleError(f"{label}.mapping.encoding: unknown encoding")
+            if kind == "status":
+                required.add("meanings")
+                meanings = object_value(
+                    column.get("meanings"), label + ".mapping.meanings"
+                )
+                if not meanings:
+                    raise BundleError(f"{label}.mapping.meanings: empty meanings")
+                for meaning in meanings.values():
+                    text(meaning, label + ".mapping.meaning")
+            fields(column, required, set(), label + ".mapping.column")
             source, target = (
                 text(column["source"], label),
                 text(column["target"], label),
@@ -491,11 +517,12 @@ def source_extraction(
 ) -> p.SourceExtraction | None:
     if not extraction.text and extraction.unresolved:
         return None
+    identity = sha256(canonical([*key, digest, extraction.version])).hexdigest()
     return p.SourceExtraction(
         p.SourcePin(
             *key,
             digest,
-            extraction.version,
+            identity,
             sha256(extraction.text.encode()).hexdigest(),
         ),
         extraction.text,

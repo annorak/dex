@@ -327,7 +327,9 @@ def xlsx_sheets(out: Path) -> tuple[dict[str, object], list[dict[str, object]]]:
     unresolved = out / "unresolved"
     manifest = make_bundle(unresolved)
     add_source(unresolved, manifest, "bad.xlsx", b"not a workbook", XLSX)
-    add_source(unresolved, manifest, "image.pdf", pdf(blank=True), "application/pdf")
+    add_source(
+        unresolved, manifest, "image.pdf", pdf(image_only=True), "application/pdf"
+    )
     parsed = load_bundle(unresolved)
     assert all(
         source.unresolved and source.extraction is None for source in parsed.sources[1:]
@@ -601,23 +603,15 @@ def run_bundle_scenario(raw: bytes, out: Path) -> int:
         (out / "expected.json").write_bytes(
             canonical({"expected": expected, "matches": matches})
         )
+        output = canonical(
+            {"scenario": name, "observed": actual, "matches": matches, "checks": checks}
+        ).decode()
+        print(output, end="", flush=True)
         processing_seconds = None if started is None else perf_counter() - started
         if processing_seconds is not None:
             (out / "timing.json").write_bytes(
                 canonical({"processing_seconds": processing_seconds})
             )
-        print(
-            canonical(
-                {
-                    "scenario": name,
-                    "observed": actual,
-                    "matches": matches,
-                    "checks": checks,
-                    "processing_seconds": processing_seconds,
-                }
-            ).decode(),
-            end="",
-        )
         return 0 if all(matches.values()) else 1
     except (ValueError, OSError, AssertionError) as error:
         print(

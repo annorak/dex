@@ -159,7 +159,7 @@ class StartCase:
     delivery_id: str
     evidence_sha256: str
     delivery_sha256: str
-    admission_key: str
+    admission_keys: tuple[str, ...]
     sources: tuple[p.SourcePin, ...]
     company: CompanyContext
     bounds: ActivationBounds = ActivationBounds()

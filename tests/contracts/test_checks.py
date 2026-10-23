@@ -658,8 +658,8 @@ def test_cli_help(tmp_path: Path) -> None:
 
 def test_cli_unavailable_commands_fail(tmp_path: Path) -> None:
     run_check(
-        [Path(sys.executable).with_name("dex"), "run"],
+        [Path(sys.executable).with_name("dex"), "demo"],
         cwd=tmp_path,
         expected_returncode=2,
-        diagnostic="invalid choice: 'run'",
+        diagnostic="invalid choice: 'demo'",
     )

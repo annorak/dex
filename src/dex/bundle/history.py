@@ -135,7 +135,11 @@ def load_cases(
         text(history["opening_event"], "history.opening_event")
         adequacy = object_value(history["adequacy"], "history.adequacy")
         fields(adequacy, {"decision", "actor", "decided_at"}, set(), "history.adequacy")
-        if adequacy["decision"] not in {"usable", "incomplete", "unresolved"}:
+        if text(adequacy["decision"], "history.adequacy.decision") not in {
+            "usable",
+            "incomplete",
+            "unresolved",
+        }:
             raise BundleError("history.adequacy: unknown decision")
         text(adequacy["actor"], "history.adequacy.actor")
         timestamp(adequacy["decided_at"], "history.adequacy.decided_at")
@@ -147,7 +151,7 @@ def load_cases(
         for item in manifest["sources"]
     }
     cases: dict[str, Case] = {}
-    memberships: set[tuple[str, bytes]] = set()
+    memberships: set[tuple[str, str]] = set()
     for raw, is_history in [
         *((case, True) for case in historical),
         *((case, False) for case in items(manifest.get("cases", []), "cases")),
@@ -190,13 +194,20 @@ def load_cases(
             sources[ref].available_at > opened for ref in refs
         ):
             raise BundleError(f"{identity}: later evidence cannot enter arrival facts")
-        membership = (
-            delivery_id,
-            canonical({"inputs": item["inputs"], "facts": item["facts"]}),
+        facts = case_facts(item, sources, refs, identity)
+        records = sorted(
+            {
+                (*source_ref(fact["source"], identity), fact["record"])
+                for fact in item["facts"]
+            }
         )
-        if membership in memberships:
+        members = records or [(*ref, "source") for ref in sorted(refs)]
+        admission_keys = tuple(
+            sha256(canonical(member)).hexdigest() for member in members
+        )
+        if any((delivery_id, key) in memberships for key in admission_keys):
             raise BundleError(f"{identity}: delivery already belongs to a case")
-        memberships.add(membership)
+        memberships.update((delivery_id, key) for key in admission_keys)
         date = business_date(item["business_date"], identity + ".business_date")
         for ref in refs:
             mapping = descriptors[ref].get("mapping")
@@ -213,7 +224,6 @@ def load_cases(
                 )
             ):
                 raise BundleError(f"{identity}: mapping outside effective interval")
-        facts = case_facts(item, sources, refs, identity)
         observations(item["observations"], sources, deliveries, identity)
         evidence = sha256(
             canonical(
@@ -236,7 +246,6 @@ def load_cases(
                 }
             )
         ).hexdigest()
-        admission_key = sha256(membership[1]).hexdigest()
         cases[identity] = Case(
             identity,
             delivery_id,
@@ -245,7 +254,7 @@ def load_cases(
             facts,
             evidence,
             delivery_digest,
-            admission_key,
+            admission_keys,
             refs,
             is_history,
         )

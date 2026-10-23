@@ -168,3 +168,34 @@ def test_explicit_excel_date_epochs(
     assert load_bundle(path).sources[1].records[0].values[1].value == p.DateValue(
         expected
     )
+
+
+def test_unsupported_xlsx_compression_is_unresolved(tmp_path: Path) -> None:
+    import struct
+
+    data = bytearray(workbook())
+    for signature, offset in ((b"PK\x03\x04", 8), (b"PK\x01\x02", 10)):
+        position = 0
+        while (position := data.find(signature, position)) >= 0:
+            struct.pack_into("<H", data, position + offset, 99)
+            position += 4
+    path = tmp_path / "bundle"
+    manifest = make_bundle(path)
+    add_source(path, manifest, "bad.xlsx", bytes(data), XLSX)
+    source = load_bundle(path).sources[1]
+    assert source.extraction is None
+    assert source.unresolved is not None and "compression" in source.unresolved
+
+
+def test_image_fixture_has_an_image_and_no_selectable_text() -> None:
+    import io
+
+    from pypdf import PdfReader
+
+    from dex.eval.bundle_fixture import pdf
+
+    page = PdfReader(io.BytesIO(pdf(image_only=True))).pages[0]
+    content = page.get_contents()
+    assert content is not None
+    assert any(operator == b"INLINE IMAGE" for _, operator in content.operations)
+    assert page.extract_text() == ""

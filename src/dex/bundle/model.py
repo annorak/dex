@@ -29,6 +29,7 @@ class Source:
     sha256: str
     observed_at: datetime
     available_at: datetime
+    extractor_version: str
     extraction: p.SourceExtraction | None
     unresolved: str | None
     records: tuple[Record, ...] = ()
@@ -51,7 +52,7 @@ class Case:
     facts: tuple[p.NamedValue, ...]
     evidence_sha256: str
     delivery_sha256: str
-    admission_key: str
+    admission_keys: tuple[str, ...]
     inputs: tuple[tuple[str, str], ...]
     historical: bool
 

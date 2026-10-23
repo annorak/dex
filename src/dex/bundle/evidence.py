@@ -23,6 +23,7 @@ def extraction_bytes(source: Source) -> bytes:
     return canonical(
         {
             "format_version": "dex-extraction-1",
+            "extractor_version": source.extractor_version,
             "extraction": None
             if source.extraction is None
             else json.loads(codec.dumps(source.extraction)),
