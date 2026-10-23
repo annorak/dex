@@ -1,0 +1,1 @@
+{"checks":[{"argv":["uv","run","dex","bundle","check","/Users/varunvis/workspace/dev/dex/docs/verification/m1-09/verifier/round2/live/bundle-eval-unreadable/bundle"],"exit_status":0,"reason":null}],"observed":{"eval_accesses":0,"public_valid":true,"unreadable":true},"scenario":"bundle-eval-unreadable"}

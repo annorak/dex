@@ -1,0 +1,10 @@
+{
+  "format": "dex-bundle-scenario-1",
+  "scenario_id": "bundle-eval-unreadable",
+  "case": "bundle-eval-unreadable",
+  "expected": {
+    "unreadable": true,
+    "eval_accesses": 0,
+    "public_valid": true
+  }
+}

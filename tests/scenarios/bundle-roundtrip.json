@@ -1,0 +1,11 @@
+{
+  "format": "dex-bundle-scenario-1",
+  "scenario_id": "bundle-roundtrip",
+  "case": "bundle-roundtrip",
+  "expected": {
+    "original_bytes": true,
+    "evidence_equal": true,
+    "deterministic_archive": true,
+    "companies": 2
+  }
+}

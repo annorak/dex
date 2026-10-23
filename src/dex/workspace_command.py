@@ -18,6 +18,7 @@ _COMMANDS: dict[str, type[Any]] = {
     cls.__name__: cls
     for cls in (
         e.StartSandbox,
+        e.StartCase,
         e.SignalRepeat,
         e.RespondTask,
         e.ReassignTask,

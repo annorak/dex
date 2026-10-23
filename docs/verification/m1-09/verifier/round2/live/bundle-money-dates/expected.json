@@ -1,0 +1,1 @@
+{"expected":{"amount_cents":1234,"date":"2026-01-02","equal":true,"status":"posted"},"matches":{"amount_cents":true,"date":true,"equal":true,"status":true}}
