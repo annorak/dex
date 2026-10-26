@@ -134,6 +134,7 @@ class Workspace:
                 e.RegisterProgram,
                 e.ApproveProgram,
                 e.StartSandbox,
+                e.StartCase,
                 e.GrantStandingAuthority,
                 e.RevokeStandingGrant,
             ),
@@ -250,6 +251,45 @@ class Workspace:
         ):
             return r.Refused("internal_command")
         return self._append(command)
+
+    def start_cases(
+        self, expected_revision: int, commands: tuple[e.StartCase, ...]
+    ) -> r.Accepted | r.Refused:
+        with self._transaction():
+            self._refresh()
+            if expected_revision != self.state.revision:
+                return r.Refused("stale_revision")
+            state = self.state
+            events: list[e.RuntimeEvent] = []
+            for original in commands:
+                command = replace(
+                    original,
+                    meta=replace(
+                        original.meta,
+                        actor=self.session.actor,
+                        expected_revision=state.revision,
+                    ),
+                    company=self.session.company,
+                )
+                refusal = r.authorize_session(state, command, self.session.company)
+                if refusal is not None:
+                    return refusal
+                result = r.decide(state, command, self.catalog)
+                if isinstance(result, r.Refused):
+                    return result
+                state = result.state
+                events.extend(result.events)
+            self.fault("before_append")
+            self.connection.executemany(
+                "INSERT INTO events VALUES (?, ?)",
+                (
+                    (self.state.revision + index + 1, codec.dumps(event))
+                    for index, event in enumerate(events)
+                ),
+            )
+            self.fault("after_append")
+        self.state = state
+        return r.Accepted(tuple(events), state)
 
     def _dispatch_eligibility(self, ref: a.EffectRef) -> r.Refused | None:
         return r.authorize_program(

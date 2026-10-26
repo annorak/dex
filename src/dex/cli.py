@@ -24,7 +24,32 @@ def main() -> None:
         apply = workspace_commands.add_parser("command")
         apply.add_argument("workspace", type=Path)
         apply.add_argument("--command", required=True, type=Path, dest="command_file")
+    bundle = commands.add_parser("bundle", help="Validate public company evidence.")
+    bundle_commands = bundle.add_subparsers(dest="bundle_command", required=True)
+    check = bundle_commands.add_parser(
+        "check", help="Check a public bundle without opening eval/."
+    )
+    check.add_argument("bundle", type=Path)
+    run = commands.add_parser(
+        "run", help="Run company cases with a verified, approved program."
+    )
+    run.add_argument("bundle", type=Path)
+    run.add_argument("--program", required=True, type=Path)
+    run.add_argument("--workspace", required=True, type=Path)
+    run.add_argument("--out", required=True, type=Path)
     arguments = parser.parse_args()
+    if arguments.command == "bundle":
+        from dex.bundle.commands import check_bundle
+
+        raise SystemExit(check_bundle(arguments.bundle))
+    if arguments.command == "run":
+        from dex.bundle.commands import run_bundle
+
+        raise SystemExit(
+            run_bundle(
+                arguments.bundle, arguments.program, arguments.workspace, arguments.out
+            )
+        )
     if arguments.command == "eval":
         from dex.eval.scenarios import run_scenario
 
