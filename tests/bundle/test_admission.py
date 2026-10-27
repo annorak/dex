@@ -334,6 +334,44 @@ def test_immutable_extraction_rejects_quote_rewrite(tmp_path: Path) -> None:
         load_bundle(tmp_path / "written")
 
 
+@pytest.mark.parametrize("change", ["reordered", "duplicate", "hash"])
+def test_snapshot_validation_preserves_json_and_hash_contracts(
+    tmp_path: Path, change: str
+) -> None:
+    source = tmp_path / "bundle"
+    make_bundle(source)
+    original = load_bundle(source)
+    written = tmp_path / "written"
+    write_bundle(original, written)
+    manifest = json.loads((written / "bundle.json").read_bytes())
+    descriptor = manifest["sources"][0]["extraction"]
+    path = written / descriptor["path"]
+    canonical_bytes = path.read_bytes()
+    raw = canonical_bytes
+    if change == "hash":
+        descriptor["sha256"] = "0" * 64
+    else:
+        if change == "reordered":
+            payload = dict(reversed(json.loads(raw).items()))
+            raw = json.dumps(payload, indent=2, ensure_ascii=True).encode()
+        else:
+            raw = raw.replace(b"{", b'{"format_version":"ignored",', 1)
+        path.write_bytes(raw)
+        descriptor["sha256"] = sha256(raw).hexdigest()
+    save_manifest(written, manifest)
+    if change == "reordered":
+        restored = load_bundle(written)
+        assert restored.sources == original.sources
+        write_bundle(restored, tmp_path / "roundtrip")
+        assert (
+            tmp_path / "roundtrip" / descriptor["path"]
+        ).read_bytes() == canonical_bytes
+    else:
+        message = "duplicate field" if change == "duplicate" else "hash mismatch"
+        with pytest.raises(BundleError, match=message):
+            load_bundle(written)
+
+
 def test_multiple_text_sources_have_distinct_extraction_identities(
     tmp_path: Path,
 ) -> None:

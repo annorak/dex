@@ -1,0 +1,208 @@
+{
+  "format": "world1-specification-checklist-1",
+  "source": "docs/spec/demo-world.md",
+  "checks": [
+    {
+      "id": "packet-bytes",
+      "assertion": "Seven exact packet bytes and hashes; only C1 board notice 2026-12-15 08:00 -05:00 and service notice 2027-01-15 08:00 -05:00 are future; effective dates 2027-01-01 and 2027-02-01."
+    },
+    {
+      "id": "history-membership",
+      "assertion": "Each company H0001..H3600, 300/month Oct2025..Sep2026; H0001..H2700 learning and H2701..H3600 exam; spec receipt formula and ID-order minutes; NY offsets."
+    },
+    {
+      "id": "mistake-sets",
+      "assertion": "Only C1 ordinal21/22 every month; C2 ordinal23 every month plus24 Oct Nov Dec Feb Apr Jun Aug Sep; 18/6 and15/5; one manager-to-board decision each; sources and duplicate chronology intact."
+    },
+    {
+      "id": "snow-sets",
+      "C1": {
+        "learning": [
+          142,
+          1918,
+          2230,
+          2566,
+          2638
+        ],
+        "exam": [
+          2758,
+          2938,
+          3118,
+          3478
+        ],
+        "cancelled": [
+          2128,
+          3208
+        ]
+      },
+      "C2": {
+        "learning": [],
+        "exam": [
+          2760,
+          2940,
+          3120,
+          3480
+        ]
+      },
+      "assertion": "Exact invoice months; no extra off-season rows; cancellations stop before all effects; AP review due two business days.",
+      "invoice_months_C1": {
+        "0142": 10,
+        "1918": 4,
+        "2230": 5,
+        "2566": 6,
+        "2638": 6,
+        "2758": 7,
+        "2938": 7,
+        "3118": 8,
+        "3478": 9
+      }
+    },
+    {
+      "id": "duplicates",
+      "C1": {
+        "history": [
+          [
+            598,
+            628
+          ],
+          [
+            2113,
+            2248
+          ],
+          [
+            2668,
+            2713
+          ],
+          [
+            3028,
+            3328
+          ]
+        ],
+        "opening": [
+          313,
+          1558
+        ],
+        "void": [
+          898,
+          3013
+        ]
+      },
+      "C2": {
+        "history": [
+          [
+            747,
+            897
+          ],
+          [
+            2734,
+            2997
+          ]
+        ],
+        "opening": [
+          391,
+          2247
+        ],
+        "void": [
+          500
+        ]
+      },
+      "assertion": "Exact posted key, same original identity, posting before resend; C1 community-qualified vendor number and invoice number; C2 company-wide key; whitespace only; no effects for duplicates; cross-community equal numbers eligible. At each named void-only receipt, reconstruct prior public chronology and assert no matching still-posted invoice; stream/shadow use OPEN-005, historical OPEN-003/004 remain unchanged."
+    },
+    {
+      "id": "native-formats",
+      "assertion": "C1 integer cents ISO dates C/V; C2 decimal dollar strings US dates A/X; company-local records; first-sheet XLSX and full deterministic ZIP metadata; F1 text F2 HTML F3 selectable-text attachment."
+    },
+    {
+      "id": "company-records",
+      "assertion": "C1 eight communities, C03 Harthmere, C03-V07 Asterfen; C2 six communities, Ashmere; Rillhaven C09 joins Nov15 with no public unwritten limit; records and certificates match case facts."
+    },
+    {
+      "id": "stream-opening",
+      "assertion": "S0001..S1800 each,300/month Oct2026..Mar2027; exact October formulas; C1 first13 and C2 first6 Oct2; shadow SH01..10 each Oct1 separate; all nineteen exact paths and actor-time opening prefix."
+    },
+    {
+      "id": "worked-case",
+      "assertion": "C1-S0001 Asterfen AF-11496 C03-V07 C03,180000,Sep29 receivedOct2; no posted prior,insurance through2027-12-31; board,September posting,Oct29 due; distinct entry/request/schedule; no model invocation."
+    },
+    {
+      "id": "policy-boundaries",
+      "assertion": "Strict greater default500000 local150000/250000; Fennor signer >1000000 distinct person; terms10 for Avenreed/Morrowfen otherwise30; inclusive close5/10; long lateness year boundaries; receipt-time insurance inclusive expiry; replacements preserve original hold."
+    },
+    {
+      "id": "opening-resolution",
+      "assertion": "Unknown vendor, ambiguous community, conflicting amounts unresolved until own actor/time answer; expired/missing certificates prevent schedule until replacement; rejection and unanswered never imply approval; only C1-S0013 pending cutoff. Unknown-vendor certificates arrive with the identity answer; receipt hold remains recorded; request includes work, contractual due date and current holds."
+    },
+    {
+      "id": "daily-register",
+      "assertion": "Dated ap-invoice-register.csv at08 every stream date, before arrivals; invoice identity,company-local keys,native amount,status,posting/void timestamps; no future posting in arrival snapshot."
+    },
+    {
+      "id": "D1",
+      "assertion": "Oct15 08 C1 amount_cents -> gross_cents preserving values and meaning; explicit source artifact and same-data before/after fixture; behavior unchanged."
+    },
+    {
+      "id": "D2",
+      "assertion": "Nov1 C1 unfamiliar R replacing some C; stop until Elin answer W1-D2 delivered; effective meaning and approval schedule distinct; duplicate behavior reset."
+    },
+    {
+      "id": "D3",
+      "assertion": "Nov15 Schedule payment footer -> Payments tab; old position Void invoice; ordinary source UI description; expected voids none; behavior unchanged."
+    },
+    {
+      "id": "Rillhaven",
+      "assertion": "Nov15 join,C1-S0451 Nov16 240000 correction manager->board; Elin confirms200000 effectiveNov15; before/on date and200000/200001 boundaries; older receipts preserved."
+    },
+    {
+      "id": "D4",
+      "assertion": "Notice deliveredDec15,150000->180000 applies receiptsJan1; exact amount and date boundaries,older pending case unchanged; release and changed approval behavior schedule."
+    },
+    {
+      "id": "D5",
+      "assertion": "Amendment deliveredJan15 applies receiptsFeb1 strictly above250000; service human task due2businessdays,manager AP response; exact request effect and payment waits; older pending unchanged."
+    },
+    {
+      "id": "F4",
+      "assertion": "Only C1-S0601..603 recorded fallback Dec1; parser releaseDec4; no earlier F4; later F4 code; C2 firstS0901 Jan1 after verified approved library update; F1/F2/F3 unchanged."
+    },
+    {
+      "id": "library-fixture",
+      "assertion": "Initial generalized library cutoff beforeOct1,second releaseDec4; no exam/future/company records; Fennor with/without inputs declared; Orla alone confirmsMay-Sep via asked task; no library acceptance claim."
+    },
+    {
+      "id": "authority-fixture",
+      "assertion": "Oct2 08:30 controller review transition after gates; Dec20 08:30 named controller grants<=500000,noholds,300clean prerequisites; separate business decisions; revocation and expectedrevision fields; imported artifacts cannot execute commands."
+    },
+    {
+      "id": "reviews-sampling",
+      "assertion": "Actor/time/revision review events and later proposals; exact producer attribution; no credit until write confirmed; changes reset only affected behavior; every20 otherwiseeligible assigned beforefirstchange; enough clean opportunities within35days."
+    },
+    {
+      "id": "independent-keys",
+      "assertion": "Correct decisions/effects/waits constructed before any reference; observed sheet derives public actions separately; exact mistakes separate; reserved manifests freeze all hashes,passage map,response scripts; no public key selector."
+    },
+    {
+      "id": "public-validation",
+      "assertion": "Both complete bundles admitted without any eval reads; original source and destination unchanged; existing bundle roundtrip guarantees retained."
+    },
+    {
+      "id": "learning-projection",
+      "assertion": "Both real generated bundles through existing projection; exact learning membership; mixed exports retain permitted rows with provenance; exclude exam/evaluator/future/all aliases; saved view self-contained."
+    },
+    {
+      "id": "determinism",
+      "assertion": "Identical seed/version/source bytes yields exact relative paths and all bytes incl XLSX; source changes accounted; seed11 deterministically changes permitted data but named sets identical."
+    },
+    {
+      "id": "refusals",
+      "assertion": "All-world/default/world2 unsupported; invalidseed,missing packets,parent,destination,file,symlink and concurrent destination retain existingstate with violation-specific nonzero; no partial bundles."
+    },
+    {
+      "id": "boundaries",
+      "assertion": "No core/runtime/authority changes; no golden/reference/compiler/UI/OCR/World2; no live model network; data cannot approve/grant/confirm; earlier limitations retained."
+    },
+    {
+      "id": "event-order-cutoff",
+      "assertion": "Every fixture timestamp has the correct America/New_York UTC offset; event schedules sort by instant then stable ID; Monday-Sunday weeks; cutoff 2027-03-31T23:59:59-04:00. Every posted export matches its external occurrence between authorization and confirmation; requests precede decisions; responses precede payment authorization; final-day postings persist at cutoff."
+    }
+  ]
+}

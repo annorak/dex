@@ -1,0 +1,19 @@
+{
+  "format": "dex-world1-scenario-1",
+  "scenario_id": "world1-mistake-sets",
+  "case": "world1-mistake-sets",
+  "expected": {
+    "mistake_splits": [
+      [
+        18,
+        6
+      ],
+      [
+        15,
+        5
+      ]
+    ],
+    "exact_ids": true,
+    "observed_separate": true
+  }
+}

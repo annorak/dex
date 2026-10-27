@@ -44,7 +44,7 @@ def validate_origins(descriptors: list[Any], originals: dict[str, bytes]) -> Non
         parent = index.get(source_ref(provenance["message"], label))
         if parent is None or parent["media_type"] != "message/rfc822":
             raise BundleError(f"{label}.origin: missing parent message")
-        message = BytesParser(policy=policy.default).parsebytes(
+        message = BytesParser(policy=policy.compat32).parsebytes(
             originals[parent["path"]]
         )
         parts = dict(message_parts(message))

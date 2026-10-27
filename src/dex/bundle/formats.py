@@ -8,6 +8,7 @@ from decimal import Decimal, InvalidOperation
 from email import policy
 from email.message import Message
 from email.parser import BytesParser
+from functools import lru_cache
 from hashlib import sha256
 from html.parser import HTMLParser
 from typing import Any, cast
@@ -72,7 +73,8 @@ def _html(raw: bytes, charset: str) -> str:
     return "".join(parser.parts)
 
 
-def _pdf(raw: bytes) -> list[tuple[str, str]]:
+@lru_cache(maxsize=1)
+def _pdf(raw: bytes) -> tuple[tuple[str, str], ...]:
     from pypdf import PdfReader
     from pypdf.errors import PyPdfError
 
@@ -80,10 +82,10 @@ def _pdf(raw: bytes) -> list[tuple[str, str]]:
         reader = PdfReader(io.BytesIO(raw), strict=True)
         if reader.is_encrypted:
             raise Unreadable("encrypted PDF")
-        result = [
+        result = tuple(
             (f"page:{index}", page.extract_text())
             for index, page in enumerate(reader.pages, 1)
-        ]
+        )
         if not result or any(not content.strip() for _, content in result):
             raise Unreadable(
                 "image-only or unreadable PDF page; supply text, OCR is unavailable"
@@ -106,7 +108,7 @@ def message_parts(message: Message, prefix: str = "part") -> list[tuple[str, Mes
 
 
 def _email(raw: bytes) -> list[tuple[str, str]]:
-    message = BytesParser(policy=policy.default).parsebytes(raw)
+    message = BytesParser(policy=policy.compat32).parsebytes(raw)
     if message.defects:
         raise Unreadable("malformed email")
     parts = [

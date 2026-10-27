@@ -39,6 +39,16 @@ def main() -> None:
     project.add_argument("--consumer", choices=("learning",), required=True)
     project.add_argument("--as-of", required=True)
     project.add_argument("--out", required=True, type=Path)
+    demo = commands.add_parser(
+        "demo", help="Build deterministic synthetic company bundles."
+    )
+    demo_commands = demo.add_subparsers(dest="demo_command", required=True)
+    build = demo_commands.add_parser(
+        "build", help="Build both complete World 1 companies."
+    )
+    build.add_argument("--world", default="all")
+    build.add_argument("--seed", required=True, type=int)
+    build.add_argument("--out", required=True, type=Path)
     run = commands.add_parser(
         "run", help="Run company cases with a verified, approved program."
     )
@@ -47,6 +57,10 @@ def main() -> None:
     run.add_argument("--workspace", required=True, type=Path)
     run.add_argument("--out", required=True, type=Path)
     arguments = parser.parse_args()
+    if arguments.command == "demo":
+        from dex.demo.build import run_build
+
+        raise SystemExit(run_build(arguments.world, arguments.seed, arguments.out))
     if arguments.command == "bundle":
         if arguments.bundle_command == "project":
             from dex.bundle.commands import project_bundle

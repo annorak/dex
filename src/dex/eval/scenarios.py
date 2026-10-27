@@ -476,6 +476,13 @@ def run_scenario(path: Path, out: Path) -> int:
             from dex.eval.projection_scenarios import run_projection_scenario
 
             return run_projection_scenario(source, out)
+        if (
+            isinstance(header, dict)
+            and cast(dict[str, object], header).get("format") == "dex-world1-scenario-1"
+        ):
+            from dex.eval.world_1_scenarios import run_world1_scenario
+
+            return run_world1_scenario(source, out)
         scenario = parse_scenario(source)
         evaluation = evaluate(scenario)
         actual = {

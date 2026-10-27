@@ -1,0 +1,23 @@
+{
+  "format": "dex-world1-scenario-1",
+  "scenario_id": "world1-duplicate-snow-sets",
+  "case": "world1-duplicate-snow-sets",
+  "expected": {
+    "duplicates": [
+      6,
+      4
+    ],
+    "void_only": [
+      2,
+      1
+    ],
+    "eligible_snow": [
+      9,
+      4
+    ],
+    "cancellations": [
+      2,
+      0
+    ]
+  }
+}

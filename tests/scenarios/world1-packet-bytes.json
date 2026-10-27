@@ -1,0 +1,10 @@
+{
+  "format": "dex-world1-scenario-1",
+  "scenario_id": "world1-packet-bytes",
+  "case": "world1-packet-bytes",
+  "expected": {
+    "packet_files": 7,
+    "future_delivery_exact": true,
+    "xlsx_metadata_fixed": true
+  }
+}
