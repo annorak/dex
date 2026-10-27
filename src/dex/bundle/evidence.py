@@ -53,8 +53,10 @@ def load_snapshot(
     content = read(path)
     if sha256(content).hexdigest() != descriptor["sha256"]:
         raise BundleError("extraction.sha256: hash mismatch")
-    saved = parse_json(content, path)
-    if saved != parse_json(extraction_bytes(source), "extraction"):
+    expected = extraction_bytes(source)
+    if content != expected and parse_json(content, path) != parse_json(
+        expected, "extraction"
+    ):
         raise BundleError(f"{source.source_id}: immutable extraction mismatch")
     if source.extraction is not None:
         extraction = source.extraction
