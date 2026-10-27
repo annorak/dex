@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
-ZONE = ZoneInfo("America/New_York")
 READ_OPERATIONS = (
     "parse",
     "resolve",
@@ -50,26 +48,7 @@ def schedule(
             continue
         identity = case["case_id"]
         answer = key[identity]
-        arrived = datetime.fromisoformat(case["received"]).astimezone(ZONE)
-        review = arrived + timedelta(minutes=20)
-        if case["issue"] in ("scheduled", "rejected"):
-            review = arrived + timedelta(seconds=30)
-        if case["issue"] == "proposal-review":
-            review = arrived.replace(hour=10, minute=0)
-        resolutions = [
-            wait
-            for wait in answer["waits"]
-            if wait["role"] == "ap_clerk" and wait.get("observed_at")
-        ]
-        if (
-            case["issue"] not in ("expired-certificate", "missing-certificate")
-            and resolutions
-        ):
-            review = max(
-                review,
-                max(datetime.fromisoformat(wait["observed_at"]) for wait in resolutions)
-                + timedelta(seconds=10),
-            )
+        review = datetime.fromisoformat(case["chronology"]["values_reviewed_at"])
         operations = [
             "extract_F4"
             if operation == "parse" and case["format"] == "F4"
@@ -92,7 +71,6 @@ def schedule(
             for operation in operations
         ]
         if case["issue"] == "review-correction":
-            review = arrived.replace(hour=10, minute=0)
             produced = [
                 {**entry, "behavior": "initial"}
                 if entry["operation"] == "approver"
@@ -170,11 +148,16 @@ def schedule(
                     "authority": "exact_change_approval",
                 }
             )
+            confirmed = at + timedelta(microseconds=1)
+            if operation == "record_invoice":
+                confirmed = datetime.fromisoformat(
+                    case["chronology"]["posted_at"]
+                ) + timedelta(microseconds=1)
             events.append(
                 {
                     "id": effect["identity"] + "/confirmed",
                     "case_id": identity,
-                    "at": (at + timedelta(microseconds=1)).isoformat(),
+                    "at": confirmed.isoformat(),
                     "kind": "effect_confirmation",
                     "effect_identity": effect["identity"],
                     "operation": operation,

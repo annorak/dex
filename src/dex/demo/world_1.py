@@ -267,8 +267,8 @@ def special_case(item: Invoice, number: int) -> Invoice:
         if number in (2, 3):
             item = replace(
                 item,
-                number=f"OPEN-{1 if number == 2 else 3:03d}",
-                prior=f"{company}-OPEN-{1 if number == 2 else 3:03d}",
+                number=f"OPEN-{1 if number == 2 else 5:03d}",
+                prior=f"{company}-OPEN-{1 if number == 2 else 5:03d}",
             )
         if number == 4:
             item = replace(
@@ -331,8 +331,8 @@ def special_case(item: Invoice, number: int) -> Invoice:
                 item,
                 community="C1-C02",
                 vendor="C1-C02-V01",
-                number=f"OPEN-{1 if number == 3 else 3:03d}",
-                prior=f"C1-OPEN-{1 if number == 3 else 3:03d}",
+                number=f"OPEN-{1 if number == 3 else 5:03d}",
+                prior=f"C1-OPEN-{1 if number == 3 else 5:03d}",
             )
         if number == 10:
             item = replace(item, invoice_date=date(2026, 9, 29), work="Snow clearing")
@@ -366,8 +366,8 @@ def special_case(item: Invoice, number: int) -> Invoice:
             item = replace(
                 item,
                 vendor="C2-V01",
-                number=f"OPEN-{1 if number == 4 else 3:03d}",
-                prior=f"C2-OPEN-{1 if number == 4 else 3:03d}",
+                number=f"OPEN-{1 if number == 4 else 5:03d}",
+                prior=f"C2-OPEN-{1 if number == 4 else 5:03d}",
             )
     if company == "C1" and number in (431, 441, 442, 451):
         item = replace(
@@ -405,3 +405,38 @@ def special_case(item: Invoice, number: int) -> Invoice:
     elif number == 901 or (number > 901 and number % 7 == 0):
         item = replace(item, format="F4")
     return item
+
+
+def chronology(item: Invoice) -> dict[str, str]:
+    review = item.received + timedelta(minutes=20)
+    if item.cohort == "history":
+        review = item.received + timedelta(hours=1, seconds=-1)
+    elif item.issue in ("scheduled", "rejected"):
+        review = item.received + timedelta(seconds=30)
+    elif item.issue == "proposal-review":
+        review = item.received.replace(hour=10, minute=0)
+    elif item.issue == "review-correction":
+        review = item.received.replace(hour=10, minute=0)
+    elif item.issue == "community-not-yet-joined":
+        review = local(date(2026, 11, 15), 8) + timedelta(seconds=10)
+    elif item.issue in (
+        "unknown-vendor",
+        "ambiguous-community",
+        "conflicting-amount",
+        "snow-review",
+    ) or (
+        item.work == "Snow clearing"
+        and item.invoice_date.month
+        in (range(4, 11) if item.company == "C1" else range(5, 10))
+    ):
+        review = item.received + timedelta(days=1)
+        while review.weekday() >= 5:
+            review += timedelta(days=1)
+        review += timedelta(seconds=10)
+    return {
+        "values_reviewed_at": review.isoformat(),
+        "posted_at": (
+            review
+            + timedelta(seconds=1, microseconds=0 if item.cohort == "history" else 1)
+        ).isoformat(),
+    }

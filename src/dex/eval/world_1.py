@@ -75,6 +75,10 @@ def expectation(case: dict[str, Any]) -> dict[str, Any]:
     response_at = min(
         response_at, datetime(2027, 3, 31, 18, tzinfo=ZoneInfo("America/New_York"))
     )
+    business_response_at = max(
+        response_at,
+        datetime.fromisoformat(case["chronology"]["posted_at"]) + timedelta(minutes=5),
+    )
     for index, role in enumerate(roles):
         waits.append(
             {
@@ -93,10 +97,10 @@ def expectation(case: dict[str, Any]) -> dict[str, Any]:
                 else "approved",
                 "responded_at": None
                 if issue == "unanswered"
-                else (response_at + timedelta(minutes=index)).isoformat(),
+                else (business_response_at + timedelta(minutes=index)).isoformat(),
                 "observed_at": None
                 if issue == "unanswered"
-                else (response_at + timedelta(minutes=index + 1)).isoformat(),
+                else (business_response_at + timedelta(minutes=index + 1)).isoformat(),
                 "origin": company + "-AP",
             }
         )
@@ -137,6 +141,13 @@ def expectation(case: dict[str, Any]) -> dict[str, Any]:
             "vendor_id": resolved_vendor,
             "name": "Juniperfen Works" if company == "C1" else "Kestrelfen Works",
             "action": "add_workspace_identity",
+            "certificate": {
+                "certificate_id": case["case_id"] + "-resolved-certificate",
+                "vendor_id": resolved_vendor,
+                "effective_from": arrived.date().isoformat(),
+                "expires": "2027-12-31",
+                "available_at": response_at.isoformat(),
+            },
         },
         "ambiguous-community": {"community_id": case["community"]},
         "conflicting-amount": {
@@ -158,8 +169,8 @@ def expectation(case: dict[str, Any]) -> dict[str, Any]:
     }
     if issue in resolutions:
         waits[-1]["value"] = resolutions[issue]
-    held = issue in ("expired-certificate", "missing-certificate")
-    if held:
+    held = issue in ("expired-certificate", "missing-certificate", "unknown-vendor")
+    if issue in ("expired-certificate", "missing-certificate"):
         replacement_at = (
             "2026-10-02T09:15:00-04:00"
             if case["cohort"] == "shadow"
@@ -212,6 +223,11 @@ def expectation(case: dict[str, Any]) -> dict[str, Any]:
             "payload": {
                 **identity,
                 "amount_cents": amount,
+                "work": case["work"],
+                "due_date": due.isoformat(),
+                "payment_holds": [issue]
+                if issue in ("expired-certificate", "missing-certificate")
+                else [],
                 "roles": [
                     role for role in roles if role != "community_manager_service"
                 ],
@@ -259,7 +275,7 @@ def expectation(case: dict[str, Any]) -> dict[str, Any]:
         "service_confirmation": service,
         "eligible_at": eligible.isoformat(),
         "insurance_at_receipt": "missing"
-        if issue == "missing-certificate"
+        if issue in ("missing-certificate", "unknown-vendor")
         else "expired"
         if held
         else "valid",

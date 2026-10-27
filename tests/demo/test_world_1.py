@@ -1,7 +1,7 @@
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from threading import Barrier
 from typing import Any
@@ -172,7 +172,7 @@ def test_existing_destination_refused(tmp_path: Path, kind: str) -> None:
 
 
 def case(**changes: object) -> dict[str, Any]:
-    return {
+    result = {
         "case_id": "C1-test",
         "company": "C1",
         "cohort": "stream",
@@ -188,6 +188,14 @@ def case(**changes: object) -> dict[str, Any]:
         "prior": "",
         **changes,
     }
+    arrived = datetime.fromisoformat(str(result["received"]))
+    result["chronology"] = {
+        "values_reviewed_at": (arrived + timedelta(minutes=20)).isoformat(),
+        "posted_at": (
+            arrived + timedelta(minutes=20, seconds=1, microseconds=1)
+        ).isoformat(),
+    }
+    return result
 
 
 @pytest.mark.parametrize(
@@ -439,3 +447,32 @@ def test_missing_packet_refuses_before_creating_destination(tmp_path: Path) -> N
     ):
         build_world("world-1", 7, target)
     assert list(tmp_path.iterdir()) == []
+
+
+def test_approval_request_contains_policy_required_context() -> None:
+    answer = expectation(case(issue="expired-certificate", work="Lighting repair"))
+    request = answer["effects"][1]["payload"]
+    assert request["work"] == "Lighting repair"
+    assert request["due_date"] == "2027-01-19"
+    assert request["payment_holds"] == ["expired-certificate"]
+    assert request["due_at"] == "2027-01-05T09:00:00-05:00"
+
+
+def test_resolved_opening_approval_follows_request(world: Path) -> None:
+    bundle = world / "world-1/bramblewick"
+    key = json.loads((bundle / "eval/answer-key.json").read_bytes())
+    for number, minute in ((5, 9), (6, 10), (7, 11), (10, 14)):
+        answer = key[f"C1-S{number:04d}"]
+        assert (
+            answer["waits"][0]["responded_at"]
+            == f"2026-10-05T09:{minute:02d}:11.000001-04:00"
+        )
+    assert key["C1-S0005"]["insurance_at_receipt"] == "missing"
+    certificate = key["C1-S0005"]["waits"][-1]["value"]["certificate"]
+    assert certificate == {
+        "certificate_id": "C1-S0005-resolved-certificate",
+        "vendor_id": "C1-C02-V11",
+        "effective_from": "2026-10-02",
+        "expires": "2027-12-31",
+        "available_at": "2026-10-05T09:04:00-04:00",
+    }

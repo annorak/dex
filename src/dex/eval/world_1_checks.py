@@ -287,7 +287,7 @@ def path_checks(root: Path) -> dict[str, object]:
             )
         )
         assert [row["status"] for row in opening] == (
-            ["C", "C", "V", "V"] if company == "C1" else ["A", "A", "X"]
+            ["C", "C", "V", "V", "V"] if company == "C1" else ["A", "A", "X", "X"]
         )
         for row in opening:
             assert row["posted_at"] == "2025-09-20T10:00:00-04:00"
@@ -550,12 +550,113 @@ def stream_checks(root: Path) -> dict[str, object]:
                 )
             }
             assert {"C", "R", "V"} <= statuses
+        chronology_checks(bundle, cases, key)
     return {
         "stream_cases": [1800, 1800],
         "opening_cases": 19,
         "shadow_cases": [10, 10],
         "dates_exact": True,
     }
+
+
+def chronology_checks(bundle: Path, cases: dict[str, Any], key: dict[str, Any]) -> None:
+    operations = read_json(bundle / "eval/operation-schedule.json")
+    events = {event["id"]: event for event in operations["events"]}
+    postings: dict[str, dict[str, str]] = {}
+    for path in [
+        bundle / "exports/opening-ap-invoice-register.csv",
+        *sorted((bundle / "exports/register").glob("*/ap-invoice-register.csv")),
+        bundle / "exports/final-postings.csv",
+    ]:
+        for row in csv.DictReader(io.StringIO(path.read_text())):
+            postings[row["invoice_id"]] = row
+    for path in sorted((bundle / "history/actions").glob("*.csv")):
+        for row in csv.DictReader(io.StringIO(path.read_text())):
+            if row["posting_time"]:
+                postings[row["case_id"]] = {
+                    **row,
+                    "invoice_id": row["case_id"],
+                    "posted_at": row["posting_time"],
+                    "voided_at": "",
+                }
+    for identity, case in cases.items():
+        answer = key[identity]
+        if case["issue"] == "void-only":
+            matching = [
+                row
+                for row in postings.values()
+                if row["vendor"] == case["vendor"]
+                and row["invoice_number"].strip() == case["number"].strip()
+                and datetime.fromisoformat(row["posted_at"])
+                < datetime.fromisoformat(case["received"])
+            ]
+            assert matching and all(row["status"] in ("V", "X") for row in matching)
+            assert answer["state"] == "scheduled"
+        if case["issue"] == "unknown-vendor":
+            resolution = next(
+                wait for wait in answer["waits"] if wait["role"] == "ap_clerk"
+            )
+            certificate = resolution["value"]["certificate"]
+            assert answer["insurance_at_receipt"] == "missing"
+            assert certificate["vendor_id"] == resolution["value"]["vendor_id"]
+            assert (
+                certificate["effective_from"]
+                <= case["received"][:10]
+                <= certificate["expires"]
+            )
+            assert certificate["available_at"] == resolution["observed_at"]
+            assert datetime.fromisoformat(
+                certificate["available_at"]
+            ) < datetime.fromisoformat(answer["eligible_at"])
+        if case["cohort"] != "stream" or not answer["effects"]:
+            continue
+        posted = datetime.fromisoformat(postings[identity]["posted_at"])
+        authorized = datetime.fromisoformat(events[identity + "/record/1/review"]["at"])
+        confirmed = datetime.fromisoformat(
+            events[identity + "/record/1/confirmed"]["at"]
+        )
+        requested = datetime.fromisoformat(
+            events[identity + "/request/1/confirmed"]["at"]
+        )
+        assert authorized < posted < confirmed < requested
+        assert postings[identity]["invoice_number"] == case["number"]
+        assert postings[identity]["community"] == case["community"]
+        request = next(
+            effect
+            for effect in answer["effects"]
+            if effect["operation"] == "request_approval"
+        )
+        assert request["payload"]["work"] == case["work"]
+        assert request["payload"]["due_date"] == answer["due_date"]
+        assert request["payload"]["payment_holds"] == (
+            [case["issue"]]
+            if case["issue"] in ("expired-certificate", "missing-certificate")
+            else []
+        )
+        assert {"work", "due_date", "payment_holds"} <= set(
+            events[identity + "/request/1/review"]["fields"]
+        )
+        for wait in answer["waits"]:
+            if wait["role"] == "ap_clerk" or not wait.get("responded_at"):
+                continue
+            submission = (
+                datetime.fromisoformat(
+                    events[identity + "/service-request/1/confirmed"]["at"]
+                )
+                if wait["role"] == "community_manager_service"
+                else requested
+            )
+            assert (
+                submission
+                < datetime.fromisoformat(wait["responded_at"])
+                <= datetime.fromisoformat(wait["observed_at"])
+            )
+            if answer["state"] == "scheduled":
+                assert datetime.fromisoformat(
+                    wait["observed_at"]
+                ) < datetime.fromisoformat(
+                    events[identity + "/schedule/1/review"]["at"]
+                )
 
 
 def key_checks(root: Path) -> dict[str, object]:

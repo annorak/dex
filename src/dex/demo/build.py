@@ -22,6 +22,7 @@ from dex.demo.world_1 import (
     VENDORS,
     VERSION,
     Invoice,
+    chronology,
     local,
     make_cases,
     vendor_id,
@@ -341,6 +342,9 @@ def company_bundle(
                     "due_date",
                     "approval_roles",
                     "snow_review",
+                    "community",
+                    "vendor",
+                    "invoice_number",
                 ]
             ]
             for item in historical:
@@ -374,6 +378,9 @@ def company_bundle(
                     "snow_review": "reviewed"
                     if snow and not stopped
                     else "not_required",
+                    "community": item.community,
+                    "vendor": item.vendor,
+                    "invoice_number": item.number,
                 }
                 observed[item.case_id] = {
                     "decision": route,
@@ -481,6 +488,7 @@ def company_bundle(
                 **asdict(item),
                 "received": item.received.isoformat(),
                 "invoice_date": item.invoice_date.isoformat(),
+                "chronology": chronology(item),
             }
             for item in cases
         ],
@@ -647,7 +655,7 @@ def snapshots(
             "2025-09-20T10:00:00-04:00",
             "" if number < 3 else "2025-09-25T10:00:00-04:00",
         ]
-        for number in range(1, 5 if company == "C1" else 4)
+        for number in ((1, 2, 3, 4, 5) if company == "C1" else (1, 2, 3, 5))
     ]
     ref = source(
         manifest,
@@ -662,9 +670,13 @@ def snapshots(
     delivery(manifest, "opening-register", [ref], INITIAL)
     ledger = list(opening)
     day = date(2026, 10, 1)
-    stream = [item for item in cases if item.cohort == "stream"]
+    stream = [
+        (item, chronology(item)["posted_at"])
+        for item in cases
+        if item.cohort == "stream"
+    ]
+    current_headers = list(headers)
     while day <= date(2027, 3, 31):
-        current_headers = list(headers)
         if company == "C1" and day >= date(2026, 10, 15):
             current_headers[4] = "gross_cents"
         rows = [list(row) for row in ledger]
@@ -701,56 +713,45 @@ def snapshots(
             )
             delivery(manifest, "D1-before", [before], "2026-10-15T07:59:00-04:00")
         ledger = list(opening)
-        for item in stream:
-            if item.received.date() == day and item.issue not in (
-                "duplicate",
-                "cancellation",
-                "unknown-vendor",
-                "ambiguous-community",
-                "conflicting-amount",
-                "community-not-yet-joined",
-            ):
-                ledger.append(
-                    [
-                        item.case_id,
-                        item.community,
-                        item.vendor,
-                        item.number,
-                        native_amount(company, item.amount),
-                        "C" if company == "C1" else "A",
-                        (item.received + timedelta(hours=1)).isoformat(),
-                        "",
-                    ]
-                )
-        for item in stream:
-            if item.issue not in (
-                "unknown-vendor",
-                "ambiguous-community",
-                "conflicting-amount",
-                "community-not-yet-joined",
-            ):
+        for item, posted_at in stream:
+            if item.issue in ("duplicate", "cancellation"):
                 continue
-            resolved = item.received + timedelta(days=1)
-            while resolved.weekday() >= 5:
-                resolved += timedelta(days=1)
-            if item.issue == "community-not-yet-joined":
-                resolved = local(date(2026, 11, 15), 8)
-            if resolved.date() == day:
+            if posted_at[:10] == day.isoformat():
                 ledger.append(
                     [
                         item.case_id,
                         item.community,
-                        item.community + "-V11"
+                        vendor_id(company, item.community, 11)
                         if item.issue == "unknown-vendor"
                         else item.vendor,
                         item.number,
                         native_amount(company, item.amount),
                         "C" if company == "C1" else "A",
-                        (resolved + timedelta(minutes=1)).isoformat(),
+                        posted_at,
                         "",
                     ]
                 )
         day += timedelta(days=1)
+    at = "2027-03-31T23:59:59-04:00"
+    if company == "C1":
+        for row in ledger:
+            if row[5] == "C" and (row[0].endswith("1") or row[0].endswith("3")):
+                row[5] = "R"
+    ref = source(
+        manifest,
+        files,
+        company + "-final-postings",
+        "exports/final-postings.csv",
+        csv_bytes([current_headers, *ledger]),
+        "text/csv",
+        at,
+        origin={
+            "kind": "export",
+            "source_system": company + "-AP",
+            "export_id": company + "-final-day-postings-and-opening",
+        },
+    )
+    delivery(manifest, "final-postings", [ref], at)
 
 
 def build_world(world: str, seed: int, out: Path) -> dict[str, object]:

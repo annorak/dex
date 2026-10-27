@@ -658,8 +658,17 @@ def test_cli_help(tmp_path: Path) -> None:
 
 def test_cli_unavailable_commands_fail(tmp_path: Path) -> None:
     run_check(
-        [Path(sys.executable).with_name("dex"), "demo"],
+        [Path(sys.executable).with_name("dex"), "report"],
         cwd=tmp_path,
         expected_returncode=2,
-        diagnostic="invalid choice: 'demo'",
+        diagnostic="invalid choice: 'report'",
+    )
+
+
+def test_demo_build_help(tmp_path: Path) -> None:
+    run_check(
+        [Path(sys.executable).with_name("dex"), "demo", "build", "--help"],
+        cwd=tmp_path,
+        expected_returncode=0,
+        diagnostic="--seed SEED",
     )
