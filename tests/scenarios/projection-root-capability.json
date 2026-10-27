@@ -1,0 +1,9 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-root-capability",
+  "case": "projection-root-capability",
+  "expected": {
+    "planted_refusals": 2,
+    "root_inaccessible": true
+  }
+}

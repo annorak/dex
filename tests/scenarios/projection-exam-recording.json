@@ -1,0 +1,11 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-exam-recording",
+  "case": "projection-exam-recording",
+  "expected": {
+    "recordings": [
+      "learn-recording"
+    ],
+    "exam_excluded": true
+  }
+}

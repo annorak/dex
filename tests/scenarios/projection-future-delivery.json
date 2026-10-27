@@ -1,0 +1,15 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-future-delivery",
+  "case": "projection-future-delivery",
+  "expected": {
+    "before": [
+      "learning-case"
+    ],
+    "after": [
+      "learning-case",
+      "future-case"
+    ],
+    "availability_wins": true
+  }
+}

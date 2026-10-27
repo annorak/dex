@@ -1,0 +1,9 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-self-contained",
+  "case": "projection-self-contained",
+  "expected": {
+    "independent": true,
+    "authority_unchanged": true
+  }
+}

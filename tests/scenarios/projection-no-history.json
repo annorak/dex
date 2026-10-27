@@ -1,0 +1,10 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-no-history",
+  "case": "projection-no-history",
+  "expected": {
+    "no_history": true,
+    "incomplete_preserved": true,
+    "invented_claims": false
+  }
+}

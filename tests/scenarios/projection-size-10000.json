@@ -1,0 +1,11 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-size-10000",
+  "case": "projection-size-10000",
+  "expected": {
+    "input_cases": 10000,
+    "learning_cases": 8000,
+    "records": 8000,
+    "persisted_and_validated": true
+  }
+}

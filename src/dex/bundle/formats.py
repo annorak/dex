@@ -448,7 +448,9 @@ def _table(
                 )
                 for column in columns
             )
-            records.append(Record(f"record:{number}", values, cells))
+            records.append(
+                Record(f"record:{number}", values, cells, tuple(locators[number - 1]))
+            )
     return Extraction(
         "".join(pieces),
         tuple(sections),

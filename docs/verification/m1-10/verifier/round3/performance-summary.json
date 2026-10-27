@@ -1,0 +1,145 @@
+{
+  "head": "ecd4b9a",
+  "base": "c7c1976",
+  "verdict": "FAIL",
+  "aggregate_pass": 13,
+  "aggregate_fail": 1,
+  "measured_children": 26,
+  "all_clocks_valid": true,
+  "all_children_exit_zero": true,
+  "size_absolute_limits_pass": true,
+  "comparisons": {
+    "parent": {
+      "pass": true,
+      "ratios": {
+        "max_rss_bytes": 1.0005402485143167,
+        "wall_seconds": 1.0269765190166598
+      },
+      "sides": {
+        "head": {
+          "max_rss_bytes": {
+            "max": 30375936,
+            "median": 30343168,
+            "min": 30261248
+          },
+          "wall_seconds": {
+            "max": 0.091616167,
+            "median": 0.0880955,
+            "min": 0.084008208
+          }
+        },
+        "parent": {
+          "max_rss_bytes": {
+            "max": 30457856,
+            "median": 30326784,
+            "min": 30277632
+          },
+          "wall_seconds": {
+            "max": 0.416762375,
+            "median": 0.085781416,
+            "min": 0.079580291
+          }
+        }
+      }
+    },
+    "trunk": {
+      "pass": false,
+      "ratios": {
+        "max_rss_bytes": 1,
+        "wall_seconds": 1.2166664737334365
+      },
+      "sides": {
+        "head": {
+          "max_rss_bytes": {
+            "max": 30392320,
+            "median": 30310400,
+            "min": 30294016
+          },
+          "wall_seconds": {
+            "max": 0.106269375,
+            "median": 0.0989015,
+            "min": 0.086301875
+          }
+        },
+        "trunk": {
+          "max_rss_bytes": {
+            "max": 30375936,
+            "median": 30310400,
+            "min": 30310400
+          },
+          "wall_seconds": {
+            "max": 0.089974792,
+            "median": 0.081288917,
+            "min": 0.080044042
+          }
+        }
+      }
+    }
+  },
+  "size_samples": [
+    {
+      "processing_seconds": 6.727569167036563,
+      "wall_seconds": 7.101314708,
+      "max_rss_bytes": 422641664
+    },
+    {
+      "processing_seconds": 6.544609875010792,
+      "wall_seconds": 6.908090125,
+      "max_rss_bytes": 481099776
+    },
+    {
+      "processing_seconds": 6.499055291002151,
+      "wall_seconds": 6.88949675,
+      "max_rss_bytes": 426721280
+    },
+    {
+      "processing_seconds": 6.41873645799933,
+      "wall_seconds": 6.768811958,
+      "max_rss_bytes": 487473152
+    },
+    {
+      "processing_seconds": 6.347144457977265,
+      "wall_seconds": 6.683083541,
+      "max_rss_bytes": 422133760
+    }
+  ],
+  "size_statistics": {
+    "processing_seconds": {
+      "median": 6.499055291002151,
+      "min": 6.347144457977265,
+      "max": 6.727569167036563
+    },
+    "wall_seconds": {
+      "median": 6.88949675,
+      "min": 6.683083541,
+      "max": 7.101314708
+    },
+    "max_rss_bytes": {
+      "median": 426721280,
+      "min": 422133760,
+      "max": 487473152
+    }
+  },
+  "cold_trunk": {
+    "wall_seconds": 0.534330666,
+    "max_rss_bytes": 30490624
+  },
+  "outside_timing_validation": {
+    "measured_views": 5,
+    "emitted_views": 5,
+    "all_ten_byte_identical": true,
+    "view_bytes": 13582310,
+    "input_cases": 10000,
+    "learning_cases": 8000,
+    "records": 8000
+  },
+  "limits": {
+    "processing_seconds": 10,
+    "completion_seconds": 20,
+    "max_rss_bytes": 536870912,
+    "supported_median_ratio": 1.2
+  },
+  "unsupported_baseline_commands": 8,
+  "replacement_samples": 0,
+  "cause": "Unresolved. Busy-host data does not invalidate the frozen failure."
+}

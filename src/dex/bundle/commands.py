@@ -1,4 +1,5 @@
 import json
+import re
 import sqlite3
 import sys
 from datetime import UTC, datetime
@@ -7,7 +8,7 @@ from pathlib import Path
 from dex import codec
 from dex.bundle.model import BundleError
 from dex.bundle.reader import load_bundle
-from dex.bundle.validation import canonical
+from dex.bundle.validation import canonical, timestamp
 from dex.core import events as e
 from dex.core import program as p
 from dex.core import runtime as r
@@ -58,6 +59,52 @@ def check_bundle(path: Path) -> int:
         print(
             json.dumps({"format": "dex-bundle-error-1", "code": str(error)}),
             file=sys.stderr,
+        )
+        return 2
+
+
+def project_bundle(path: Path, as_of: str, out: Path) -> int:
+    from dex.bundle.projection import materialize_learning, write_learning_view
+
+    try:
+        cutoff = timestamp(as_of, "as_of")
+        view = materialize_learning(load_bundle(path), cutoff)
+        write_learning_view(view, out)
+        print(
+            canonical(
+                {
+                    "format": "dex-bundle-project-1",
+                    "consumer": "learning",
+                    "as_of": cutoff.isoformat(),
+                }
+            ).decode(),
+            end="",
+        )
+        return 0
+    except (ValueError, OSError) as error:
+        reason = str(error)
+        code = "projection_input_invalid"
+        if reason == "output_exists" or re.fullmatch(
+            r"(projection|history)_[a-z_]+", reason
+        ):
+            code = reason
+        else:
+            for fragment, category in (
+                ("unsafe path", "path"),
+                ("symlink", "symlink"),
+                ("missing or unknown fields", "fields"),
+                ("undeclared or missing inputs", "files"),
+                ("hash mismatch", "hash"),
+                ("invalid chronology", "chronology"),
+                ("unresolved status meaning", "status"),
+                ("fractional cents", "money"),
+                ("invalid timestamp", "timestamp"),
+            ):
+                if fragment in reason:
+                    code = "projection_input_" + category
+                    break
+        print(
+            json.dumps({"format": "dex-bundle-error-1", "code": code}), file=sys.stderr
         )
         return 2
 

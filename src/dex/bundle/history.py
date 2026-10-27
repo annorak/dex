@@ -2,7 +2,7 @@ import json
 from hashlib import sha256
 from typing import Any
 
-from dex.bundle.model import BundleError, Case, Delivery, Source
+from dex.bundle.model import BundleError, Case, Delivery, Record, Source
 from dex.bundle.validation import (
     business_date,
     canonical,
@@ -24,6 +24,7 @@ def source_ref(raw: object, field: str) -> tuple[str, str]:
 def case_facts(
     item: dict[str, Any],
     sources: dict[tuple[str, str], Source],
+    records: dict[tuple[str, str], dict[str, Record]],
     refs: tuple[tuple[str, str], ...],
     label: str,
 ) -> tuple[p.NamedValue, ...]:
@@ -39,10 +40,9 @@ def case_facts(
         if source.unresolved:
             raise BundleError(f"{label}: unresolved fact source {source.unresolved}")
         record_id, column = text(fact["record"], label), text(fact["column"], label)
-        records = {record.locator: record for record in source.records}
-        if record_id not in records:
+        if record_id not in records[ref]:
             raise BundleError(f"{label}/{name}: missing record {record_id}")
-        values = {value.name: value.value for value in records[record_id].values}
+        values = {value.name: value.value for value in records[ref][record_id].values}
         if column not in values:
             raise BundleError(f"{label}/{name}: missing mapped column {column}")
         facts[name] = values[column]
@@ -151,6 +151,10 @@ def load_cases(
         for item in manifest["sources"]
     }
     cases: dict[str, Case] = {}
+    source_records = {
+        ref: {record.locator: record for record in source.records}
+        for ref, source in sources.items()
+    }
     memberships: set[tuple[str, str]] = set()
     for raw, is_history in [
         *((case, True) for case in historical),
@@ -194,7 +198,7 @@ def load_cases(
             sources[ref].available_at > opened for ref in refs
         ):
             raise BundleError(f"{identity}: later evidence cannot enter arrival facts")
-        facts = case_facts(item, sources, refs, identity)
+        facts = case_facts(item, sources, source_records, refs, identity)
         records = sorted(
             {
                 (*source_ref(fact["source"], identity), fact["record"])

@@ -1,0 +1,11 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-quarter-boundary",
+  "case": "projection-quarter-boundary",
+  "expected": {
+    "cases": [
+      "learning-case"
+    ],
+    "complete_case_cohort": true
+  }
+}

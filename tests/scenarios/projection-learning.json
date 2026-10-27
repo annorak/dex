@@ -1,0 +1,11 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-learning",
+  "case": "projection-learning",
+  "expected": {
+    "cases": [
+      "learning-case"
+    ],
+    "available_only": true
+  }
+}
