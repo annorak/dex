@@ -1,0 +1,9 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-derived-leak",
+  "case": "projection-derived-leak",
+  "expected": {
+    "planted_refusals": 24,
+    "destinations": 6
+  }
+}

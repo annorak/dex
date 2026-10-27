@@ -1,0 +1,9 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-evaluator-leak",
+  "case": "projection-evaluator-leak",
+  "expected": {
+    "planted_refusals": 5,
+    "evaluator_excluded": true
+  }
+}

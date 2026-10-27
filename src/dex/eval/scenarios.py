@@ -468,6 +468,14 @@ def run_scenario(path: Path, out: Path) -> int:
             from dex.eval.bundle_scenarios import run_bundle_scenario
 
             return run_bundle_scenario(source, out)
+        if (
+            isinstance(header, dict)
+            and cast(dict[str, object], header).get("format")
+            == "dex-projection-scenario-1"
+        ):
+            from dex.eval.projection_scenarios import run_projection_scenario
+
+            return run_projection_scenario(source, out)
         scenario = parse_scenario(source)
         evaluation = evaluate(scenario)
         actual = {

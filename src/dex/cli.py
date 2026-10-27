@@ -24,12 +24,21 @@ def main() -> None:
         apply = workspace_commands.add_parser("command")
         apply.add_argument("workspace", type=Path)
         apply.add_argument("--command", required=True, type=Path, dest="command_file")
-    bundle = commands.add_parser("bundle", help="Validate public company evidence.")
+    bundle = commands.add_parser(
+        "bundle", help="Validate company evidence or project permitted learning inputs."
+    )
     bundle_commands = bundle.add_subparsers(dest="bundle_command", required=True)
     check = bundle_commands.add_parser(
         "check", help="Check a public bundle without opening eval/."
     )
     check.add_argument("bundle", type=Path)
+    project = bundle_commands.add_parser(
+        "project", help="Materialize available learning evidence without exam access."
+    )
+    project.add_argument("bundle", type=Path)
+    project.add_argument("--consumer", choices=("learning",), required=True)
+    project.add_argument("--as-of", required=True)
+    project.add_argument("--out", required=True, type=Path)
     run = commands.add_parser(
         "run", help="Run company cases with a verified, approved program."
     )
@@ -39,6 +48,12 @@ def main() -> None:
     run.add_argument("--out", required=True, type=Path)
     arguments = parser.parse_args()
     if arguments.command == "bundle":
+        if arguments.bundle_command == "project":
+            from dex.bundle.commands import project_bundle
+
+            raise SystemExit(
+                project_bundle(arguments.bundle, arguments.as_of, arguments.out)
+            )
         from dex.bundle.commands import check_bundle
 
         raise SystemExit(check_bundle(arguments.bundle))

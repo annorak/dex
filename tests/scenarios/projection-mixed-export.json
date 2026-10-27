@@ -1,0 +1,12 @@
+{
+  "format": "dex-projection-scenario-1",
+  "scenario_id": "projection-mixed-export",
+  "case": "projection-mixed-export",
+  "expected": {
+    "records": [
+      "record:2"
+    ],
+    "original_private": true,
+    "citation_preserved": true
+  }
+}
