@@ -343,20 +343,24 @@ def materialize_learning(bundle: Bundle, as_of: datetime) -> LearningView:
                     restrict(child, {"*"})
 
     propagate(denied)
-    restricted_versions: dict[str, set[str]] = {}
-    for ref, source in sources.items():
-        if denied[ref]:
-            restricted_versions.setdefault(source.sha256, set()).add(
-                source.extractor_version
-            )
     ambiguous = {ref: set[str]() for ref in sources}
-    for ref, source in sources.items():
-        if (
-            source.sha256 in restricted_versions
-            and restricted_versions[source.sha256] - {source.extractor_version}
-        ):
-            ambiguous[ref].add("*")
-    propagate(ambiguous)
+    processed: set[str] = set()
+    while True:
+        restricted_versions: dict[str, set[str]] = {}
+        for ref, source in sources.items():
+            if source.sha256 not in processed and (denied[ref] or ambiguous[ref]):
+                restricted_versions.setdefault(source.sha256, set()).add(
+                    source.extractor_version
+                )
+        if not restricted_versions:
+            break
+        processed.update(restricted_versions)
+        for ref, source in sources.items():
+            if source.sha256 in restricted_versions and restricted_versions[
+                source.sha256
+            ] - {source.extractor_version}:
+                ambiguous[ref].add("*")
+        propagate(ambiguous)
     for ref in sources:
         denied[ref].update(ambiguous[ref])
     for ref, source in sources.items():

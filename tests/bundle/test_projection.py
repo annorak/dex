@@ -19,8 +19,9 @@ from dex.eval.projection_fixture import CUTOFF, MIXED, projection_bundle
 
 
 @pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("depth", [0, 1, 2])
 def test_cross_extractor_attachment_exclusion_reaches_parent(
-    tmp_path: Path, reverse: bool
+    tmp_path: Path, reverse: bool, depth: int
 ) -> None:
     from email.message import EmailMessage
 
@@ -51,6 +52,38 @@ def test_cross_extractor_attachment_exclusion_reaches_parent(
             "attachment_id": "alias",
         },
     )
+    if depth:
+        origin: dict[str, Any] = {"kind": "file", "snapshot": "packet-1"}
+        if depth == 2:
+            outer = EmailMessage()
+            outer.set_content("permitted outer body")
+            outer.add_attachment(
+                message.as_bytes(),
+                maintype="text",
+                subtype="plain",
+                filename="parent-raw.txt",
+            )
+            outer.set_boundary("outer-boundary")
+            outer_ref = add_source(
+                source, manifest, "outer.eml", outer.as_bytes(), "message/rfc822"
+            )
+            add_source(
+                source, manifest, "outer-raw.txt", outer.as_bytes(), "text/plain"
+            )
+            origin = {
+                "kind": "attachment",
+                "message": outer_ref,
+                "part": "part:2",
+                "attachment_id": "parent-raw",
+            }
+        add_source(
+            source,
+            manifest,
+            "parent-raw.txt",
+            message.as_bytes(),
+            "text/plain",
+            origin=origin,
+        )
     if reverse:
         manifest["sources"].reverse()
     save_manifest(source, manifest)
@@ -61,10 +94,12 @@ def test_cross_extractor_attachment_exclusion_reaches_parent(
     )
     sources = {item["source_id"]: item for item in json.loads(view.content)["sources"]}
     assert "alias.txt" not in sources
+    assert "parent-raw.txt" not in sources
+    assert "outer-raw.txt" not in sources
     assert [record["locator"] for record in sources["mixed.csv"]["records"]] == [
         "record:2"
     ]
-    for identity in ("parent.eml", "copy.eml"):
+    for identity in ("parent.eml", "copy.eml") + (("outer.eml",) if depth == 2 else ()):
         extraction = codec.loads(
             json.dumps(sources[identity]["extraction"]), p.SourceExtraction
         )
