@@ -1,0 +1,20 @@
+{
+  "format": "dex-world1-scenario-1",
+  "scenario_id": "world1-history-membership",
+  "case": "world1-history-membership",
+  "expected": {
+    "histories": [
+      3600,
+      3600
+    ],
+    "learning": [
+      2700,
+      2700
+    ],
+    "exam": [
+      900,
+      900
+    ],
+    "chronology_exact": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "format": "dex-world1-scenario-1",
+  "scenario_id": "world1-seed-variation",
+  "case": "world1-seed-variation",
+  "expected": {
+    "seeds": [
+      7,
+      11
+    ],
+    "permitted_variation": true,
+    "named_sets_unchanged": true
+  }
+}

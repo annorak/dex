@@ -1,0 +1,10 @@
+{
+  "format": "dex-world1-scenario-1",
+  "scenario_id": "world1-key-independence",
+  "case": "world1-key-independence",
+  "expected": {
+    "keys_frozen": true,
+    "reference_programs": 0,
+    "independent_boundary_answers": true
+  }
+}

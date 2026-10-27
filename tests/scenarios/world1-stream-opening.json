@@ -1,0 +1,17 @@
+{
+  "format": "dex-world1-scenario-1",
+  "scenario_id": "world1-stream-opening",
+  "case": "world1-stream-opening",
+  "expected": {
+    "stream_cases": [
+      1800,
+      1800
+    ],
+    "opening_cases": 19,
+    "shadow_cases": [
+      10,
+      10
+    ],
+    "dates_exact": true
+  }
+}
