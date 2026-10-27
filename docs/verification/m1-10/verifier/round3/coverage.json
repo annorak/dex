@@ -1,0 +1,120 @@
+{
+  "head": "ecd4b9a",
+  "base": "c7c1976",
+  "verdict": "FAIL",
+  "stack_ready": false,
+  "outcome_count": 14,
+  "pass_count": 13,
+  "fail_count": 1,
+  "outcomes": [
+    {
+      "outcome": "repository-gates",
+      "verdict": "PASS",
+      "executed_head": "ecd4b9a",
+      "receipt": "023-repository-gates.txt",
+      "focused_receipt": "024-projection-focused.txt",
+      "tests": 788,
+      "focused_tests": 47
+    },
+    {
+      "outcome": "projection-learning",
+      "verdict": "PASS",
+      "executed_head": "ecd4b9a",
+      "applicable_head": "ecd4b9a",
+      "receipt": "head-projection-learning.txt"
+    },
+    {
+      "outcome": "projection-quarter-boundary",
+      "verdict": "PASS",
+      "executed_head": "b9d6794",
+      "applicable_head": "ecd4b9a",
+      "receipt": "../round2/lane-02-projection-quarter-boundary.txt",
+      "applicability_receipt": "005-live-applicability.txt",
+      "basis": "Only alias closure changed; saved inputs have unique source hashes and no attachment edges."
+    },
+    {
+      "outcome": "projection-exam-recording",
+      "verdict": "PASS",
+      "executed_head": "b9d6794",
+      "applicable_head": "ecd4b9a",
+      "receipt": "../round2/lane-03-projection-exam-recording.txt",
+      "applicability_receipt": "005-live-applicability.txt",
+      "basis": "Only alias closure changed; saved inputs have unique source hashes and no attachment edges."
+    },
+    {
+      "outcome": "projection-mixed-export",
+      "verdict": "PASS",
+      "executed_head": "ecd4b9a",
+      "applicable_head": "ecd4b9a",
+      "receipt": "lane-04-projection-mixed-export.txt"
+    },
+    {
+      "outcome": "projection-future-delivery",
+      "verdict": "PASS",
+      "executed_head": "b9d6794",
+      "applicable_head": "ecd4b9a",
+      "receipt": "../round2/lane-05-projection-future-delivery.txt",
+      "applicability_receipt": "005-live-applicability.txt",
+      "basis": "Only alias closure changed; saved inputs have unique source hashes and no attachment edges."
+    },
+    {
+      "outcome": "projection-evaluator-leak",
+      "verdict": "PASS",
+      "executed_head": "b9d6794",
+      "applicable_head": "ecd4b9a",
+      "receipt": "../round2/lane-06-projection-evaluator-leak.txt",
+      "applicability_receipt": "005-live-applicability.txt",
+      "basis": "Only alias closure changed; saved inputs have unique source hashes and no attachment edges."
+    },
+    {
+      "outcome": "projection-root-capability",
+      "verdict": "PASS",
+      "executed_head": "ecd4b9a",
+      "applicable_head": "ecd4b9a",
+      "receipt": "lane-07-projection-root-capability.txt"
+    },
+    {
+      "outcome": "projection-derived-leak",
+      "verdict": "PASS",
+      "executed_head": "ecd4b9a",
+      "applicable_head": "ecd4b9a",
+      "receipt": "lane-08-projection-derived-leak.txt"
+    },
+    {
+      "outcome": "projection-no-history",
+      "verdict": "PASS",
+      "executed_head": "b9d6794",
+      "applicable_head": "ecd4b9a",
+      "receipt": "../round2/lane-09-projection-no-history.txt",
+      "applicability_receipt": "005-live-applicability.txt",
+      "basis": "Only alias closure changed; saved inputs have unique source hashes and no attachment edges."
+    },
+    {
+      "outcome": "projection-self-contained",
+      "verdict": "PASS",
+      "executed_head": "ecd4b9a",
+      "applicable_head": "ecd4b9a",
+      "receipt": "lane-10-projection-self-contained.txt"
+    },
+    {
+      "outcome": "performance",
+      "verdict": "FAIL",
+      "executed_head": "ecd4b9a",
+      "receipt": "013-performance-driver.txt",
+      "summary": "performance-summary.json",
+      "reason": "Trunk/head startup median wall ratio 1.2166664737334365 exceeds 1.20. All absolute size budgets pass."
+    },
+    {
+      "outcome": "correctness",
+      "verdict": "PASS",
+      "executed_head": "ecd4b9a",
+      "report": "../../correctness/round2-validation.md"
+    },
+    {
+      "outcome": "isolation",
+      "verdict": "PASS",
+      "executed_head": "ecd4b9a",
+      "report": "../../isolation/round2-validation.md"
+    }
+  ]
+}
