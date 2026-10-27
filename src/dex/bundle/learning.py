@@ -19,6 +19,7 @@ from dex.bundle.validation import (
     text,
     timestamp,
 )
+from dex.core import events as e
 from dex.core import program as p
 
 
@@ -42,6 +43,34 @@ def exam_boundary(end: datetime) -> datetime:
     if year < 1:
         raise BundleError("history_interval_too_early")
     return first.replace(year=year, month=zero_month + 1)
+
+
+def recording_is_permitted(raw: object, cases: set[str]) -> bool:
+    request = codec.loads(json.dumps(raw), e.RecordingRequest)
+    _metadata(
+        [
+            request.work.address.node_id,
+            request.artifact.program_id,
+            request.artifact.revision,
+            request.prompt_revision,
+            request.record_revision,
+        ]
+    )
+    if request.work.address.case_id not in cases:
+        return False
+    for item in request.inputs:
+        _metadata(list(item.name))
+        if isinstance(item.reference, p.ResultRef) and item.producer is None:
+            return False
+        if item.producer is not None:
+            metadata_text(item.producer.node_id)
+            if (
+                item.producer.case_id not in cases
+                or item.producer_revision is None
+                or item.producer_revision < 1
+            ):
+                return False
+    return True
 
 
 def _metadata(value: object) -> None:
@@ -205,7 +234,7 @@ def _source(item: dict[str, Any], cutoff: datetime) -> Source:
     identities: set[str] = set()
     for raw in records_raw:
         record = object_value(raw, "record")
-        fields(record, {"locator", "values", "cells"}, set(), "record")
+        fields(record, {"locator", "values", "cells", "native_cells"}, set(), "record")
         locator = text(record["locator"], "locator")
         _metadata(locator)
         if locator in identities:
@@ -229,7 +258,17 @@ def _source(item: dict[str, Any], cutoff: datetime) -> Source:
             {value.name for value in values}
         ) != len(values):
             raise BundleError("projection_record_values")
-        records.append(Record(locator, values, tuple(cells)))
+        native_cells = tuple(
+            text(value, "native cell")
+            for value in items(record["native_cells"], "native cells")
+        )
+        if (
+            len(set(native_cells)) != len(native_cells)
+            or not set(native_cells) <= sections.keys()
+            or not {cell for _, cell in cells} <= set(native_cells)
+        ):
+            raise BundleError("projection_native_cells")
+        records.append(Record(locator, values, tuple(cells), native_cells))
     return Source(
         source_id,
         revision,
@@ -370,6 +409,7 @@ def validate_view(content: bytes) -> dict[str, Any]:
         "sources": data["sources"],
     }
     cases = load_cases(manifest, sources, deliveries, delivery_raw)
+    permitted_cases = {case.case_id for case in cases}
     recording_descriptors: list[dict[str, Any]] = []
     recording_files: dict[str, bytes] = {}
     for raw_recording in items(data["recordings"], "recordings"):
@@ -383,6 +423,8 @@ def validate_view(content: bytes) -> dict[str, Any]:
         descriptor = {key: value for key, value in item.items() if key != "content"}
         if "path" in descriptor:
             raise BundleError("projection_metadata_capability")
+        if not recording_is_permitted(descriptor.get("request"), permitted_cases):
+            raise BundleError("projection_recording_lineage")
         _metadata({key: value for key, value in descriptor.items() if key != "request"})
         path = "recordings/" + sha256(content).hexdigest() + ".json"
         descriptor["path"] = path

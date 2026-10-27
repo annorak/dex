@@ -19,6 +19,7 @@ class Record:
     locator: str
     values: tuple[p.NamedValue, ...]
     cells: tuple[tuple[str, str], ...]
+    native_cells: tuple[str, ...]
 
 
 @dataclass(frozen=True)

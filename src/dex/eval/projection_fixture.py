@@ -122,6 +122,7 @@ def add_recording(
     *,
     phase: str = "runtime",
     available: str = "2026-08-01T00:00:00+00:00",
+    producer_case: str | None = None,
 ) -> None:
     import json
     from hashlib import sha256
@@ -136,7 +137,17 @@ def add_recording(
         e.WorkRevision(e.WorkAddress(case_id, "read"), 1),
         manifest["company_id"],
         e.ArtifactPin("program", "r1", "a" * 64),
-        (),
+        ()
+        if producer_case is None
+        else (
+            e.ConsumedInput(
+                ("upstream",),
+                p.ResultRef("prior"),
+                p.TextValue("derived input"),
+                e.WorkAddress(producer_case, "prior"),
+                producer_revision=1,
+            ),
+        ),
         "prompt-1",
         p.Scalar.TEXT,
         "records-1",

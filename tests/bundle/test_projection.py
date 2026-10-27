@@ -19,6 +19,187 @@ from dex.eval.projection_fixture import CUTOFF, MIXED, projection_bundle
 
 
 @pytest.mark.parametrize("reverse", [False, True])
+def test_cross_extractor_attachment_exclusion_reaches_parent(
+    tmp_path: Path, reverse: bool
+) -> None:
+    from email.message import EmailMessage
+
+    from dex.eval.bundle_fixture import add_source, save_manifest
+
+    source = tmp_path / "bundle"
+    manifest = projection_bundle(source)
+    message = EmailMessage()
+    message.set_content("permitted body")
+    message.add_attachment(
+        MIXED, maintype="text", subtype="plain", filename="alias.txt"
+    )
+    message.set_boundary("alias-boundary")
+    parent = add_source(
+        source, manifest, "parent.eml", message.as_bytes(), "message/rfc822"
+    )
+    add_source(source, manifest, "copy.eml", message.as_bytes(), "message/rfc822")
+    add_source(
+        source,
+        manifest,
+        "alias.txt",
+        MIXED,
+        "text/plain",
+        origin={
+            "kind": "attachment",
+            "message": parent,
+            "part": "part:2",
+            "attachment_id": "alias",
+        },
+    )
+    if reverse:
+        manifest["sources"].reverse()
+    save_manifest(source, manifest)
+    view = build_view(source)
+    assert all(
+        value not in view.content
+        for value in (b"exam-only payload", b"future-only payload")
+    )
+    sources = {item["source_id"]: item for item in json.loads(view.content)["sources"]}
+    assert "alias.txt" not in sources
+    assert [record["locator"] for record in sources["mixed.csv"]["records"]] == [
+        "record:2"
+    ]
+    for identity in ("parent.eml", "copy.eml"):
+        extraction = codec.loads(
+            json.dumps(sources[identity]["extraction"]), p.SourceExtraction
+        )
+        assert [section.locator for section in extraction.sections] == [
+            "headers",
+            "part:1",
+        ]
+
+
+@pytest.mark.parametrize("locator", ["record:2", "record:2/column:1"])
+def test_available_table_observation_preserves_exact_scope(
+    tmp_path: Path, locator: str
+) -> None:
+    from dex.eval.bundle_fixture import add_source, save_manifest
+
+    source = tmp_path / "bundle"
+    manifest = projection_bundle(source)
+    ref = add_source(
+        source,
+        manifest,
+        "observations.csv",
+        b"Value,Extra\npermitted-cell,permitted-sibling\nrestricted-cell,restricted-sibling\n",
+        "text/csv",
+        mapping=manifest["sources"][1]["mapping"],
+    )
+    for index, selected in enumerate((locator, "record:3")):
+        manifest["history"]["cases"][index]["observations"].append(
+            {
+                "observation_id": f"event-{index}",
+                "source": ref,
+                "locator": selected,
+                "actor": "employee",
+                "occurred_at": "2026-06-30T12:00:00+00:00",
+                "observed_at": "2026-07-02T00:00:00+00:00",
+                "available_at": "2026-08-01T00:00:00+00:00",
+                "mapping_version": "mapping-1",
+            }
+        )
+    save_manifest(source, manifest)
+    view = build_view(source)
+    data = json.loads(view.content)
+    assert [event["locator"] for event in data["cases"][0]["observations"]] == [locator]
+    table = next(
+        item for item in data["sources"] if item["source_id"] == "observations.csv"
+    )
+    extraction = codec.loads(json.dumps(table["extraction"]), p.SourceExtraction)
+    expected = (
+        "permitted-cell\npermitted-sibling\n"
+        if locator == "record:2"
+        else "permitted-cell\n"
+    )
+    assert extraction.text == expected
+    assert (
+        b"restricted-cell" not in view.content
+        and b"restricted-sibling" not in view.content
+    )
+
+
+@pytest.mark.parametrize(
+    "producer", ["learning-case", "exam-case", "future-case", "missing-case"]
+)
+def test_recording_producers_must_have_permitted_case_lineage(
+    tmp_path: Path, producer: str
+) -> None:
+    from dataclasses import replace
+    from hashlib import sha256
+
+    from dex.bundle.model import BundleError
+    from dex.bundle.projection import LearningView
+    from dex.bundle.validation import canonical
+    from dex.core import events as e
+    from dex.eval.bundle_fixture import save_manifest
+    from dex.eval.projection_fixture import add_recording
+    from dex.recordings import request_digest
+
+    source = tmp_path / "bundle"
+    manifest = projection_bundle(source)
+    add_recording(
+        source,
+        manifest,
+        "recording",
+        "learning-case",
+        [{"source_id": "guide", "revision_id": "r1"}],
+    )
+    clean = json.loads(build_view(source).content)
+    descriptor = manifest["recordings"][0]
+    request = codec.loads(json.dumps(descriptor["request"]), e.RecordingRequest)
+    request = replace(
+        request,
+        inputs=(
+            e.ConsumedInput(
+                ("upstream",),
+                p.ResultRef("prior"),
+                p.TextValue("restricted producer value"),
+                e.WorkAddress(producer, "prior"),
+                producer_revision=1,
+            ),
+        ),
+    )
+    descriptor["request"] = json.loads(codec.dumps(request))
+    descriptor["input_identity"] = request_digest(request)
+    payload = json.loads((source / descriptor["path"]).read_bytes())
+    payload["request_digest"] = request_digest(request)
+    content = canonical(payload)
+    (source / descriptor["path"]).write_bytes(content)
+    descriptor["sha256"] = sha256(content).hexdigest()
+    save_manifest(source, manifest)
+    view = build_view(source)
+    if producer == "learning-case":
+        assert len(json.loads(view.content)["recordings"]) == 1
+        reference = EvidenceRef("company-1", "recording", ("recording",))
+        assert b"restricted producer value" in serialize_learning_inputs(
+            view, (reference,), "prompt", "company-1"
+        )
+        return
+    assert json.loads(view.content)["recordings"] == []
+    clean["recordings"] = [
+        {key: value for key, value in descriptor.items() if key != "path"}
+        | {"content": content.decode()}
+    ]
+    for destination in (
+        "prompt",
+        "diagnostic",
+        "cache",
+        "training_test",
+        "compiler_recording",
+        "library",
+    ):
+        with pytest.raises(BundleError, match="projection_recording_lineage"):
+            serialize_learning_inputs(
+                LearningView(canonical(clean)), (), destination, "company-1"
+            )
+
+
+@pytest.mark.parametrize("reverse", [False, True])
 def test_attachment_exclusion_reaches_identical_parent_aliases(
     tmp_path: Path, reverse: bool
 ) -> None:

@@ -10,7 +10,12 @@ from typing import Any, Literal
 
 from dex import codec
 from dex.bundle.history import source_ref
-from dex.bundle.learning import exam_boundary, metadata_text, validate_view
+from dex.bundle.learning import (
+    exam_boundary,
+    metadata_text,
+    recording_is_permitted,
+    validate_view,
+)
 from dex.bundle.model import Bundle, BundleError, Source
 from dex.bundle.reader import read_file
 from dex.bundle.validation import canonical, parse_json, timestamp
@@ -125,7 +130,9 @@ def _source_view(
         for record in source.records
         if record.locator in permitted and source.unresolved is None
     ]
-    locators = {locator for record in records for _, locator in record.cells}
+    locators = permitted | {
+        locator for record in records for locator in record.native_cells
+    }
     if extraction is None:
         sections: tuple[p.Section, ...] = ()
     elif not source.records:
@@ -214,6 +221,7 @@ def _source_view(
                 "locator": record.locator,
                 "values": [json.loads(codec.dumps(value)) for value in record.values],
                 "cells": [list(cell) for cell in record.cells],
+                "native_cells": list(record.native_cells),
             }
             for record in records
         ],
@@ -313,36 +321,44 @@ def materialize_learning(bundle: Bundle, as_of: datetime) -> LearningView:
             )
             parents[ref] = parent, sections
             children.setdefault(parent, []).append((ref, sections))
-    pending = deque(ref for ref in sources if denied[ref])
 
-    def restrict(ref: tuple[str, str], selectors: set[str]) -> None:
-        if not selectors <= denied[ref]:
-            denied[ref].update(selectors)
-            pending.append(ref)
+    def propagate(exclusions: dict[tuple[str, str], set[str]]) -> None:
+        pending = deque(ref for ref in sources if exclusions[ref])
 
-    while pending:
-        ref = pending.popleft()
-        source = sources[ref]
-        for alias in aliases[source.sha256, source.extractor_version]:
-            restrict(alias, denied[ref])
-        if ref in parents:
-            parent, sections = parents[ref]
-            restrict(parent, sections)
-        for child, sections in children.get(ref, []):
-            if "*" in denied[ref] or sections & denied[ref]:
-                restrict(child, {"*"})
+        def restrict(ref: tuple[str, str], selectors: set[str]) -> None:
+            if not selectors <= exclusions[ref]:
+                exclusions[ref].update(selectors)
+                pending.append(ref)
+
+        while pending:
+            ref = pending.popleft()
+            source = sources[ref]
+            for alias in aliases[source.sha256, source.extractor_version]:
+                restrict(alias, exclusions[ref])
+            if ref in parents:
+                parent, sections = parents[ref]
+                restrict(parent, sections)
+            for child, sections in children.get(ref, []):
+                if "*" in exclusions[ref] or sections & exclusions[ref]:
+                    restrict(child, {"*"})
+
+    propagate(denied)
     restricted_versions: dict[str, set[str]] = {}
     for ref, source in sources.items():
         if denied[ref]:
             restricted_versions.setdefault(source.sha256, set()).add(
                 source.extractor_version
             )
+    ambiguous = {ref: set[str]() for ref in sources}
     for ref, source in sources.items():
         if (
             source.sha256 in restricted_versions
-            and source.extractor_version not in restricted_versions[source.sha256]
+            and restricted_versions[source.sha256] - {source.extractor_version}
         ):
-            denied[ref].add("*")
+            ambiguous[ref].add("*")
+    propagate(ambiguous)
+    for ref in sources:
+        denied[ref].update(ambiguous[ref])
     for ref, source in sources.items():
         if ref not in assigned:
             allowed[ref].update(record.locator for record in source.records)
@@ -357,12 +373,26 @@ def materialize_learning(bundle: Bundle, as_of: datetime) -> LearningView:
                 if "*" in allowed[ref]
                 else allowed[ref]
             )
-            allowed[ref] = {
+            forbidden_cells = denied[ref] | {
+                locator
+                for record in source.records
+                if record.locator in denied[ref]
+                for locator in record.native_cells
+            }
+            rows = {
                 record.locator
                 for record in source.records
                 if record.locator in candidates
                 and record.locator not in denied[ref]
-                and not any(locator in denied[ref] for _, locator in record.cells)
+                and not any(
+                    locator in forbidden_cells for locator in record.native_cells
+                )
+            }
+            allowed[ref] = rows | {
+                locator
+                for record in source.records
+                for locator in record.native_cells
+                if locator in allowed[ref] and locator not in forbidden_cells
             }
         elif source.extraction is not None and denied[ref]:
             extraction = source.extraction
@@ -463,6 +493,7 @@ def materialize_learning(bundle: Bundle, as_of: datetime) -> LearningView:
             or item["phase"] == "compile"
             or item["phase"] == "runtime"
             and item["case_id"] not in permitted_cases
+            or not recording_is_permitted(item["request"], permitted_cases)
         ):
             continue
         metadata_text(item["recording_id"])

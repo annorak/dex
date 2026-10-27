@@ -224,6 +224,14 @@ def run_case(
         add_recording(source, manifest, "learn-recording", "learning-case", guide)
         add_recording(source, manifest, "exam-recording", "exam-case", guide)
         add_recording(
+            source,
+            manifest,
+            "exam-producer",
+            "learning-case",
+            guide,
+            producer_case="exam-case",
+        )
+        add_recording(
             source, manifest, "compile-aggregate", "exam-case", guide, phase="compile"
         )
         add_observation(
@@ -241,6 +249,7 @@ def run_case(
             value not in view.content
             for value in (
                 b"exam-recording",
+                b"exam-producer",
                 b"compile-aggregate",
                 b"exam-outcome",
                 b"exam-only",
