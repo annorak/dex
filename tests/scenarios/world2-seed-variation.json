@@ -1,0 +1,9 @@
+{
+  "format": "dex-world2-scenario-1",
+  "scenario_id": "world2-seed-variation",
+  "case": "world2-seed-variation",
+  "expected": {
+    "changed_name_exports": 128,
+    "only_permitted_variation": true
+  }
+}

@@ -44,9 +44,11 @@ def main() -> None:
     )
     demo_commands = demo.add_subparsers(dest="demo_command", required=True)
     build = demo_commands.add_parser(
-        "build", help="Build both complete World 1 companies."
+        "build", help="Build both worlds and all three synthetic company bundles."
     )
-    build.add_argument("--world", default="all")
+    build.add_argument(
+        "--world", default="all", help="world-1, world-2, or all (default)"
+    )
     build.add_argument("--seed", required=True, type=int)
     build.add_argument("--out", required=True, type=Path)
     run = commands.add_parser(

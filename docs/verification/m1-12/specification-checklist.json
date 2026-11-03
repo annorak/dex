@@ -1,0 +1,499 @@
+{
+  "scope": "M1-12 fixture requirements, not reference or learned-stream acceptance",
+  "source": "docs/spec/world-2.md and docs/bundle.md independent-key contract",
+  "checks": [
+    {
+      "id": "world2-packet-bytes",
+      "requirement": "Exact handbook and owner email, issued 2025-09-01 and 2025-09-22. Copy bytes. No hidden rule or evaluator labels in either packet.",
+      "expected": {
+        "packet_files": 2,
+        "exact_bytes": true,
+        "hidden_rule_absent": true
+      },
+      "assertion": "tests/demo/test_world_2.py::test_exact_packets_and_hidden_rule_absence",
+      "scenario": "tests/scenarios/world2-packet-bytes.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/04-packets.txt"
+    },
+    {
+      "id": "world2-history-membership",
+      "requirement": "H001-H048 open four monthly dates 1,8,15,22 from 2025-10 through 2026-09. H036 finishes by 2026-06-28. Every case finishes within six calendar days. Whole histories follow frozen 36/12 split.",
+      "expected": {
+        "history": [
+          "H001",
+          "H002",
+          "H003",
+          "H004",
+          "H005",
+          "H006",
+          "H007",
+          "H008",
+          "H009",
+          "H010",
+          "H011",
+          "H012",
+          "H013",
+          "H014",
+          "H015",
+          "H016",
+          "H017",
+          "H018",
+          "H019",
+          "H020",
+          "H021",
+          "H022",
+          "H023",
+          "H024",
+          "H025",
+          "H026",
+          "H027",
+          "H028",
+          "H029",
+          "H030",
+          "H031",
+          "H032",
+          "H033",
+          "H034",
+          "H035",
+          "H036",
+          "H037",
+          "H038",
+          "H039",
+          "H040",
+          "H041",
+          "H042",
+          "H043",
+          "H044",
+          "H045",
+          "H046",
+          "H047",
+          "H048"
+        ],
+        "learning": [
+          "H001",
+          "H002",
+          "H003",
+          "H004",
+          "H005",
+          "H006",
+          "H007",
+          "H008",
+          "H009",
+          "H010",
+          "H011",
+          "H012",
+          "H013",
+          "H014",
+          "H015",
+          "H016",
+          "H017",
+          "H018",
+          "H019",
+          "H020",
+          "H021",
+          "H022",
+          "H023",
+          "H024",
+          "H025",
+          "H026",
+          "H027",
+          "H028",
+          "H029",
+          "H030",
+          "H031",
+          "H032",
+          "H033",
+          "H034",
+          "H035",
+          "H036"
+        ],
+        "exam": [
+          "H037",
+          "H038",
+          "H039",
+          "H040",
+          "H041",
+          "H042",
+          "H043",
+          "H044",
+          "H045",
+          "H046",
+          "H047",
+          "H048"
+        ],
+        "chronology_exact": true
+      },
+      "assertion": "tests/demo/test_world_2.py::test_exact_history_calendar_and_full_cohorts",
+      "scenario": "tests/scenarios/world2-history-membership.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/05-history.txt"
+    },
+    {
+      "id": "world2-nested-cohorts",
+      "requirement": "Exact overlapping memberships, two sites for multi-site cases, precise services and nested client/site/employee identities. Benefits-only records have no payroll fields.",
+      "expected": {
+        "multi_site": [
+          "H001",
+          "H002",
+          "H003",
+          "H004",
+          "H005",
+          "H006",
+          "H007",
+          "H008",
+          "H013",
+          "H014",
+          "H015",
+          "H016",
+          "H017",
+          "H018",
+          "H019",
+          "H020",
+          "H025",
+          "H026",
+          "H027",
+          "H028",
+          "H029",
+          "H030",
+          "H031",
+          "H032",
+          "H037",
+          "H038",
+          "H039",
+          "H040",
+          "H041",
+          "H042",
+          "H043",
+          "H044"
+        ],
+        "both_services": [
+          "H002",
+          "H004",
+          "H006",
+          "H008",
+          "H014",
+          "H016",
+          "H018",
+          "H020",
+          "H026",
+          "H028",
+          "H030",
+          "H032",
+          "H038",
+          "H040",
+          "H042",
+          "H044"
+        ],
+        "client_waits": [
+          "H002",
+          "H004",
+          "H006",
+          "H008",
+          "H010",
+          "H012",
+          "H014",
+          "H016",
+          "H018",
+          "H020",
+          "H022",
+          "H024",
+          "H026",
+          "H028",
+          "H030",
+          "H032",
+          "H034",
+          "H036",
+          "H038",
+          "H040",
+          "H042",
+          "H044",
+          "H046",
+          "H048"
+        ],
+        "nested_identities_exact": true
+      },
+      "assertion": "tests/demo/test_world_2.py::test_exact_overlapping_nested_memberships",
+      "scenario": "tests/scenarios/world2-nested-cohorts.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/06-nesting.txt"
+    },
+    {
+      "id": "world2-wait-schedule",
+      "requirement": "Exactly twelve three-day and twelve five-day historical waits. Responses name exact existing requests and revisions. No future answer values in request text.",
+      "expected": {
+        "three_day_history": [
+          "H002",
+          "H006",
+          "H010",
+          "H014",
+          "H018",
+          "H022",
+          "H026",
+          "H030",
+          "H034",
+          "H038",
+          "H042",
+          "H046"
+        ],
+        "five_day_history": [
+          "H004",
+          "H008",
+          "H012",
+          "H016",
+          "H020",
+          "H024",
+          "H028",
+          "H032",
+          "H036",
+          "H040",
+          "H044",
+          "H048"
+        ],
+        "exact_requests_and_responses": true
+      },
+      "assertion": "tests/demo/test_world_2.py::test_exact_client_waits_and_public_response_records",
+      "scenario": "tests/scenarios/world2-wait-schedule.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/07-waits.txt"
+    },
+    {
+      "id": "world2-mistake-evidence-sets",
+      "requirement": "Observed activations H008/H019/H031/H044 occur at data readiness one calendar day before owner authorization. Correct keys are independent. Hidden evidence H006/H018/H030 learns; H042 remains exam.",
+      "expected": {
+        "mistakes": [
+          "H008",
+          "H019",
+          "H031",
+          "H044"
+        ],
+        "learning_evidence": [
+          "H006",
+          "H018",
+          "H030"
+        ],
+        "exam_evidence": [
+          "H042"
+        ],
+        "keys_independent_and_frozen": true
+      },
+      "assertion": "tests/demo/test_world_2.py::test_mistakes_hidden_evidence_and_independent_key",
+      "scenario": "tests/scenarios/world2-mistake-evidence-sets.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/08-keys.txt"
+    },
+    {
+      "id": "world2-stream-schedule",
+      "requirement": "S001-S016 open Jan1-Jan16 2027 08:00. Checks09:00, requests/summaries10:00, responses09:00 after3/5days. Due EOD day3; late notification00:00 day4. Owner10:00 next day, authority11:00, activation12:00.",
+      "expected": {
+        "stream": [
+          "S001",
+          "S002",
+          "S003",
+          "S004",
+          "S005",
+          "S006",
+          "S007",
+          "S008",
+          "S009",
+          "S010",
+          "S011",
+          "S012",
+          "S013",
+          "S014",
+          "S015",
+          "S016"
+        ],
+        "january_10": {
+          "complete": [
+            "S001",
+            "S002",
+            "S003",
+            "S004",
+            "S005",
+            "S006",
+            "S007",
+            "S009"
+          ],
+          "waiting": [
+            "S008",
+            "S010"
+          ],
+          "not_opened": [
+            "S011",
+            "S012",
+            "S013",
+            "S014",
+            "S015",
+            "S016"
+          ]
+        },
+        "final_complete": [
+          "S001",
+          "S002",
+          "S003",
+          "S004",
+          "S005",
+          "S006",
+          "S007",
+          "S008",
+          "S009",
+          "S010",
+          "S011",
+          "S012",
+          "S013",
+          "S014",
+          "S015",
+          "S016"
+        ],
+        "fixture_schedule_exact": true,
+        "execution_claimed": false
+      },
+      "assertion": "tests/demo/test_world_2.py::test_stream_exact_cutoffs_and_fixture_only_outcomes",
+      "scenario": "tests/scenarios/world2-stream-schedule.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/09-stream.txt"
+    },
+    {
+      "id": "world2-isolation",
+      "requirement": "Public checker never reads evaluator. Real projection excludes exam, evaluator, future and other-company bytes. H006 response is delivered at 2025-11-11 09:00; an earlier projection refuses because history adequacy is not yet available. Rule confirmation is excluded at 2026-10-01 09:59:59 and included at its 10:00 delivery, with effective date 2025-10-01. Saved view opens without original bundle.",
+      "expected": {
+        "learning_cases": 36,
+        "exam_excluded": true,
+        "evaluator_excluded": true,
+        "future_responses_excluded": true,
+        "other_company_excluded": true,
+        "self_contained": true,
+        "synthetic_only": true
+      },
+      "assertion": "tests/demo/test_world_2.py::test_public_admission_and_real_learning_boundary",
+      "scenario": "tests/scenarios/world2-isolation.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/10-isolation.txt"
+    },
+    {
+      "id": "world2-seed-variation",
+      "requirement": "Seed changes only synthetic client and employee display names and dependent content identities. All required identities, memberships, schedules, packet bytes and independent answers remain consistent.",
+      "expected": {
+        "changed_name_exports": 128,
+        "only_permitted_variation": true
+      },
+      "assertion": "tests/demo/test_world_2.py::test_seed11_only_changes_synthetic_display_names",
+      "scenario": "tests/scenarios/world2-seed-variation.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/10-variation.txt"
+    },
+    {
+      "id": "world2-unfamiliar-status",
+      "requirement": "Separate roster status fixture holds only affected branch, owner clarification due one day, delivered evidence and test verified before approved version. Outside sixteen-case stream.",
+      "expected": {
+        "separate_from_stream": true,
+        "requirements_preserved": true,
+        "execution_claimed": false
+      },
+      "assertion": "tests/demo/test_world_2.py::test_fixture_scenario_contracts",
+      "scenario": "tests/scenarios/world2-unfamiliar-status.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/11-status.txt"
+    },
+    {
+      "id": "world2-changed-summary",
+      "requirement": "Separate correction fixture changes summary after authorization. Old decision cannot cover new summary or effect; new owner decision precedes exact-change authority and activation.",
+      "expected": {
+        "separate_from_stream": true,
+        "requirements_preserved": true,
+        "execution_claimed": false
+      },
+      "assertion": "tests/demo/test_world_2.py::test_fixture_scenario_contracts",
+      "scenario": "tests/scenarios/world2-changed-summary.json",
+      "status": "PASS",
+      "receipt": "verifier/round1/12-summary.txt"
+    }
+  ],
+  "integration": [
+    {
+      "requirement": "Default collection has world-1/bramblewick, world-1/fennor, world-2/veldren and checked collection.json. World1 version and all bytes preserved alone and in collection.",
+      "assertion": "test_complete_collection_preserves_world1_and_world2_bytes",
+      "early_evidence": "owner/004-early-byte-key-proof.txt",
+      "evidence": [
+        "verifier/round1/02-repeat.txt",
+        "verifier/round1/driver-admission.txt"
+      ],
+      "status": "PASS"
+    },
+    {
+      "requirement": "Failed complete build after World1 staging publishes nothing; invalid selectors/seeds/packets/destination refuse with named diagnostic and unchanged existing state. Deterministic publication barrier preserves one complete winner.",
+      "assertions": [
+        "test_failed_veldren_after_world1_staging_publishes_nothing",
+        "test_refused_selector_or_seed_preserves_existing_state",
+        "test_refused_destination_preserves_state",
+        "test_publication_conflict_preserves_complete_winner"
+      ],
+      "evidence": [
+        "verifier/round1/driver-refusals-v2.txt",
+        "correctness/round1/03-boundaries.txt",
+        "isolation/round1/002-focused-tests.txt"
+      ],
+      "status": "PASS"
+    },
+    {
+      "requirement": "No core semantics, runtime authority, replay, trust, grants, revocation, sampling, actor binding or expected-revision changes. Ordinary run imports no demo/evaluator. Source observations remain data.",
+      "evidence": [
+        "verifier/round1/004-make-check.txt",
+        "isolation/round1/005-boundary-probe-typed-citations.txt",
+        "isolation/round1/006-public-command-import-denial.txt"
+      ],
+      "status": "PASS"
+    },
+    {
+      "requirement": "Five formal samples. World2 generation <=5s. Complete default build plus three public checks <=60s. Peak RSS <=1GiB. Supported identical-workload wall/RSS median regression <=20%. Preserve all failures.",
+      "evidence": [
+        "verifier/round1/formal/023-performance-summary.txt",
+        "verifier/round1/formal/025-performance-artifacts-corrected.txt"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "exact_stream_completion_days": [
+    2,
+    6,
+    4,
+    10,
+    6,
+    10,
+    8,
+    14,
+    10,
+    14,
+    12,
+    18,
+    14,
+    18,
+    16,
+    22
+  ],
+  "exact_stream_response_days": {
+    "S002": 5,
+    "S004": 9,
+    "S006": 9,
+    "S008": 13,
+    "S010": 13,
+    "S012": 17,
+    "S014": 17,
+    "S016": 21
+  },
+  "fixture_only_outcomes": {
+    "january_10_touches": 19,
+    "final_touches": 40,
+    "weekly_touches": {
+      "2026-12-28": 2,
+      "2027-01-04": 17,
+      "2027-01-11": 14,
+      "2027-01-18": 7
+    },
+    "runtime_calls": 0,
+    "history_review_credit": 0,
+    "steps_reaching_300": []
+  },
+  "verification_revision": "499198c",
+  "exact_revision_receipt": "verifier/round1/004-make-check.txt"
+}

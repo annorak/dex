@@ -1,0 +1,10 @@
+{
+  "format": "dex-world2-scenario-1",
+  "scenario_id": "world2-packet-bytes",
+  "case": "world2-packet-bytes",
+  "expected": {
+    "packet_files": 2,
+    "exact_bytes": true,
+    "hidden_rule_absent": true
+  }
+}

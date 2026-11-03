@@ -1,0 +1,22 @@
+{
+  "format": "dex-world2-scenario-1",
+  "scenario_id": "world2-mistake-evidence-sets",
+  "case": "world2-mistake-evidence-sets",
+  "expected": {
+    "mistakes": [
+      "H008",
+      "H019",
+      "H031",
+      "H044"
+    ],
+    "learning_evidence": [
+      "H006",
+      "H018",
+      "H030"
+    ],
+    "exam_evidence": [
+      "H042"
+    ],
+    "keys_independent_and_frozen": true
+  }
+}

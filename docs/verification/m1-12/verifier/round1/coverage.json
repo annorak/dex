@@ -1,0 +1,146 @@
+{
+  "milestone": "M1-12",
+  "product_head": "499198c",
+  "trunk": "5a6faaa",
+  "actual_merged_dependency": "5a6faaa",
+  "exact_revision_receipts": [
+    "004-make-check.txt",
+    "formal/017b-performance-freeze.txt"
+  ],
+  "verifier_outcomes": 12,
+  "separate_reviews": 2,
+  "outcomes": [
+    {
+      "outcome": "repository",
+      "status": "PASS",
+      "receipts": [
+        "004-make-check.txt"
+      ]
+    },
+    {
+      "outcome": "cli-01-demo",
+      "status": "PASS",
+      "receipts": [
+        "01-demo-trunk.txt",
+        "01-demo-parent.txt",
+        "01-demo.txt",
+        "02-repeat.txt"
+      ]
+    },
+    {
+      "outcome": "cli-02-repeat",
+      "status": "PASS",
+      "receipts": [
+        "02-repeat.txt",
+        "driver-repeat.txt"
+      ]
+    },
+    {
+      "outcome": "cli-03-admission",
+      "status": "PASS",
+      "receipts": [
+        "03-admission.txt",
+        "03-admission-bramblewick.txt",
+        "03-admission-fennor.txt",
+        "driver-admission.txt"
+      ]
+    },
+    {
+      "outcome": "cli-04-packets",
+      "status": "PASS",
+      "receipts": [
+        "04-packets.txt",
+        "008-artifact-readback.txt"
+      ]
+    },
+    {
+      "outcome": "cli-05-history",
+      "status": "PASS",
+      "receipts": [
+        "05-history.txt",
+        "008-artifact-readback.txt"
+      ]
+    },
+    {
+      "outcome": "cli-06-nesting",
+      "status": "PASS",
+      "receipts": [
+        "06-nesting.txt",
+        "008-artifact-readback.txt"
+      ]
+    },
+    {
+      "outcome": "cli-07-waits",
+      "status": "PASS",
+      "receipts": [
+        "07-waits.txt",
+        "008-artifact-readback.txt"
+      ]
+    },
+    {
+      "outcome": "cli-08-keys",
+      "status": "PASS",
+      "receipts": [
+        "08-keys.txt",
+        "008-artifact-readback.txt"
+      ]
+    },
+    {
+      "outcome": "cli-09-stream",
+      "status": "PASS",
+      "receipts": [
+        "09-stream.txt",
+        "008-artifact-readback.txt"
+      ]
+    },
+    {
+      "outcome": "cli-10-isolation",
+      "status": "PASS",
+      "receipts": [
+        "10-isolation.txt",
+        "10-variation.txt",
+        "10-seed11-collection.txt",
+        "009-projection-readback.txt",
+        "010-seed11-readback.txt",
+        "011-seed11-byte-proof.txt"
+      ]
+    },
+    {
+      "outcome": "performance",
+      "status": "PASS",
+      "receipts": [
+        "formal/023-performance-summary.txt",
+        "formal/025-performance-artifacts-corrected.txt"
+      ]
+    },
+    {
+      "outcome": "correctness",
+      "status": "PASS",
+      "receipts": [
+        "../../correctness/round1/report.md"
+      ]
+    },
+    {
+      "outcome": "isolation",
+      "status": "PASS",
+      "receipts": [
+        "../../isolation/round1/report.md"
+      ]
+    }
+  ],
+  "performance": {
+    "measurements": 110,
+    "complete_outputs": 30,
+    "public_checks": 55,
+    "max_collection_seconds": 42.677628209,
+    "max_world2_seconds": 1.047055292,
+    "max_supported_rss_bytes": 405078016,
+    "all_supported_median_ratios_pass": true
+  },
+  "scope": "fixture generation and deterministic collection, no reference or learned-stream acceptance",
+  "pending": "Final evidence-only committed-head repository gate and unchanged-product proof remain root-owned.",
+  "preserved_failures": [
+    "M1-11: 45.042089291 seconds against 45",
+    "M1-10: 21.67 percent against 20 percent"
+  ]
+}

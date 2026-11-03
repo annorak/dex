@@ -1,0 +1,14 @@
+{
+  "format": "dex-world2-scenario-1",
+  "scenario_id": "world2-isolation",
+  "case": "world2-isolation",
+  "expected": {
+    "learning_cases": 36,
+    "exam_excluded": true,
+    "evaluator_excluded": true,
+    "future_responses_excluded": true,
+    "other_company_excluded": true,
+    "self_contained": true,
+    "synthetic_only": true
+  }
+}

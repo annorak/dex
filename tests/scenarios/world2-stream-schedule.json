@@ -1,0 +1,69 @@
+{
+  "format": "dex-world2-scenario-1",
+  "scenario_id": "world2-stream-schedule",
+  "case": "world2-stream-schedule",
+  "expected": {
+    "stream": [
+      "S001",
+      "S002",
+      "S003",
+      "S004",
+      "S005",
+      "S006",
+      "S007",
+      "S008",
+      "S009",
+      "S010",
+      "S011",
+      "S012",
+      "S013",
+      "S014",
+      "S015",
+      "S016"
+    ],
+    "january_10": {
+      "complete": [
+        "S001",
+        "S002",
+        "S003",
+        "S004",
+        "S005",
+        "S006",
+        "S007",
+        "S009"
+      ],
+      "waiting": [
+        "S008",
+        "S010"
+      ],
+      "not_opened": [
+        "S011",
+        "S012",
+        "S013",
+        "S014",
+        "S015",
+        "S016"
+      ]
+    },
+    "final_complete": [
+      "S001",
+      "S002",
+      "S003",
+      "S004",
+      "S005",
+      "S006",
+      "S007",
+      "S008",
+      "S009",
+      "S010",
+      "S011",
+      "S012",
+      "S013",
+      "S014",
+      "S015",
+      "S016"
+    ],
+    "fixture_schedule_exact": true,
+    "execution_claimed": false
+  }
+}
