@@ -1,0 +1,10 @@
+{
+  "format": "dex-world2-scenario-1",
+  "scenario_id": "world2-changed-summary",
+  "case": "world2-changed-summary",
+  "expected": {
+    "separate_from_stream": true,
+    "requirements_preserved": true,
+    "execution_claimed": false
+  }
+}

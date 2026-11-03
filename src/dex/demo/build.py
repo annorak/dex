@@ -13,7 +13,7 @@ from dex.bundle.model import Bundle, BundleError
 from dex.bundle.reader import admit_bundle
 from dex.bundle.validation import canonical
 from dex.bundle.writer import write_bundle
-from dex.demo.fixtures import write_world_1_artifacts
+from dex.demo.fixtures import write_world_1_artifacts, write_world_2_artifacts
 from dex.demo.native import XLSX, csv_bytes, pdf_bytes, xlsx_bytes
 from dex.demo.world_1 import (
     COMMUNITIES,
@@ -755,10 +755,8 @@ def snapshots(
 
 
 def build_world(world: str, seed: int, out: Path) -> dict[str, object]:
-    if world != "world-1":
-        raise BundleError(
-            "world_unavailable: request --world world-1; all-world generation requires M1-12"
-        )
+    if world not in ("world-1", "world-2", "all"):
+        raise BundleError("world_unavailable: expected world-1, world-2, or all")
     if type(seed) is not int or not 0 <= seed <= 2**63 - 1:
         raise BundleError(
             "invalid_seed: expected an integer from 0 through 9223372036854775807"
@@ -769,21 +767,41 @@ def build_world(world: str, seed: int, out: Path) -> dict[str, object]:
         parent.is_symlink() for parent in (out.parent, *out.parent.parents)
     ):
         raise BundleError("output_parent: expected an existing directory")
+    companies = COMPANIES if world != "world-2" else {}
+    version = (
+        VERSION
+        if world == "world-1"
+        else "world-2-1"
+        if world == "world-2"
+        else "demo-collection-1"
+    )
     packet_root = Path(__file__).resolve().parents[3] / "docs" / "sources"
     try:
         packets = {
             company: {
                 name: (packet_root / slug / name).read_bytes() for name in PACKETS[slug]
             }
-            for company, slug in COMPANIES.items()
+            for company, slug in companies.items()
         }
-    except OSError as error:
+        veldren_packets: dict[str, bytes] = {}
+        if world != "world-1":
+            from dex.demo.world_2 import PACKETS as VELDREN_PACKETS
+
+            for name in VELDREN_PACKETS:
+                packet = packet_root / "veldren" / name
+                if packet.is_symlink():
+                    raise BundleError(
+                        "source_packet_unavailable: symbolic link " + name
+                    )
+                veldren_packets[name] = packet.read_bytes()
+                veldren_packets[name].decode("utf-8")
+    except (OSError, UnicodeError) as error:
         raise BundleError("source_packet_unavailable: " + str(error)) from error
     with tempfile.TemporaryDirectory(prefix=".dex-world-", dir=out.parent) as temporary:
         staging = Path(temporary) / "collection"
         staging.mkdir()
         entries: list[dict[str, str]] = []
-        for company, slug in COMPANIES.items():
+        for company, slug in companies.items():
             bundle, specification = company_bundle(
                 company, seed, packets[company], make_cases(company, seed)
             )
@@ -801,11 +819,29 @@ def build_world(world: str, seed: int, out: Path) -> dict[str, object]:
                     ).hexdigest(),
                 }
             )
+        if world != "world-1":
+            from dex.demo.world_2 import company_bundle as veldren_bundle
+
+            bundle, specification = veldren_bundle(seed, veldren_packets)
+            target = staging / "world-2" / "veldren"
+            target.parent.mkdir()
+            write_bundle(bundle, target)
+            write_world_2_artifacts(target, specification)
+            entries.append(
+                {
+                    "path": "world-2/veldren",
+                    "bundle_id": bundle.bundle_id,
+                    "company_id": "C3",
+                    "manifest_sha256": sha256(
+                        (target / "bundle.json").read_bytes()
+                    ).hexdigest(),
+                }
+            )
         (staging / "collection.json").write_bytes(
             canonical(
                 {
                     "format_version": "dex-company-collection-1",
-                    "collection_id": f"{VERSION}-seed-{seed}",
+                    "collection_id": f"{version}-seed-{seed}",
                     "bundles": entries,
                 }
             )
@@ -836,8 +872,8 @@ def build_world(world: str, seed: int, out: Path) -> dict[str, object]:
     return {
         "world": world,
         "seed": seed,
-        "generator_version": VERSION,
-        "companies": list(COMPANIES),
+        "generator_version": version,
+        "companies": list(companies) + (["C3"] if world != "world-1" else []),
         "output": str(out),
     }
 

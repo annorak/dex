@@ -1,0 +1,10 @@
+{
+  "format": "dex-world2-scenario-1",
+  "scenario_id": "world2-unfamiliar-status",
+  "case": "world2-unfamiliar-status",
+  "expected": {
+    "separate_from_stream": true,
+    "requirements_preserved": true,
+    "execution_claimed": false
+  }
+}

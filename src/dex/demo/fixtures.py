@@ -9,3 +9,12 @@ def write_world_1_artifacts(path: Path, specification: dict[str, Any]) -> None:
         destination = path / "eval" / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(content)
+
+
+def write_world_2_artifacts(path: Path, specification: dict[str, Any]) -> None:
+    from dex.eval.world_2 import artifacts
+
+    for name, content in artifacts(specification).items():
+        destination = path / "eval" / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(content)

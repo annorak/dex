@@ -137,8 +137,7 @@ def test_seed_changes_permitted_values_only() -> None:
 @pytest.mark.parametrize(
     "world_name,seed,reason",
     [
-        ("all", 7, "world_unavailable"),
-        ("world-2", 7, "world_unavailable"),
+        ("unknown", 7, "world_unavailable"),
         ("world-1", -1, "invalid_seed"),
         ("world-1", 2**63, "invalid_seed"),
     ],
