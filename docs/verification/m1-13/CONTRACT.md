@@ -1,6 +1,6 @@
 # M1-13 contracts
 
-Status: implementation in progress. No process reference exists. M1-14 is not part of this change.
+Status: implemented and independently reviewed at the product head in REPORT.md. No process reference exists. M1-14 is not part of this change.
 
 `dex eval --scenario tests/scenarios/score-*.json --out RUN` freezes independently written keys and immutable execution bytes before invoking the existing checked scenario executor. The executor receives programs, admitted sources, facts, company, cohort, business date and cutoff. It receives no expected answers. The bundle bridge compares the supplied learning view with the existing projection of the admitted bundle. Exam facts are released only to evaluator-owned frozen execution. Learning artifacts retain their original exclusion rules.
 
