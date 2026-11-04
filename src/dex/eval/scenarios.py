@@ -11,10 +11,12 @@ from dex.core import program as p
 from dex.core import runtime as r
 from dex.eval.scenario_format import (
     MAX_BYTES,
+    Command,
     ContinuationCommand,
     EffectCommand,
     FunctionCommand,
     FunctionExpected,
+    Program,
     RebuildCommand,
     RecordingCommand,
     RuntimeExpected,
@@ -64,15 +66,23 @@ class Evaluation:
     final_runtime: RuntimeObservation
 
 
-def evaluate(scenario: Scenario) -> Evaluation:
-    programs = {item.name: item for item in scenario.programs}
+@dataclass(frozen=True)
+class Execution:
+    observations: tuple[Observation, ...]
+    final_runtime: RuntimeObservation
+
+
+def execute(
+    artifacts: tuple[Program, ...], commands: tuple[Command, ...], detail: str
+) -> Execution:
+    programs = {item.name: item for item in artifacts}
     observations: list[Observation] = []
     runtime_history: list[e.RuntimeEvent] = []
     runtime_state = r.rebuild((), r.ProgramCatalog(()))
     runtime_entries: dict[str, r.ArtifactEntry] = {}
     catalog = r.ProgramCatalog(())
     verified: dict[tuple[str, language.Limits], p.VerificationResult] = {}
-    for command in scenario.commands:
+    for command in commands:
         program = programs[command.program]
         limits = (
             command.limits
@@ -215,9 +225,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     runtime_state = decision.state
                     status = "runtime_" + runtime_state.cases[case_id].status
                     failure = runtime_state.cases[case_id].failure
-            is_effect_delta = (
-                isinstance(command, EffectCommand) and scenario.detail == "changes"
-            )
+            is_effect_delta = isinstance(command, EffectCommand) and detail == "changes"
             case_work = (
                 ()
                 if is_effect_delta
@@ -269,7 +277,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                 failure,
                 batch,
                 case_work
-                if scenario.detail == "full"
+                if detail == "full"
                 else tuple(
                     work
                     for work in case_work
@@ -283,7 +291,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     task
                     for ref, task in runtime_state.tasks.items()
                     if ref.work.address.case_id == case_id
-                    and (scenario.detail == "full" or before.tasks.get(ref) != task)
+                    and (detail == "full" or before.tasks.get(ref) != task)
                 ),
                 tuple(runtime_state.actions[key] for key in sorted(changed_actions))
                 if is_effect_delta
@@ -291,7 +299,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     action
                     for key, action in runtime_state.actions.items()
                     if r.command_case(action) == case_id
-                    and (scenario.detail == "full" or key not in before.actions)
+                    and (detail == "full" or key not in before.actions)
                 ),
                 ()
                 if is_effect_delta
@@ -299,7 +307,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     recording
                     for ref, recording in runtime_state.recordings.items()
                     if ref.address.case_id == case_id
-                    and (scenario.detail == "full" or ref not in before.recordings)
+                    and (detail == "full" or ref not in before.recordings)
                 ),
                 ()
                 if is_effect_delta
@@ -307,7 +315,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     work
                     for ref, work in runtime_state.history.items()
                     if ref.address.case_id == case_id
-                    and (scenario.detail == "full" or ref not in before.history)
+                    and (detail == "full" or ref not in before.history)
                 ),
                 submitted,
                 tuple(
@@ -315,7 +323,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                     for ref in sorted(changed_effects, key=repr)
                     if before.effects.get(ref) != runtime_state.effects[ref]
                 )
-                if scenario.detail == "changes"
+                if detail == "changes"
                 else tuple(
                     effect
                     for ref, effect in runtime_state.effects.items()
@@ -324,7 +332,7 @@ def evaluate(scenario: Scenario) -> Evaluation:
                 tuple(
                     sorted(
                         runtime_state.revoked_approvals
-                        if scenario.detail == "full"
+                        if detail == "full"
                         else runtime_state.revoked_approvals - before.revoked_approvals
                     )
                 ),
@@ -398,6 +406,14 @@ def evaluate(scenario: Scenario) -> Evaluation:
         effects=tuple(runtime_state.effects.values()),
         revoked_approvals=tuple(sorted(runtime_state.revoked_approvals)),
     )
+    return Execution(tuple(observations), final_runtime)
+
+
+def evaluate(scenario: Scenario) -> Evaluation:
+    execution = execute(scenario.programs, scenario.commands, scenario.detail)
+    observations = execution.observations
+    final_runtime = execution.final_runtime
+    final_replay_equal = final_runtime.replay_equal is True
     matches = tuple(
         (
             actual.status == expected.status
@@ -490,6 +506,13 @@ def run_scenario(path: Path, out: Path) -> int:
             from dex.eval.world_2_scenarios import run_world2_scenario
 
             return run_world2_scenario(source, out)
+        if (
+            isinstance(header, dict)
+            and cast(dict[str, object], header).get("format") == "dex-score-scenario-1"
+        ):
+            from dex.eval.score_scenarios import run_score_scenario
+
+            return run_score_scenario(source, out)
         scenario = parse_scenario(source)
         evaluation = evaluate(scenario)
         actual = {

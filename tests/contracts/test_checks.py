@@ -656,12 +656,21 @@ def test_cli_help(tmp_path: Path) -> None:
     )
 
 
-def test_cli_unavailable_commands_fail(tmp_path: Path) -> None:
+def test_report_requires_recorded_run(tmp_path: Path) -> None:
     run_check(
         [Path(sys.executable).with_name("dex"), "report"],
         cwd=tmp_path,
         expected_returncode=2,
-        diagnostic="invalid choice: 'report'",
+        diagnostic="the following arguments are required: run",
+    )
+
+
+def test_report_help(tmp_path: Path) -> None:
+    run_check(
+        [Path(sys.executable).with_name("dex"), "report", "--help"],
+        cwd=tmp_path,
+        expected_returncode=0,
+        diagnostic="usage: dex report",
     )
 
 

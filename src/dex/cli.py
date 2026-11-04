@@ -10,10 +10,16 @@ def main() -> None:
     )
     commands = parser.add_subparsers(dest="command")
     evaluator = commands.add_parser(
-        "eval", help="Verify a versioned evaluator scenario without activating it."
+        "eval", help="Score independent outcomes or verify an evaluator scenario."
     )
-    evaluator.add_argument("--scenario", required=True, type=Path)
+    evaluator.add_argument("bundle", nargs="?", type=Path)
+    evaluator.add_argument("--reference", action="store_true")
+    evaluator.add_argument("--scenario", type=Path)
     evaluator.add_argument("--out", required=True, type=Path)
+    report = commands.add_parser(
+        "report", help="Read recorded evaluation evidence without execution."
+    )
+    report.add_argument("run", type=Path)
     workspace = commands.add_parser(
         "workspace", help="Persist typed local workspace commands."
     )
@@ -81,7 +87,21 @@ def main() -> None:
                 arguments.bundle, arguments.program, arguments.workspace, arguments.out
             )
         )
+    if arguments.command == "report":
+        from dex.eval.report import run_report
+
+        raise SystemExit(run_report(arguments.run))
     if arguments.command == "eval":
+        if arguments.scenario is not None and (
+            arguments.bundle is not None or arguments.reference
+        ):
+            parser.error("eval_selector: choose scenario or bundle --reference")
+        if arguments.scenario is None:
+            if arguments.bundle is None or not arguments.reference:
+                parser.error("eval_selector: bundle evaluation requires --reference")
+            from dex.eval.admission import run_reference
+
+            raise SystemExit(run_reference(arguments.bundle, arguments.out))
         from dex.eval.scenarios import run_scenario
 
         raise SystemExit(run_scenario(arguments.scenario, arguments.out))
