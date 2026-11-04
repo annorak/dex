@@ -12,7 +12,9 @@ from dex.bundle.projection import materialize_learning
 from dex.bundle.reader import load_bundle
 from dex.bundle.validation import canonical
 from dex.core import program as p
-from dex.eval.identity import engine_manifest
+from dex.eval.admission import load_evaluator, run_reference, validate_evaluator_answers
+from dex.eval.bundle_fixture import AT, make_bundle
+from dex.eval.identity import digest, engine_manifest
 from dex.eval.projection_fixture import CUTOFF as PROJECTION_CUTOFF
 from dex.eval.projection_fixture import projection_bundle
 from dex.eval.score_execution import execute_frozen, freeze_execution
@@ -361,3 +363,173 @@ def test_cutoff_preserves_not_started_case() -> None:
     assert set(actual) == {"case-00001"}
     assert actual["case-00001"]["status"] == "not_started"
     assert actual["case-00001"]["decision"] is None
+
+
+def evaluator_answer(world: int) -> dict[str, Any]:
+    if world == 1:
+        return {
+            "decision": "duplicate",
+            "state": "duplicate",
+            "prior": "earlier-case",
+            "approvals": [],
+            "effects": [],
+            "waits": [],
+        }
+    return {
+        "decision": "activate_after_authorization",
+        "case_id": "case-1",
+        "branches": [],
+        "summary": {},
+        "business_decision": {},
+        "engine_authority": {},
+        "effects": [],
+        "waits": [],
+        "completed_at": AT,
+        "runtime_model_calls": 0,
+    }
+
+
+@pytest.mark.parametrize("world", [1, 2])
+@pytest.mark.parametrize(
+    "field,value,diagnostic",
+    [
+        ("effects", [None], "answer.effect: expected object"),
+        ("waits", [None], "answer.wait: expected object"),
+        ("decision", [], "answer.decision: expected nonempty text"),
+    ],
+)
+def test_evaluator_rejects_malformed_answer_members(
+    world: int,
+    field: str,
+    value: object,
+    diagnostic: str,
+) -> None:
+    answer = evaluator_answer(world)
+    version = f"dex-world-{world}-evaluator-1"
+    validate_evaluator_answers(version, {"case-1": answer}, {}, {})
+    answer[field] = value
+    with pytest.raises(BundleError, match=diagnostic):
+        validate_evaluator_answers(version, {"case-1": answer}, {}, {})
+
+
+@pytest.mark.parametrize("field", ["summary", "business_decision", "engine_authority"])
+def test_evaluator_rejects_null_world2_records(field: str) -> None:
+    answer = evaluator_answer(2)
+    answer[field] = None
+    with pytest.raises(BundleError, match="answer." + field + ": expected object"):
+        validate_evaluator_answers(
+            "dex-world-2-evaluator-1", {"case-1": answer}, {}, {}
+        )
+
+
+@pytest.mark.parametrize("world", [1, 2])
+def test_evaluator_rejects_nontext_observed_actor(world: int) -> None:
+    observed = {
+        "actor": "person",
+        "available_at": AT,
+        "observed_at": AT,
+        "occurred_at": AT,
+    }
+    names = (
+        (
+            "approval_roles",
+            "community",
+            "decision",
+            "due_date",
+            "invoice_number",
+            "posting_month",
+            "snow_review",
+            "vendor",
+        )
+        if world == 1
+        else (
+            "activated_at",
+            "case_id",
+            "client_id",
+            "confirmation_id",
+            "owner_decided_at",
+            "payload",
+            "payload_sha256",
+            "summary_id",
+        )
+    )
+    row: dict[str, Any] = {**observed, **dict.fromkeys(names, "case-1")}
+    version = f"dex-world-{world}-evaluator-1"
+    validate_evaluator_answers(version, {}, {"case-1": row}, {})
+    row["actor"] = []
+    with pytest.raises(BundleError, match="observed.actor: expected nonempty text"):
+        validate_evaluator_answers(version, {}, {"case-1": row}, {})
+
+
+@pytest.mark.parametrize("invalid", ["responses", "format", "decision"])
+def test_invalid_evaluator_cli_preserves_inputs_and_destination(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    invalid: str,
+) -> None:
+    root = tmp_path / "bundle"
+    make_bundle(root)
+    bundle = load_bundle(root)
+    evaluator = root / "eval"
+    evaluator.mkdir()
+    artifacts = {
+        "answer-key.json": canonical({"case-1": evaluator_answer(1)}),
+        "answer-sheet.json": canonical({}),
+        "mistakes.json": canonical({}),
+        "response-scripts.json": canonical({}),
+        "fixture.json": canonical(
+            {
+                "company": bundle.company_id,
+                "seed": 7,
+                "generator_version": "checked-test",
+                "learning": [],
+                "exam": [],
+                "source_hashes": {},
+                "cases": [{"case_id": "case-1", "received": AT}],
+                "stream": ["case-1"],
+                "cutoff": AT,
+            }
+        ),
+    }
+    manifest: dict[str, Any] = {
+        "format": "dex-world-1-evaluator-1",
+        "company": bundle.company_id,
+        "seed": 7,
+        "generator_version": "checked-test",
+        "key_frozen_before_reference_execution": True,
+        "reference_programs": [],
+    }
+
+    def save() -> None:
+        for name, content in artifacts.items():
+            (evaluator / name).write_bytes(content)
+        manifest["artifacts"] = {
+            name: digest(content) for name, content in artifacts.items()
+        }
+        (evaluator / "manifest.json").write_bytes(canonical(manifest))
+
+    save()
+    assert load_evaluator(evaluator, bundle).bundle == bundle
+    diagnostic = ""
+    if invalid == "responses":
+        artifacts["response-scripts.json"] = b"not JSON"
+        diagnostic = "response_scripts: invalid JSON"
+    elif invalid == "format":
+        manifest["format"] = []
+        diagnostic = "evaluator.format: expected nonempty text"
+    else:
+        answer = evaluator_answer(1)
+        answer["decision"] = []
+        artifacts["answer-key.json"] = canonical({"case-1": answer})
+        diagnostic = "answer.decision: expected nonempty text"
+    save()
+    before = {path: path.read_bytes() for path in root.rglob("*") if path.is_file()}
+    destination = tmp_path / "run"
+    assert run_reference(root, destination) == 2
+    error = json.loads(capsys.readouterr().err)
+    assert error["code"] == "evaluator_invalid"
+    assert diagnostic in error["message"]
+    assert not destination.exists()
+    assert before == {
+        path: path.read_bytes() for path in root.rglob("*") if path.is_file()
+    }

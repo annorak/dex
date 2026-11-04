@@ -50,7 +50,7 @@ def load_evaluator(path: Path, bundle: Bundle) -> EvaluatorInputs:
             set(),
             "evaluator_manifest",
         )
-        if manifest["format"] not in {
+        if text(manifest["format"], "evaluator.format") not in {
             "dex-world-1-evaluator-1",
             "dex-world-2-evaluator-1",
         }:
@@ -92,6 +92,7 @@ def load_evaluator(path: Path, bundle: Bundle) -> EvaluatorInputs:
         sheet = parse_json(frozen["answer-sheet.json"], "answer_sheet")
         mistakes = parse_json(frozen["mistakes.json"], "mistakes")
         fixture = parse_json(frozen["fixture.json"], "fixture")
+        parse_json(frozen["response-scripts.json"], "response_scripts")
         cohort = freeze_cohorts(bundle)
         declared_cases = {case.case_id for case in bundle.cases}
         shadow = case_ids(fixture.get("shadow", []), "shadow")
@@ -295,21 +296,41 @@ def validate_evaluator_answers(
         }
     for case_id, raw in key.items():
         row = object_value(raw, "evaluator.answer")
+        decision = text(row.get("decision"), "answer.decision")
         shape = expected_fields
-        if version == "dex-world-1-evaluator-1" and row.get("decision") in {
+        if version == "dex-world-1-evaluator-1" and decision in {
             "duplicate",
             "cancellation",
         }:
             shape = {"approvals", "decision", "effects", "prior", "state", "waits"}
         fields(row, shape, set(), "evaluator.answer")
-        text(row["decision"], "answer.decision")
-        items(row["effects"], "answer.effects")
-        items(row["waits"], "answer.waits")
+        for raw_effect in items(row["effects"], "answer.effects"):
+            effect = object_value(raw_effect, "answer.effect")
+            text(effect["operation"], "effect.operation")
+            identity = (
+                "identity" if version == "dex-world-1-evaluator-1" else "effect_id"
+            )
+            text(effect[identity], "effect.identity")
+            object_value(effect["payload"], "effect.payload")
+        for raw_wait in items(row["waits"], "answer.waits"):
+            wait = object_value(raw_wait, "answer.wait")
+            text(wait["request_id"], "wait.request_id")
+            text(wait["actor"], "wait.actor")
+            timestamp(wait["due_at"], "wait.due_at")
+            for clock in ("responded_at", "observed_at", "available_at"):
+                if wait.get(clock) is not None:
+                    timestamp(wait[clock], "wait." + clock)
+        if version == "dex-world-2-evaluator-1":
+            for name in ("summary", "business_decision", "engine_authority"):
+                object_value(row[name], "answer." + name)
+            for branch in items(row["branches"], "answer.branches"):
+                object_value(branch, "answer.branch")
         if "case_id" in row and row["case_id"] != case_id:
             raise BundleError("evaluator_answer_identity")
     for case_id, raw in sheet.items():
         row = object_value(raw, "evaluator.observed")
         fields(row, observed_fields, set(), "evaluator.observed")
+        text(row["actor"], "observed.actor")
         for clock in ("available_at", "observed_at", "occurred_at"):
             timestamp(row[clock], "observed." + clock)
         if "case_id" in row and row["case_id"] != case_id:
