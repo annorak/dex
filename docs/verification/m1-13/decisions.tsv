@@ -1,0 +1,9 @@
+recorded_at	decision	reason	evidence
+2026-11-04	Preserve original checkout and use fresh isolated worktree	User requires current GitHub dependency and isolation	Original setup checkpoint; base e990a338
+2026-11-04	Keep process reference selection explicitly unavailable	References belong to M1-14 through M1-16	owner/008-early-reference-bundle.txt; owner/016-collection-reference.txt
+2026-11-04	Separate executor inputs from expected outcomes	Exam/key isolation and independent scoring	proposals/01-execution-scoring.patch; tests/eval/test_scoring.py
+2026-11-04	Label ledger as supplied historical evidence	Synthetic ledger actions were not performed by current execution	Early correctness review; proposals/08-provenance-and-complete-outcomes.patch
+2026-11-04	Preserve all key-failure case metadata	Prevent failed integrity checks from shrinking report denominators	owner/018-focused-integrity.txt
+2026-11-04	Reuse immutable seed7 generation inputs	Exact generator/admission applicability proof avoids historical matrix rerun	verifier/preflight/032-input-reuse-proof.txt
+2026-11-04	Freeze help and arithmetic supported regressions	CLI dispatch and shared executor are the supported changed boundaries	verifier/performance-plan.md
+2026-11-04	Record checklist after first integration honestly	No backdated process evidence	CHECKLIST.md; owner/006-early-eval.txt
